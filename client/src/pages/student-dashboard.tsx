@@ -1,6 +1,16 @@
 import { useState } from "react";
 import { Link } from "wouter";
-import { FileQuestion, BookOpen, BarChart3 } from "lucide-react";
+import { 
+  FileQuestion, 
+  BookOpen, 
+  BarChart3, 
+  Video, 
+  MessageSquare, 
+  Trophy, 
+  Sparkles,
+  Brain,
+  Users
+} from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 
 import { Sidebar } from "@/components/layout/sidebar";
@@ -12,6 +22,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 // Test interface for typing
 interface Test {
@@ -60,7 +71,7 @@ export default function StudentDashboard() {
     },
     {
       title: "Study Materials",
-      description: "Access recommended resources",
+      description: "Access AI-recommended resources",
       icon: <BookOpen className="h-6 w-6" />,
       href: "/resources",
       bgColor: "bg-secondary/10 dark:bg-secondary/20",
@@ -68,11 +79,35 @@ export default function StudentDashboard() {
     },
     {
       title: "My Progress",
-      description: "View your performance",
+      description: "View your performance stats",
       icon: <BarChart3 className="h-6 w-6" />,
       href: "/progress",
       bgColor: "bg-accent/10 dark:bg-accent/20",
       iconColor: "text-accent",
+    },
+    {
+      title: "AI Tutor",
+      description: "Get help with difficult concepts",
+      icon: <Brain className="h-6 w-6" />,
+      href: "/ai-tutor",
+      bgColor: "bg-blue-500/10 dark:bg-blue-500/20",
+      iconColor: "text-blue-500",
+    },
+    {
+      title: "Live Classes",
+      description: "Join scheduled live sessions",
+      icon: <Video className="h-6 w-6" />,
+      href: "/live-classes",
+      bgColor: "bg-purple-500/10 dark:bg-purple-500/20",
+      iconColor: "text-purple-500",
+    },
+    {
+      title: "Study Groups",
+      description: "Collaborate with classmates",
+      icon: <Users className="h-6 w-6" />,
+      href: "/study-groups",
+      bgColor: "bg-green-500/10 dark:bg-green-500/20",
+      iconColor: "text-green-500",
     },
   ];
 
@@ -175,11 +210,14 @@ export default function StudentDashboard() {
           </section>
 
           {/* Performance & Learning Insights */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             {/* Performance Metrics */}
             <Card>
-              <CardHeader>
-                <CardTitle>My Performance</CardTitle>
+              <CardHeader className="pb-2">
+                <div className="flex items-center">
+                  <BarChart3 className="h-5 w-5 text-primary mr-2" />
+                  <CardTitle className="text-lg font-medium">My Performance</CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
                 {analyticsLoading ? (
@@ -227,8 +265,11 @@ export default function StudentDashboard() {
 
             {/* Learning Recommendations */}
             <Card>
-              <CardHeader>
-                <CardTitle>Learning Recommendations</CardTitle>
+              <CardHeader className="pb-2">
+                <div className="flex items-center">
+                  <Sparkles className="h-5 w-5 text-primary mr-2" />
+                  <CardTitle className="text-lg font-medium">AI Recommendations</CardTitle>
+                </div>
               </CardHeader>
               <CardContent>
                 {analyticsLoading ? (
@@ -297,6 +338,108 @@ export default function StudentDashboard() {
                     </Button>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </div>
+          
+          {/* Gamification Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {/* Achievements & Badges */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <Trophy className="h-5 w-5 text-yellow-500 mr-2" />
+                    <CardTitle className="text-lg font-medium">Achievements</CardTitle>
+                  </div>
+                  <Badge className="bg-yellow-500">2 New</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex items-center p-3 rounded-md bg-yellow-500/10 border border-yellow-200 dark:border-yellow-900/50">
+                    <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-700 dark:text-yellow-500 mr-3">
+                      <Trophy className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">Math Genius</div>
+                      <div className="text-xs text-muted-foreground">Scored 95% in Calculus Test</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center p-3 rounded-md bg-blue-500/10 border border-blue-200 dark:border-blue-900/50">
+                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-500 mr-3">
+                      <Brain className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">Science Explorer</div>
+                      <div className="text-xs text-muted-foreground">Completed 10 Chemistry Experiments</div>
+                    </div>
+                  </div>
+                  <Link href="/achievements" className="text-xs text-primary hover:underline block text-center mt-2">
+                    View all achievements
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Daily Streak */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center">
+                  <Sparkles className="h-5 w-5 text-primary mr-2" />
+                  <CardTitle className="text-lg font-medium">Learning Streak</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-col items-center justify-center p-4">
+                  <div className="text-4xl font-bold text-primary mb-2">7</div>
+                  <div className="text-sm text-center mb-4">days in a row</div>
+                  <div className="w-full bg-muted rounded-full h-2.5 mb-4">
+                    <div className="bg-gradient-to-r from-primary/80 to-primary h-2.5 rounded-full" style={{ width: '70%' }}></div>
+                  </div>
+                  <div className="text-xs text-muted-foreground text-center">3 more days to unlock "Dedicated Learner" badge</div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Challenge Friends */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center">
+                  <Users className="h-5 w-5 text-primary mr-2" />
+                  <CardTitle className="text-lg font-medium">Challenge Friends</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="bg-muted p-3 rounded-md">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-medium mr-2">
+                          AK
+                        </div>
+                        <span className="text-sm font-medium">Aryan Kumar</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs">Physics</Badge>
+                    </div>
+                    <Button size="sm" className="w-full" variant="outline">Accept Challenge</Button>
+                  </div>
+                  <div className="bg-muted p-3 rounded-md">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center">
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-medium mr-2">
+                          PS
+                        </div>
+                        <span className="text-sm font-medium">Priya Sharma</span>
+                      </div>
+                      <Badge variant="outline" className="text-xs">Math Quiz</Badge>
+                    </div>
+                    <Button size="sm" className="w-full" variant="outline">Accept Challenge</Button>
+                  </div>
+                  <Link href="/challenges" className="text-xs text-primary hover:underline block text-center mt-2">
+                    Create new challenge
+                  </Link>
+                </div>
               </CardContent>
             </Card>
           </div>

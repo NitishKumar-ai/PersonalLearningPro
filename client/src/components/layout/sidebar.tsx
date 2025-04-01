@@ -13,6 +13,12 @@ import {
   Settings,
   LogOut,
   Menu,
+  ScanBarcode,
+  Sparkles,
+  MessageSquare,
+  BookOpen,
+  Brain,
+  Trophy,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -44,6 +50,11 @@ export function Sidebar({ className }: SidebarProps) {
       icon: <FileQuestion className="h-5 w-5" />,
     },
     {
+      title: "Scan Tests",
+      href: "/ocr-scan",
+      icon: <ScanBarcode className="h-5 w-5" />,
+    },
+    {
       title: "Analytics",
       href: "/analytics",
       icon: <BarChart className="h-5 w-5" />,
@@ -54,9 +65,19 @@ export function Sidebar({ className }: SidebarProps) {
       icon: <Users className="h-5 w-5" />,
     },
     {
+      title: "AI Study Plans",
+      href: "/ai-study-plans",
+      icon: <Sparkles className="h-5 w-5" />,
+    },
+    {
       title: "Live Classes",
       href: "/live-classes",
       icon: <Video className="h-5 w-5" />,
+    },
+    {
+      title: "Messages",
+      href: "/messages",
+      icon: <MessageSquare className="h-5 w-5" />,
     },
     {
       title: "Settings",
@@ -83,9 +104,29 @@ export function Sidebar({ className }: SidebarProps) {
       icon: <BarChart className="h-5 w-5" />,
     },
     {
+      title: "Resources",
+      href: "/resources",
+      icon: <BookOpen className="h-5 w-5" />,
+    },
+    {
+      title: "AI Tutor",
+      href: "/ai-tutor",
+      icon: <Brain className="h-5 w-5" />,
+    },
+    {
       title: "Live Classes",
       href: "/live-classes",
       icon: <Video className="h-5 w-5" />,
+    },
+    {
+      title: "Study Groups",
+      href: "/study-groups",
+      icon: <Users className="h-5 w-5" />,
+    },
+    {
+      title: "Achievements",
+      href: "/achievements",
+      icon: <Trophy className="h-5 w-5" />,
     },
     {
       title: "Settings",
