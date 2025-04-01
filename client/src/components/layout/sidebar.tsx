@@ -208,12 +208,13 @@ export function Sidebar({ className }: SidebarProps) {
             {items.map((item) => {
               const isActive = location === item.href;
               return (
-                <Link
+                <div
                   key={item.href}
-                  href={item.href}
-                  onClick={closeMobileMenu}
+                  className="block"
                 >
-                  <a
+                  <Link
+                    href={item.href}
+                    onClick={closeMobileMenu}
                     className={cn(
                       "flex items-center px-4 py-3 text-sm rounded-md transition-colors group",
                       isActive
@@ -223,8 +224,8 @@ export function Sidebar({ className }: SidebarProps) {
                   >
                     <span className="mr-3">{item.icon}</span>
                     <span>{item.title}</span>
-                  </a>
-                </Link>
+                  </Link>
+                </div>
               );
             })}
           </nav>

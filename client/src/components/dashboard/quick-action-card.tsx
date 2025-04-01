@@ -19,18 +19,16 @@ export function QuickActionCard({
   iconColor = "text-primary",
 }: QuickActionCardProps) {
   return (
-    <Link href={href}>
-      <a className="block">
-        <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 h-full flex items-center justify-between cursor-pointer">
-          <div>
-            <h3 className="font-medium mb-1">{title}</h3>
-            <p className="text-sm text-muted-foreground">{description}</p>
-          </div>
-          <div className={cn("h-12 w-12 rounded-full flex items-center justify-center", bgColor, iconColor)}>
-            {icon}
-          </div>
+    <Link href={href} className="block">
+      <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 h-full flex items-center justify-between cursor-pointer">
+        <div>
+          <h3 className="font-medium mb-1">{title}</h3>
+          <p className="text-sm text-muted-foreground">{description}</p>
         </div>
-      </a>
+        <div className={cn("h-12 w-12 rounded-full flex items-center justify-center", bgColor, iconColor)}>
+          {icon}
+        </div>
+      </div>
     </Link>
   );
 }
