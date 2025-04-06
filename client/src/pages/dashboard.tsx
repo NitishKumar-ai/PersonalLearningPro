@@ -21,6 +21,7 @@ import { QuickActionCard } from "@/components/dashboard/quick-action-card";
 import { RecentTestsTable } from "@/components/dashboard/recent-tests-table";
 import { TopStudents } from "@/components/dashboard/top-students";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
+import { ClassSchedule } from "@/components/dashboard/class-schedule";
 import { useAuth } from "@/contexts/auth-context";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -177,6 +178,11 @@ export default function Dashboard() {
             </div>
           </section>
 
+          {/* Class Schedule Section */}
+          <section className="mb-8">
+            <ClassSchedule />
+          </section>
+          
           {/* Recent Tests & Performance Section */}
           <section className="mb-8">
             <div className="flex items-center justify-between mb-4">
