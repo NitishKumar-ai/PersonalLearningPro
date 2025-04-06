@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useAuth } from "@/contexts/auth-context";
+import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 
 import {
   Card,
@@ -27,21 +27,21 @@ import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const loginSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
 type LoginValues = z.infer<typeof loginSchema>;
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login } = useFirebaseAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
@@ -49,10 +49,13 @@ export default function Login() {
   async function onSubmit(data: LoginValues) {
     try {
       setIsLoading(true);
-      await login(data.username, data.password);
+      await login(data.email, data.password);
       setLocation("/dashboard");
     } catch (error) {
       console.error("Login failed:", error);
+      form.setError("root", { 
+        message: "Invalid email or password" 
+      });
       setIsLoading(false);
     }
   }
@@ -80,13 +83,14 @@ export default function Login() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="username"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Enter your username"
+                        type="email"
+                        placeholder="Enter your email"
                         {...field}
                         disabled={isLoading}
                       />
@@ -141,12 +145,12 @@ export default function Login() {
             <div className="mt-1 grid grid-cols-2 gap-2 text-xs">
               <div className="border rounded-md p-2">
                 <p className="font-semibold">Teacher</p>
-                <p>Username: teacher1</p>
+                <p>Email: teacher@example.com</p>
                 <p>Password: password123</p>
               </div>
               <div className="border rounded-md p-2">
                 <p className="font-semibold">Student</p>
-                <p>Username: student1</p>
+                <p>Email: student@example.com</p>
                 <p>Password: password123</p>
               </div>
             </div>

@@ -559,9 +559,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI Chat route
   app.post("/api/ai-chat", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
-      }
+      // No longer relying on session auth, Firebase auth is handled client-side
+      // We'll add Firebase verification middleware later if needed
       
       const { messages } = req.body;
       

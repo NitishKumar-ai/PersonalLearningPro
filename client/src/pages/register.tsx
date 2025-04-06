@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useAuth } from "@/contexts/auth-context";
+import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 
 import {
   Card,
@@ -38,7 +38,7 @@ const registerSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
-  role: z.enum(["student", "teacher"], {
+  role: z.enum(["student", "teacher", "principal", "admin", "parent"], {
     required_error: "Please select a role",
   }),
   class: z.string().optional(),
@@ -48,7 +48,7 @@ const registerSchema = z.object({
 type RegisterValues = z.infer<typeof registerSchema>;
 
 export default function Register() {
-  const { register } = useAuth();
+  const { register: firebaseRegister } = useFirebaseAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
 
@@ -70,10 +70,17 @@ export default function Register() {
   async function onSubmit(data: RegisterValues) {
     try {
       setIsLoading(true);
-      await register(data);
+      await firebaseRegister(data.email, data.password, data.name, data.role as any, {
+        username: data.username,
+        class: data.class,
+        subject: data.subject
+      });
       setLocation("/dashboard");
     } catch (error) {
       console.error("Registration failed:", error);
+      form.setError("root", { 
+        message: "Registration failed. Please try again." 
+      });
       setIsLoading(false);
     }
   }
@@ -203,6 +210,36 @@ export default function Register() {
                           />
                           <FormLabel htmlFor="teacher" className="font-normal">
                             Teacher
+                          </FormLabel>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem
+                            value="principal"
+                            id="principal"
+                            disabled={isLoading}
+                          />
+                          <FormLabel htmlFor="principal" className="font-normal">
+                            Principal
+                          </FormLabel>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem
+                            value="admin"
+                            id="admin"
+                            disabled={isLoading}
+                          />
+                          <FormLabel htmlFor="admin" className="font-normal">
+                            Administrator
+                          </FormLabel>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem
+                            value="parent"
+                            id="parent"
+                            disabled={isLoading}
+                          />
+                          <FormLabel htmlFor="parent" className="font-normal">
+                            Parent
                           </FormLabel>
                         </div>
                       </RadioGroup>

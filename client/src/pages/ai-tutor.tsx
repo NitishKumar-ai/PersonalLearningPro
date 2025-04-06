@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Header } from "@/components/layout/header";
 import { Sidebar } from "@/components/layout/sidebar";
 import { MobileNav } from "@/components/layout/mobile-nav";
-import { useAuth } from "@/contexts/auth-context";
+import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { Textarea } from "@/components/ui/textarea";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,7 @@ const HISTORY_KEY = "ai_tutor_history";
 const SYSTEM_PROMPT = "You are an AI tutor for high school students. You're knowledgeable about physics, chemistry, mathematics, biology, and computer science. Provide clear, concise explanations. Include examples when helpful. For math problems, show step-by-step solutions. Keep explanations appropriate for high school level understanding. Be encouraging and supportive.";
 
 export default function AiTutor() {
-  const { user } = useAuth();
+  const { currentUser } = useFirebaseAuth();
   const [activeTab, setActiveTab] = useState("chat");
   const [userInput, setUserInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -143,10 +143,11 @@ export default function AiTutor() {
       }));
       
       // Make the API request to the backend
-      const responseData = await apiRequest("/api/ai-chat", {
-        method: "POST",
-        body: JSON.stringify({ messages: apiMessages })
+      const response = await apiRequest("POST", "/api/ai-chat", { 
+        messages: apiMessages 
       });
+      
+      const responseData = await response.json();
       
       // Create the assistant's response message
       const assistantMessage: Message = {
@@ -324,7 +325,7 @@ export default function AiTutor() {
                             >
                               {message.role === "user" ? (
                                 <div className="text-xs font-medium text-primary-foreground">
-                                  {user?.name ? getInitials(user?.name) : "U"}
+                                  {currentUser?.profile?.displayName ? getInitials(currentUser.profile.displayName) : "U"}
                                 </div>
                               ) : (
                                 <Brain className="h-4 w-4 text-primary" />
