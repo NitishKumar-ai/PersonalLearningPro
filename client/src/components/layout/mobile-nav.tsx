@@ -1,85 +1,76 @@
-import { Link, useLocation } from "wouter";
-import { cn } from "@/lib/utils";
-import {
-  LayoutDashboard,
-  FileQuestion,
-  BarChart,
-  Menu,
+import { useState } from "react";
+import { useLocation, Link } from "wouter";
+import { 
+  Home, 
+  BookOpen, 
+  FileText, 
+  BarChart2, 
+  MessageSquare, 
+  UserCircle 
 } from "lucide-react";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { cn } from "@/lib/utils";
 
 export function MobileNav() {
   const [location] = useLocation();
   const { currentUser } = useFirebaseAuth();
+  const userRole = currentUser?.profile?.role || 'student';
 
   const teacherNavItems = [
-    {
-      title: "Dashboard",
-      href: "/dashboard",
-      icon: <LayoutDashboard className="h-5 w-5" />,
-    },
-    {
-      title: "Tests",
-      href: "/create-test",
-      icon: <FileQuestion className="h-5 w-5" />,
-    },
-    {
-      title: "Analytics",
-      href: "/analytics",
-      icon: <BarChart className="h-5 w-5" />,
-    },
-    {
-      title: "More",
-      href: "#",
-      icon: <Menu className="h-5 w-5" />,
-    },
+    { href: "/dashboard", label: "Dashboard", icon: Home },
+    { href: "/create-test", label: "Tests", icon: FileText },
+    { href: "/analytics", label: "Analytics", icon: BarChart2 },
+    { href: "/ai-tutor", label: "AI Tutor", icon: BookOpen },
+    { href: "/messages", label: "Messages", icon: MessageSquare },
+    { href: "/profile", label: "Profile", icon: UserCircle },
   ];
 
   const studentNavItems = [
-    {
-      title: "Dashboard",
-      href: "/dashboard",
-      icon: <LayoutDashboard className="h-5 w-5" />,
-    },
-    {
-      title: "Tests",
-      href: "/tests",
-      icon: <FileQuestion className="h-5 w-5" />,
-    },
-    {
-      title: "Progress",
-      href: "/progress",
-      icon: <BarChart className="h-5 w-5" />,
-    },
-    {
-      title: "More",
-      href: "#",
-      icon: <Menu className="h-5 w-5" />,
-    },
+    { href: "/student-dashboard", label: "Dashboard", icon: Home },
+    { href: "/tests", label: "Tests", icon: FileText },
+    { href: "/ai-tutor", label: "AI Tutor", icon: BookOpen },
+    { href: "/messages", label: "Messages", icon: MessageSquare },
+    { href: "/profile", label: "Profile", icon: UserCircle },
   ];
 
-  const navItems = currentUser?.profile?.role === "student" ? studentNavItems : teacherNavItems;
+  const principalNavItems = [
+    { href: "/principal-dashboard", label: "Dashboard", icon: Home },
+    { href: "/performance", label: "Performance", icon: BarChart2 },
+    { href: "/staff", label: "Staff", icon: UserCircle },
+    { href: "/messages", label: "Messages", icon: MessageSquare },
+    { href: "/profile", label: "Profile", icon: UserCircle },
+  ];
+
+  const adminNavItems = [
+    { href: "/admin-dashboard", label: "Dashboard", icon: Home },
+    { href: "/users", label: "Users", icon: UserCircle },
+    { href: "/settings", label: "Settings", icon: FileText },
+    { href: "/profile", label: "Profile", icon: UserCircle },
+  ];
+
+  const navItems = 
+    userRole === 'teacher' ? teacherNavItems :
+    userRole === 'principal' ? principalNavItems :
+    userRole === 'admin' ? adminNavItems :
+    studentNavItems;
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white dark:bg-neutral-800 shadow-md z-10 flex justify-around py-2 border-t border-neutral-200 dark:border-neutral-700">
-      {navItems.map((item) => {
-        const isActive = location === item.href;
-        return (
-          <Link key={item.href} href={item.href}>
-            <a
-              className={cn(
-                "p-3 flex flex-col items-center",
-                isActive
-                  ? "text-primary"
-                  : "text-neutral-400 dark:text-neutral-300"
-              )}
-            >
-              {item.icon}
-              <span className="text-xs mt-1">{item.title}</span>
-            </a>
+    <div className="fixed bottom-0 left-0 right-0 z-40 border-t bg-background md:hidden">
+      <nav className="grid grid-cols-5 p-2">
+        {navItems.slice(0, 5).map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className={cn(
+              "flex flex-col items-center justify-center gap-1 py-2 text-xs text-muted-foreground transition-colors hover:text-foreground",
+              location === item.href && "text-foreground"
+            )}
+          >
+            <item.icon className="h-5 w-5" />
+            <span>{item.label}</span>
           </Link>
-        );
-      })}
+        ))}
+      </nav>
     </div>
   );
 }

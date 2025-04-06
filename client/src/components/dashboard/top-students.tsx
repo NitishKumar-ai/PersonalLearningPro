@@ -1,97 +1,74 @@
 import { useQuery } from "@tanstack/react-query";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { getInitials } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 
-interface Student {
+interface TopStudentProps {
   id: number;
   name: string;
+  class: string;
   avatar?: string;
-  averageScore: number;
-  color?: string;
+  score: number;
 }
 
 export function TopStudents() {
-  const { data: students, isLoading } = useQuery<Student[]>({
-    queryKey: ["/api/users", { role: "student", sortBy: "score", limit: 3 }],
+  const { data: students, isLoading } = useQuery<TopStudentProps[]>({
+    queryKey: ["/api/top-students"],
+    enabled: false, // Disabled for now until API endpoint is implemented
   });
+
+  // Mock data for UI demonstration
+  const mockStudents: TopStudentProps[] = [
+    { id: 1, name: "Jatin Mehta", class: "10-A", score: 96 },
+    { id: 2, name: "Priya Sharma", class: "10-B", score: 94 },
+    { id: 3, name: "Akash Singh", class: "10-A", score: 91 },
+  ];
 
   if (isLoading) {
     return <TopStudentsSkeleton />;
   }
 
-  // Add default colors if not provided
-  const defaultColors = ["bg-primary", "bg-accent", "bg-neutral-400"];
-  const studentsWithColor = students?.map((student, index) => ({
-    ...student,
-    color: student.color || defaultColors[index % defaultColors.length],
-  }));
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .toUpperCase();
-  };
-
-  if (!studentsWithColor || studentsWithColor.length === 0) {
-    return (
-      <div className="space-y-4 text-center">
-        <p className="text-muted-foreground">No student data available yet</p>
-      </div>
-    );
-  }
+  const displayStudents = students || mockStudents;
 
   return (
     <div className="space-y-4">
-      {studentsWithColor.map((student) => (
-        <div key={student.id} className="flex items-center">
-          <div
-            className={`w-8 h-8 rounded-full ${student.color} text-white flex items-center justify-center font-medium text-sm mr-3`}
-          >
-            {getInitials(student.name)}
-          </div>
-          <div className="flex-1">
-            <p className="font-medium">{student.name}</p>
-            <div className="flex items-center">
-              <div className="h-2 bg-neutral-200 dark:bg-neutral-700 rounded-full w-full mt-1 overflow-hidden">
-                <div
-                  className="h-full bg-secondary rounded-full"
-                  style={{ width: `${student.averageScore}%` }}
-                ></div>
-              </div>
-              <span className="ml-2 text-sm font-medium text-secondary">
-                {student.averageScore}%
-              </span>
+      {displayStudents.map((student) => (
+        <div key={student.id} className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Avatar>
+              {student.avatar ? (
+                <AvatarImage src={student.avatar} alt={student.name} />
+              ) : (
+                <AvatarFallback>{getInitials(student.name)}</AvatarFallback>
+              )}
+            </Avatar>
+            <div>
+              <div className="font-medium text-sm">{student.name}</div>
+              <div className="text-xs text-muted-foreground">Class {student.class}</div>
             </div>
           </div>
+          <div className="text-sm font-medium">{student.score}%</div>
         </div>
       ))}
-
-      <Button
-        variant="ghost"
-        className="w-full mt-2 py-2 text-sm font-medium text-primary hover:underline"
-      >
-        View All Students
-      </Button>
     </div>
   );
 }
 
 function TopStudentsSkeleton() {
   return (
-    <div className="space-y-6">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="flex items-center">
-          <Skeleton className="h-8 w-8 rounded-full" />
-          <div className="ml-3 space-y-2 flex-1">
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-2 w-full" />
+    <div className="space-y-4">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <div>
+              <Skeleton className="h-4 w-32 mb-1" />
+              <Skeleton className="h-3 w-20" />
+            </div>
           </div>
-          <Skeleton className="h-4 w-8 ml-2" />
+          <Skeleton className="h-4 w-10" />
         </div>
       ))}
-      <Skeleton className="h-8 w-full" />
     </div>
   );
 }

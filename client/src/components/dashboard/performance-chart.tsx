@@ -1,102 +1,98 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer 
 } from "recharts";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useTheme } from "@/contexts/theme-context";
 
 interface PerformanceData {
   subject: string;
-  averageScore: number;
   classAverage: number;
+  schoolAverage: number;
 }
 
 export function PerformanceChart() {
-  const [period, setPeriod] = useState("monthly");
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
   
   const { data, isLoading } = useQuery<PerformanceData[]>({
-    queryKey: ["/api/analytics/performance", { period }],
+    queryKey: ["/api/class-performance"],
+    enabled: false, // Disabled for now until API endpoint is implemented
   });
+
+  // Mock data for UI demonstration
+  const mockData: PerformanceData[] = [
+    { subject: "Physics", classAverage: 78, schoolAverage: 72 },
+    { subject: "Chemistry", classAverage: 82, schoolAverage: 76 },
+    { subject: "Biology", classAverage: 85, schoolAverage: 79 },
+    { subject: "Math", classAverage: 74, schoolAverage: 71 },
+    { subject: "English", classAverage: 88, schoolAverage: 82 },
+  ];
 
   if (isLoading) {
     return <PerformanceChartSkeleton />;
   }
 
-  // Default data if none available
-  const chartData = data || [
-    { subject: "Physics", averageScore: 78, classAverage: 72 },
-    { subject: "Chemistry", averageScore: 82, classAverage: 68 },
-    { subject: "Mathematics", averageScore: 74, classAverage: 70 },
-    { subject: "Biology", averageScore: 85, classAverage: 75 },
-    { subject: "English", averageScore: 80, classAverage: 78 },
-  ];
+  const chartData = data || mockData;
 
   return (
-    <div className="h-full">
-      <div className="mb-4 flex justify-between items-center">
-        <h3 className="font-medium">Class Performance by Subject</h3>
-        <Tabs defaultValue="monthly" onValueChange={setPeriod}>
-          <TabsList>
-            <TabsTrigger value="weekly">Weekly</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly</TabsTrigger>
-            <TabsTrigger value="yearly">Yearly</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
-      
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={chartData}
-            margin={{ top: 5, right: 30, left: 0, bottom: 5 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis dataKey="subject" tick={{ fontSize: 12 }} />
-            <YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
-            <Tooltip
-              formatter={(value) => [`${value}%`]}
-              contentStyle={{
-                backgroundColor: "var(--background)",
-                borderColor: "var(--border)",
-                borderRadius: "8px",
-              }}
-            />
-            <Legend />
-            <Bar
-              name="Average Score"
-              dataKey="averageScore"
-              fill="hsl(var(--chart-1))"
-              radius={[4, 4, 0, 0]}
-            />
-            <Bar
-              name="Class Average"
-              dataKey="classAverage"
-              fill="hsl(var(--chart-2))"
-              radius={[4, 4, 0, 0]}
-            />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+    <div className="h-[300px] w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart
+          data={chartData}
+          margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke={isDark ? "#333" : "#eee"} />
+          <XAxis 
+            dataKey="subject" 
+            tick={{ fontSize: 12 }} 
+            tickLine={false}
+            axisLine={{ stroke: isDark ? "#444" : "#ddd" }}
+          />
+          <YAxis 
+            tick={{ fontSize: 12 }}
+            tickLine={false} 
+            axisLine={{ stroke: isDark ? "#444" : "#ddd" }}
+            domain={[0, 100]}
+          />
+          <Tooltip
+            contentStyle={{
+              backgroundColor: isDark ? "#333" : "#fff",
+              border: `1px solid ${isDark ? "#444" : "#ddd"}`,
+              borderRadius: "4px",
+              color: isDark ? "#fff" : "#333",
+            }}
+          />
+          <Legend wrapperStyle={{ paddingTop: 10 }} />
+          <Bar 
+            dataKey="classAverage" 
+            name="Your Class" 
+            fill="hsl(var(--primary))" 
+            radius={[4, 4, 0, 0]} 
+          />
+          <Bar 
+            dataKey="schoolAverage" 
+            name="School Average" 
+            fill="hsl(var(--muted-foreground))" 
+            radius={[4, 4, 0, 0]} 
+          />
+        </BarChart>
+      </ResponsiveContainer>
     </div>
   );
 }
 
 function PerformanceChartSkeleton() {
   return (
-    <div className="h-full">
-      <div className="flex justify-between items-center mb-4">
-        <Skeleton className="h-6 w-40" />
-        <Skeleton className="h-8 w-64" />
-      </div>
-      <Skeleton className="h-64 w-full" />
+    <div className="h-[300px] w-full">
+      <Skeleton className="h-full w-full" />
     </div>
   );
 }

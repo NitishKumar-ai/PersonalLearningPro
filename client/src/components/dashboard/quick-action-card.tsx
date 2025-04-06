@@ -1,34 +1,39 @@
+import { ReactNode } from "react";
 import { Link } from "wouter";
-import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface QuickActionCardProps {
   title: string;
   description: string;
-  icon: React.ReactNode;
+  icon: ReactNode;
   href: string;
-  bgColor?: string;
-  iconColor?: string;
+  bgColor: string;
+  iconColor: string;
 }
 
-export function QuickActionCard({
-  title,
-  description,
-  icon,
-  href,
-  bgColor = "bg-primary/10 dark:bg-primary/20",
-  iconColor = "text-primary",
+export function QuickActionCard({ 
+  title, 
+  description, 
+  icon, 
+  href, 
+  bgColor, 
+  iconColor 
 }: QuickActionCardProps) {
   return (
-    <Link href={href} className="block">
-      <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 h-full flex items-center justify-between cursor-pointer">
-        <div>
-          <h3 className="font-medium mb-1">{title}</h3>
-          <p className="text-sm text-muted-foreground">{description}</p>
-        </div>
-        <div className={cn("h-12 w-12 rounded-full flex items-center justify-center", bgColor, iconColor)}>
-          {icon}
-        </div>
-      </div>
+    <Link href={href} className="block h-full">
+      <Card className="h-full hover:shadow-md transition-shadow">
+        <CardContent className="p-6">
+          <div className="flex items-start space-x-4">
+            <div className={`rounded-full p-3 ${bgColor}`}>
+              <div className={iconColor}>{icon}</div>
+            </div>
+            <div>
+              <h3 className="font-medium mb-1">{title}</h3>
+              <p className="text-sm text-muted-foreground">{description}</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </Link>
   );
 }

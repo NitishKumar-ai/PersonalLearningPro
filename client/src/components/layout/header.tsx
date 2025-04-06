@@ -1,108 +1,132 @@
 import { useState } from "react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Bell, Search, User } from "lucide-react";
+import { 
+  Menu, 
+  Bell, 
+  Search, 
+  MessageSquare, 
+  Settings, 
+  Moon,
+  Sun
+} from "lucide-react";
+import { useTheme } from "@/contexts/theme-context";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { getInitials } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuGroup, 
+  DropdownMenuItem, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator, 
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 
 interface HeaderProps {
   title?: string;
 }
 
 export function Header({ title }: HeaderProps) {
+  const { theme, setTheme } = useTheme();
   const { currentUser, logout } = useFirebaseAuth();
-  const [showSearch, setShowSearch] = useState(false);
-  
-  const handleLogout = async () => {
-    try {
-      await logout();
-    } catch (error) {
-      console.error("Logout error:", error);
-    }
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  const handleToggleSidebar = () => {
+    const event = new CustomEvent("toggle-sidebar");
+    window.dispatchEvent(event);
   };
-  
+
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center justify-between py-4">
-        <div className="flex items-center gap-2">
-          {title && (
-            <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-2">
-          {showSearch ? (
-            <div className="relative w-48 md:w-64 lg:w-96">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search..."
-                className="pl-8"
-                autoFocus
-                onBlur={() => setShowSearch(false)}
-              />
-            </div>
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-4 border-b bg-background px-4 md:px-6">
+      <Button variant="ghost" size="icon" className="md:hidden" onClick={handleToggleSidebar}>
+        <Menu className="h-5 w-5" />
+        <span className="sr-only">Toggle Menu</span>
+      </Button>
+
+      {title && (
+        <h1 className="text-xl font-semibold md:text-2xl hidden md:block">
+          {title}
+        </h1>
+      )}
+      
+      <div className={`flex-1 ${isSearchOpen ? 'block' : 'hidden md:block'}`}>
+        <form className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Search..."
+            className="w-full bg-background pl-8 md:w-[300px] lg:w-[400px]"
+          />
+        </form>
+      </div>
+      
+      <Button
+        variant="ghost"
+        size="icon"
+        className="md:hidden"
+        onClick={() => setIsSearchOpen(!isSearchOpen)}
+      >
+        <Search className="h-5 w-5" />
+        <span className="sr-only">Toggle search</span>
+      </Button>
+
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" size="icon" onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
+          {theme === "dark" ? (
+            <Sun className="h-5 w-5" />
           ) : (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9"
-              onClick={() => setShowSearch(true)}
-            >
-              <Search className="h-4 w-4" />
-              <span className="sr-only">Search</span>
-            </Button>
+            <Moon className="h-5 w-5" />
           )}
-          
-          <Button variant="ghost" size="icon" className="h-9 w-9 relative">
-            <Bell className="h-4 w-4" />
-            <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-primary"></span>
-            <span className="sr-only">Notifications</span>
-          </Button>
-          
-          <ThemeToggle />
-          
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-9 w-9 rounded-full" size="icon">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage 
-                    src={currentUser.profile?.photoURL || ""} 
-                    alt={currentUser.profile?.displayName || "User"} 
-                  />
+          <span className="sr-only">Toggle theme</span>
+        </Button>
+        
+        <Button variant="ghost" size="icon" className="relative">
+          <MessageSquare className="h-5 w-5" />
+          <span className="sr-only">Messages</span>
+          <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+            3
+          </Badge>
+        </Button>
+        
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          <span className="sr-only">Notifications</span>
+          <Badge className="absolute -top-1 -right-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">
+            5
+          </Badge>
+        </Button>
+        
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="rounded-full">
+              <Avatar className="h-8 w-8">
+                {currentUser?.profile?.photoURL ? (
+                  <AvatarImage src={currentUser.profile.photoURL} alt="Avatar" />
+                ) : (
                   <AvatarFallback>
-                    {getInitials(currentUser.profile?.displayName || "User")}
+                    {currentUser?.profile?.displayName ? getInitials(currentUser.profile.displayName) : "U"}
                   </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">{currentUser.profile?.displayName}</p>
-                  <p className="text-xs leading-none text-muted-foreground">{currentUser.profile?.email}</p>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
+                )}
+              </Avatar>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
               <DropdownMenuItem>
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout}>
-                <span>Log out</span>
+              <DropdownMenuItem onClick={() => logout()}>
+                <span>Logout</span>
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   );

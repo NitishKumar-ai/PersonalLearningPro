@@ -161,8 +161,7 @@ export default function StudentDashboard() {
   ];
   
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar />
+    <div>
       <div className="flex-1">
         <Header title="Student Dashboard" />
         <main className="flex-1 p-6 md:p-8">
