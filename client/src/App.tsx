@@ -14,8 +14,9 @@ import AiTutor from "@/pages/ai-tutor";
 import { FirebaseAuthProvider, useFirebaseAuth } from "./contexts/firebase-auth-context";
 import { ThemeProvider } from "./contexts/theme-context";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserRole } from "./lib/firebase";
+import { Sidebar } from "@/components/layout/sidebar";
 
 // Authentication components
 import {
@@ -494,6 +495,45 @@ function FirebaseAuthDialog() {
   );
 }
 
+// Layout component with collapsible sidebar
+function AppLayout({ children }: { children: React.ReactNode }) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  useEffect(() => {
+    // Listen for sidebar collapsed state changes
+    const handleSidebarCollapse = (e: CustomEvent) => {
+      setIsCollapsed(e.detail.isCollapsed);
+    };
+
+    window.addEventListener('sidebarCollapsed' as any, handleSidebarCollapse);
+    return () => {
+      window.removeEventListener('sidebarCollapsed' as any, handleSidebarCollapse);
+    };
+  }, []);
+
+  return (
+    <div className="flex min-h-screen bg-background">
+      <Sidebar />
+      <main className={`flex-1 transition-all duration-300 ease-in-out ${isCollapsed ? 'ml-16' : 'ml-64'}`}>
+        <div className="container mx-auto px-6 py-6">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// Wrap component with layout
+const withLayout = (Component: React.ComponentType) => {
+  return function WrappedComponent(props: any) {
+    return (
+      <AppLayout>
+        <Component {...props} />
+      </AppLayout>
+    );
+  };
+};
+
 function Router() {
   const { currentUser, isLoading } = useFirebaseAuth();
   
@@ -517,17 +557,17 @@ function Router() {
     
     switch (role) {
       case "principal":
-        return PrincipalDashboard;
+        return withLayout(PrincipalDashboard);
       case "admin":
-        return AdminDashboard;
+        return withLayout(AdminDashboard);
       case "teacher":
-        return Dashboard;
+        return withLayout(Dashboard);
       case "student":
-        return StudentDashboard;
+        return withLayout(StudentDashboard);
       case "parent":
-        return Dashboard; // We'll create ParentDashboard later
+        return withLayout(Dashboard); // We'll create ParentDashboard later
       default:
-        return Dashboard;
+        return withLayout(Dashboard);
     }
   };
   
@@ -538,15 +578,15 @@ function Router() {
       
       {/* Role-specific dashboards */}
       <Route path="/dashboard" component={getDashboardComponent()} />
-      <Route path="/principal-dashboard" component={PrincipalDashboard} />
-      <Route path="/admin-dashboard" component={AdminDashboard} />
-      <Route path="/student-dashboard" component={StudentDashboard} />
+      <Route path="/principal-dashboard" component={withLayout(PrincipalDashboard)} />
+      <Route path="/admin-dashboard" component={withLayout(AdminDashboard)} />
+      <Route path="/student-dashboard" component={withLayout(StudentDashboard)} />
       
       {/* Common routes */}
-      <Route path="/create-test" component={CreateTest} />
-      <Route path="/ocr-scan" component={OcrScan} />
-      <Route path="/analytics" component={Analytics} />
-      <Route path="/ai-tutor" component={AiTutor} />
+      <Route path="/create-test" component={withLayout(CreateTest)} />
+      <Route path="/ocr-scan" component={withLayout(OcrScan)} />
+      <Route path="/analytics" component={withLayout(Analytics)} />
+      <Route path="/ai-tutor" component={withLayout(AiTutor)} />
       
       {/* Fallback to 404 */}
       <Route component={NotFound} />

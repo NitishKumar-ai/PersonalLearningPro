@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,8 @@ import {
   Building2,
   CalendarDays,
   Award,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -35,6 +37,23 @@ export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
   const { currentUser, logout } = useFirebaseAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  
+  // Check if we're on mobile to set default state
+  useEffect(() => {
+    const checkIfMobile = () => {
+      return window.innerWidth < 768;
+    };
+    
+    setIsCollapsed(checkIfMobile());
+    
+    const handleResize = () => {
+      setIsCollapsed(checkIfMobile());
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const toggleMobileMenu = () => {
     setIsMobileOpen(!isMobileOpen);
@@ -42,6 +61,17 @@ export function Sidebar({ className }: SidebarProps) {
 
   const closeMobileMenu = () => {
     setIsMobileOpen(false);
+  };
+  
+  const toggleSidebar = () => {
+    const newCollapsedState = !isCollapsed;
+    setIsCollapsed(newCollapsedState);
+    
+    // Emit custom event to notify the layout about sidebar state change
+    const event = new CustomEvent('sidebarCollapsed', { 
+      detail: { isCollapsed: newCollapsedState }
+    });
+    window.dispatchEvent(event);
   };
 
   // Principal navigation items
@@ -322,46 +352,64 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed top-0 bottom-0 left-0 flex h-screen flex-col bg-white dark:bg-neutral-900 shadow-md transition-transform z-50",
+          "fixed top-0 bottom-0 left-0 flex h-screen flex-col bg-white dark:bg-neutral-900 shadow-md transition-all duration-300 ease-in-out z-50",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-          "w-64 md:w-64",
+          isCollapsed ? "w-16 md:w-16" : "w-64 md:w-64",
           className
         )}
       >
+        {/* Collapse toggle button */}
+        <button 
+          onClick={toggleSidebar}
+          className="absolute -right-3 top-20 h-6 w-6 bg-white dark:bg-neutral-900 rounded-full border border-neutral-200 dark:border-neutral-800 flex items-center justify-center cursor-pointer shadow-sm text-muted-foreground hidden md:flex"
+        >
+          {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+        </button>
+        
         {/* Logo and title */}
         <div className="py-5 px-4 flex items-center border-b border-neutral-200 dark:border-neutral-800">
-          <div className="h-9 w-9 rounded-md bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold shadow-sm">
+          <div className="h-9 w-9 rounded-md bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center text-white font-bold shadow-sm flex-shrink-0">
             MP
           </div>
-          <h1 className="ml-3 font-bold text-lg">
-            <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-              Master Plan
-            </span>
-          </h1>
+          {!isCollapsed && (
+            <h1 className="ml-3 font-bold text-lg whitespace-nowrap overflow-hidden transition-opacity duration-300">
+              <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                Master Plan
+              </span>
+            </h1>
+          )}
         </div>
 
         {/* User info */}
-        <div className="mt-4 px-4 mb-6">
-          <div className="flex items-center p-2 rounded-md bg-neutral-100 dark:bg-neutral-800/50">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/90 to-primary/70 text-white flex items-center justify-center font-medium shadow-sm">
+        <div className={cn("mt-4 px-4 mb-6", isCollapsed && "flex justify-center px-2")}>
+          {isCollapsed ? (
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/90 to-primary/70 text-white flex items-center justify-center font-medium shadow-sm">
               {currentUser.profile?.displayName ? getInitials(currentUser.profile.displayName) : "U"}
             </div>
-            <div className="ml-3">
-              <p className="font-medium text-sm">{currentUser.profile?.displayName}</p>
-              <p className="text-xs text-muted-foreground">
-                {currentUser.profile?.role ? 
-                  currentUser.profile.role.charAt(0).toUpperCase() + currentUser.profile.role.slice(1) :
-                  "User"}
-              </p>
+          ) : (
+            <div className="flex items-center p-2 rounded-md bg-neutral-100 dark:bg-neutral-800/50 w-full">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/90 to-primary/70 text-white flex items-center justify-center font-medium shadow-sm flex-shrink-0">
+                {currentUser.profile?.displayName ? getInitials(currentUser.profile.displayName) : "U"}
+              </div>
+              <div className="ml-3 overflow-hidden">
+                <p className="font-medium text-sm truncate">{currentUser.profile?.displayName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {currentUser.profile?.role ? 
+                    currentUser.profile.role.charAt(0).toUpperCase() + currentUser.profile.role.slice(1) :
+                    "User"}
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Navigation */}
-        <div className="flex-1 overflow-y-auto px-3">
-          <div className="mb-2 px-3 text-xs uppercase font-medium text-muted-foreground">
-            Main Navigation
-          </div>
+        <div className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-2" : "px-3")}>
+          {!isCollapsed && (
+            <div className="mb-2 px-3 text-xs uppercase font-medium text-muted-foreground">
+              Main Navigation
+            </div>
+          )}
           <nav className="space-y-1">
             {items.map((item, index) => {
               const isActive = location === item.href;
@@ -371,22 +419,25 @@ export function Sidebar({ className }: SidebarProps) {
                     href={item.href}
                     onClick={closeMobileMenu}
                     className={cn(
-                      "flex items-center px-3 py-2.5 text-sm rounded-md transition-all group",
+                      "flex items-center py-2.5 text-sm rounded-md transition-all group",
                       isActive
                         ? "text-primary bg-primary/10 dark:bg-primary/15 font-medium"
-                        : "text-foreground/70 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800/60"
+                        : "text-foreground/70 hover:text-foreground hover:bg-neutral-100 dark:hover:bg-neutral-800/60",
+                      isCollapsed ? "justify-center px-2" : "px-3"
                     )}
+                    title={isCollapsed ? item.title : undefined}
                   >
                     <span 
                       className={cn(
-                        "mr-3 flex items-center justify-center w-5 h-5",
-                        isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground/80"
+                        "flex items-center justify-center w-5 h-5",
+                        isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground/80",
+                        !isCollapsed && "mr-3"
                       )}
                     >
                       {item.icon}
                     </span>
-                    <span>{item.title}</span>
-                    {index === 0 && !isActive && (
+                    {!isCollapsed && <span className="truncate">{item.title}</span>}
+                    {!isCollapsed && index === 0 && !isActive && (
                       <span className="ml-auto bg-primary/15 text-primary text-xs py-0.5 px-1.5 rounded-full">
                         New
                       </span>
@@ -397,7 +448,7 @@ export function Sidebar({ className }: SidebarProps) {
             })}
           </nav>
           
-          {currentUser.profile?.role === "student" && (
+          {currentUser.profile?.role === "student" && !isCollapsed && (
             <>
               <div className="mt-6 mb-2 px-3 text-xs uppercase font-medium text-muted-foreground">
                 Learning Tools
@@ -416,21 +467,40 @@ export function Sidebar({ className }: SidebarProps) {
         </div>
 
         {/* Bottom actions */}
-        <div className="p-4 border-t border-neutral-200 dark:border-neutral-800 flex justify-between items-center">
-          <div className="flex space-x-2">
-            <ThemeToggle />
-            <Button variant="ghost" size="icon" className="rounded-md">
-              <Settings className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </div>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => logout()} 
-            className="rounded-md text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
+        <div className={cn(
+          "border-t border-neutral-200 dark:border-neutral-800 flex items-center", 
+          isCollapsed ? "justify-center p-3 space-y-3 flex-col" : "p-4 justify-between"
+        )}>
+          {isCollapsed ? (
+            <>
+              <ThemeToggle />
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => logout()} 
+                className="rounded-md text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="flex space-x-2">
+                <ThemeToggle />
+                <Button variant="ghost" size="icon" className="rounded-md">
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => logout()} 
+                className="rounded-md text-red-500/70 hover:text-red-500 hover:bg-red-500/10"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </>
