@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useAuth } from "@/contexts/auth-context";
+import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import {
   LayoutDashboard,
   FileQuestion,
@@ -19,6 +19,12 @@ import {
   BookOpen,
   Brain,
   Trophy,
+  School,
+  GraduationCap,
+  UserCog,
+  Building2,
+  CalendarDays,
+  Award,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -27,7 +33,7 @@ interface SidebarProps {
 
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
-  const { user, logout } = useAuth();
+  const { currentUser, logout } = useFirebaseAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const toggleMobileMenu = () => {
@@ -38,7 +44,96 @@ export function Sidebar({ className }: SidebarProps) {
     setIsMobileOpen(false);
   };
 
-  const navItems = [
+  // Principal navigation items
+  const principalNavItems = [
+    {
+      title: "Dashboard",
+      href: "/principal-dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      title: "Institution",
+      href: "/institution",
+      icon: <School className="h-5 w-5" />,
+    },
+    {
+      title: "Staff",
+      href: "/staff",
+      icon: <Users className="h-5 w-5" />,
+    },
+    {
+      title: "Students",
+      href: "/students",
+      icon: <GraduationCap className="h-5 w-5" />,
+    },
+    {
+      title: "Analytics",
+      href: "/analytics",
+      icon: <BarChart className="h-5 w-5" />,
+    },
+    {
+      title: "Calendar",
+      href: "/calendar",
+      icon: <CalendarDays className="h-5 w-5" />,
+    },
+    {
+      title: "Infrastructure",
+      href: "/infrastructure",
+      icon: <Building2 className="h-5 w-5" />,
+    },
+    {
+      title: "Messages",
+      href: "/messages",
+      icon: <MessageSquare className="h-5 w-5" />,
+    },
+    {
+      title: "Settings",
+      href: "/settings",
+      icon: <Settings className="h-5 w-5" />,
+    },
+  ];
+
+  // Admin navigation items
+  const adminNavItems = [
+    {
+      title: "Dashboard",
+      href: "/admin-dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      title: "User Management",
+      href: "/users",
+      icon: <UserCog className="h-5 w-5" />,
+    },
+    {
+      title: "Institution",
+      href: "/institution",
+      icon: <Building2 className="h-5 w-5" />,
+    },
+    {
+      title: "Classes",
+      href: "/classes",
+      icon: <School className="h-5 w-5" />,
+    },
+    {
+      title: "Analytics",
+      href: "/analytics",
+      icon: <BarChart className="h-5 w-5" />,
+    },
+    {
+      title: "Reports",
+      href: "/reports",
+      icon: <FileQuestion className="h-5 w-5" />,
+    },
+    {
+      title: "System Settings",
+      href: "/system-settings",
+      icon: <Settings className="h-5 w-5" />,
+    },
+  ];
+
+  // Teacher navigation items
+  const teacherNavItems = [
     {
       title: "Dashboard",
       href: "/dashboard",
@@ -86,11 +181,11 @@ export function Sidebar({ className }: SidebarProps) {
     },
   ];
 
-  // If student, show a reduced menu
+  // Student navigation items
   const studentNavItems = [
     {
       title: "Dashboard",
-      href: "/dashboard",
+      href: "/student-dashboard",
       icon: <LayoutDashboard className="h-5 w-5" />,
     },
     {
@@ -135,7 +230,59 @@ export function Sidebar({ className }: SidebarProps) {
     },
   ];
 
-  const items = user?.role === "student" ? studentNavItems : navItems;
+  // Parent navigation items
+  const parentNavItems = [
+    {
+      title: "Dashboard",
+      href: "/parent-dashboard",
+      icon: <LayoutDashboard className="h-5 w-5" />,
+    },
+    {
+      title: "My Children",
+      href: "/children",
+      icon: <Users className="h-5 w-5" />,
+    },
+    {
+      title: "Academic Progress",
+      href: "/progress",
+      icon: <BarChart className="h-5 w-5" />,
+    },
+    {
+      title: "Tests & Results",
+      href: "/test-results",
+      icon: <FileQuestion className="h-5 w-5" />,
+    },
+    {
+      title: "Teacher Meetings",
+      href: "/meetings",
+      icon: <Video className="h-5 w-5" />,
+    },
+    {
+      title: "Messages",
+      href: "/messages",
+      icon: <MessageSquare className="h-5 w-5" />,
+    },
+    {
+      title: "Settings",
+      href: "/settings",
+      icon: <Settings className="h-5 w-5" />,
+    },
+  ];
+
+  // Select navigation items based on user role
+  let items = teacherNavItems; // Default
+
+  if (currentUser.profile?.role === "student") {
+    items = studentNavItems;
+  } else if (currentUser.profile?.role === "teacher") {
+    items = teacherNavItems;
+  } else if (currentUser.profile?.role === "principal") {
+    items = principalNavItems;
+  } else if (currentUser.profile?.role === "admin") {
+    items = adminNavItems;
+  } else if (currentUser.profile?.role === "parent") {
+    items = parentNavItems;
+  }
 
   // Mobile hamburger menu
   const MobileMenuButton = () => (
@@ -197,12 +344,14 @@ export function Sidebar({ className }: SidebarProps) {
         <div className="mt-4 px-4 mb-6">
           <div className="flex items-center p-2 rounded-md bg-neutral-100 dark:bg-neutral-800/50">
             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/90 to-primary/70 text-white flex items-center justify-center font-medium shadow-sm">
-              {user?.name ? getInitials(user.name) : "U"}
+              {currentUser.profile?.displayName ? getInitials(currentUser.profile.displayName) : "U"}
             </div>
             <div className="ml-3">
-              <p className="font-medium text-sm">{user?.name}</p>
+              <p className="font-medium text-sm">{currentUser.profile?.displayName}</p>
               <p className="text-xs text-muted-foreground">
-                {user?.role === "teacher" ? "Teacher" : "Student"}
+                {currentUser.profile?.role ? 
+                  currentUser.profile.role.charAt(0).toUpperCase() + currentUser.profile.role.slice(1) :
+                  "User"}
               </p>
             </div>
           </div>
@@ -248,7 +397,7 @@ export function Sidebar({ className }: SidebarProps) {
             })}
           </nav>
           
-          {user?.role === "student" && (
+          {currentUser.profile?.role === "student" && (
             <>
               <div className="mt-6 mb-2 px-3 text-xs uppercase font-medium text-muted-foreground">
                 Learning Tools

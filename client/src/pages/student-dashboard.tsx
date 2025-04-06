@@ -1,30 +1,27 @@
 import { useState } from "react";
-import { Link } from "wouter";
-import { 
-  FileQuestion, 
-  BookOpen, 
-  BarChart3, 
-  Video, 
-  MessageSquare, 
-  Trophy, 
-  Sparkles,
-  Brain,
-  Users
-} from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
-import { MobileNav } from "@/components/layout/mobile-nav";
-import { QuickActionCard } from "@/components/dashboard/quick-action-card";
-import { useAuth } from "@/contexts/auth-context";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { 
+  BookOpen, 
+  Calendar, 
+  Clock, 
+  Trophy, 
+  BarChart3, 
+  ArrowRight, 
+  BookMarked,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Flame,
+  Award,
+  LucideIcon
+} from "lucide-react";
 
-// Test interface for typing
 interface Test {
   id: number;
   title: string;
@@ -36,7 +33,6 @@ interface Test {
   testDate: string;
 }
 
-// Analytics interface for typing
 interface Analytics {
   strongTopics: string[];
   weakTopics: string[];
@@ -48,404 +44,431 @@ interface Analytics {
 }
 
 export default function StudentDashboard() {
-  const { user } = useAuth();
+  const { currentUser } = useFirebaseAuth();
+  const [completedCourses, setCompletedCourses] = useState(12);
+  const [totalCourses, setTotalCourses] = useState(20);
   
-  // Fetch upcoming tests
-  const { data: upcomingTests, isLoading: testsLoading } = useQuery<Test[]>({
-    queryKey: ["/api/tests", { status: "published" }],
-  });
+  // Sample data
+  const upcomingTests: Test[] = [
+    {
+      id: 1,
+      title: "Mid-Term Mathematics",
+      subject: "Mathematics",
+      class: "10-A",
+      status: "upcoming",
+      totalMarks: 100,
+      duration: 90,
+      testDate: "2025-04-10"
+    },
+    {
+      id: 2,
+      title: "Physics Chapter Test",
+      subject: "Physics",
+      class: "10-A",
+      status: "upcoming",
+      totalMarks: 50,
+      duration: 60,
+      testDate: "2025-04-15"
+    },
+    {
+      id: 3,
+      title: "Chemistry Quiz",
+      subject: "Chemistry",
+      class: "10-A",
+      status: "upcoming",
+      totalMarks: 30,
+      duration: 45,
+      testDate: "2025-04-20"
+    }
+  ];
   
-  // Fetch student analytics
-  const { data: analytics, isLoading: analyticsLoading } = useQuery<Analytics>({
-    queryKey: ["/api/analytics/student", user?.id],
-  });
-
-  const quickActions = [
+  const recentTests: Test[] = [
     {
-      title: "Take Tests",
-      description: "Attempt available assessments",
-      icon: <FileQuestion className="h-6 w-6" />,
-      href: "/tests",
-      bgColor: "bg-primary/10 dark:bg-primary/20",
-      iconColor: "text-primary",
+      id: 4,
+      title: "Biology Unit Test",
+      subject: "Biology",
+      class: "10-A",
+      status: "completed",
+      totalMarks: 50,
+      duration: 60,
+      testDate: "2025-03-25"
     },
     {
-      title: "Study Materials",
-      description: "Access AI-recommended resources",
-      icon: <BookOpen className="h-6 w-6" />,
-      href: "/resources",
-      bgColor: "bg-secondary/10 dark:bg-secondary/20",
-      iconColor: "text-secondary",
-    },
-    {
-      title: "My Progress",
-      description: "View your performance stats",
-      icon: <BarChart3 className="h-6 w-6" />,
-      href: "/progress",
-      bgColor: "bg-accent/10 dark:bg-accent/20",
-      iconColor: "text-accent",
-    },
-    {
-      title: "AI Tutor",
-      description: "Get help with difficult concepts",
-      icon: <Brain className="h-6 w-6" />,
-      href: "/ai-tutor",
-      bgColor: "bg-blue-500/10 dark:bg-blue-500/20",
-      iconColor: "text-blue-500",
-    },
-    {
-      title: "Live Classes",
-      description: "Join scheduled live sessions",
-      icon: <Video className="h-6 w-6" />,
-      href: "/live-classes",
-      bgColor: "bg-purple-500/10 dark:bg-purple-500/20",
-      iconColor: "text-purple-500",
-    },
-    {
-      title: "Study Groups",
-      description: "Collaborate with classmates",
-      icon: <Users className="h-6 w-6" />,
-      href: "/study-groups",
-      bgColor: "bg-green-500/10 dark:bg-green-500/20",
-      iconColor: "text-green-500",
-    },
+      id: 5,
+      title: "English Literature Quiz",
+      subject: "English",
+      class: "10-A",
+      status: "completed",
+      totalMarks: 30,
+      duration: 45,
+      testDate: "2025-03-20"
+    }
   ];
 
+  const analytics: Analytics = {
+    strongTopics: [
+      "Algebraic Expressions",
+      "Gravitation",
+      "Cell Biology",
+      "European History"
+    ],
+    weakTopics: [
+      "Trigonometry",
+      "Thermodynamics",
+      "Organic Chemistry"
+    ],
+    recommendedResources: [
+      {
+        title: "Mastering Trigonometry",
+        type: "Practice Set",
+        url: "#"
+      },
+      {
+        title: "Basics of Thermodynamics",
+        type: "Video Tutorial",
+        url: "#"
+      },
+      {
+        title: "Organic Chemistry Made Easy",
+        type: "Reading Material",
+        url: "#"
+      }
+    ]
+  };
+  
+  const subjects = [
+    { name: "Mathematics", progress: 78, teacher: "Mr. Sharma" },
+    { name: "Physics", progress: 65, teacher: "Mrs. Gupta" },
+    { name: "Chemistry", progress: 82, teacher: "Dr. Patel" },
+    { name: "Biology", progress: 90, teacher: "Ms. Desai" },
+    { name: "English", progress: 85, teacher: "Mrs. Jones" },
+    { name: "History", progress: 70, teacher: "Mr. Singh" }
+  ];
+  
+  const achievements = [
+    { id: 1, title: "Math Wizard", description: "Scored 95% in Mathematics", icon: Trophy },
+    { id: 2, title: "Science Explorer", description: "Completed all science modules", icon: BookMarked },
+    { id: 3, title: "Perfect Attendance", description: "No absences for 3 months", icon: CheckCircle2 },
+    { id: 4, title: "Quick Learner", description: "Completed 5 topics ahead of schedule", icon: Flame }
+  ];
+  
+  const timetable = [
+    { day: "Monday", periods: ["Mathematics", "Physics", "Chemistry", "English", "Physical Ed.", "History"] },
+    { day: "Tuesday", periods: ["Biology", "Mathematics", "English", "Chemistry", "Computer Sc.", "Art"] },
+    { day: "Wednesday", periods: ["Physics", "Mathematics", "Biology", "History", "English", "Chemistry"] },
+    { day: "Thursday", periods: ["Mathematics", "Computer Sc.", "Physics", "Physical Ed.", "Biology", "English"] },
+    { day: "Friday", periods: ["Chemistry", "Biology", "Mathematics", "English", "History", "Physics"] }
+  ];
+  
   return (
-    <div className="flex h-screen overflow-hidden bg-neutral-100 dark:bg-neutral-900">
+    <div className="flex min-h-screen bg-background">
       <Sidebar />
-
-      <div className="flex-1 overflow-x-hidden overflow-y-auto">
+      <div className="flex-1">
         <Header title="Student Dashboard" />
-
-        <div className="px-4 py-6 md:px-6 lg:px-8 pb-20 md:pb-6">
-          {/* Welcome Section */}
-          <section className="mb-8">
-            <div className="bg-white dark:bg-neutral-800 rounded-lg shadow-sm p-6">
-              <h1 className="text-2xl font-bold mb-2">
-                Welcome back, {user?.name || "Student"}!
-              </h1>
-              <p className="text-muted-foreground mb-4">
-                {`Let's continue your learning journey. Here's what's new today.`}
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                {quickActions.map((action, index) => (
-                  <QuickActionCard
-                    key={index}
-                    title={action.title}
-                    description={action.description}
-                    icon={action.icon}
-                    href={action.href}
-                    bgColor={action.bgColor}
-                    iconColor={action.iconColor}
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* Upcoming Tests Section */}
-          <section className="mb-8">
-            <h2 className="text-lg font-medium mb-4">Upcoming Tests</h2>
-            
-            {testsLoading ? (
-              <div className="space-y-4">
-                <Skeleton className="h-28 w-full" />
-                <Skeleton className="h-28 w-full" />
-              </div>
-            ) : !upcomingTests || upcomingTests.length === 0 ? (
-              <Card>
-                <CardContent className="p-6 text-center">
-                  <p className="text-muted-foreground mb-4">
-                    You don't have any upcoming tests at the moment.
-                  </p>
-                  <Button asChild>
-                    <Link href="/tests">Browse All Tests</Link>
-                  </Button>
+        <main className="flex-1 p-6 md:p-8">
+          <div className="flex flex-col space-y-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <Card className="flex-1">
+                <CardHeader className="pb-2">
+                  <CardTitle>Welcome, {currentUser.profile?.displayName}</CardTitle>
+                  <CardDescription>
+                    Student Dashboard - Class {currentUser.profile?.classId || "10-A"}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-primary/10 p-2 rounded-full">
+                      <BookOpen className="h-6 w-6 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm font-medium">Course Progress</span>
+                        <span className="text-sm font-medium">{completedCourses}/{totalCourses}</span>
+                      </div>
+                      <Progress value={(completedCourses / totalCourses) * 100} className="h-2" />
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
-            ) : (
-              <div className="space-y-4">
-                {upcomingTests.slice(0, 3).map((test) => (
-                  <Card key={test.id}>
-                    <CardContent className="p-4">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                        <div className="mb-4 md:mb-0">
-                          <h3 className="font-medium">{test.title}</h3>
-                          <div className="text-sm text-muted-foreground">
-                            <span className="inline-block mr-4">
-                              Subject: {test.subject}
-                            </span>
-                            <span className="inline-block">
-                              Date: {new Date(test.testDate).toLocaleDateString()}
-                            </span>
+              
+              <Card className="flex-1">
+                <CardHeader className="pb-2">
+                  <CardTitle>Learning Streak</CardTitle>
+                  <CardDescription>
+                    Keep up the momentum!
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center space-x-4">
+                    <div className="bg-orange-100 p-2 rounded-full">
+                      <Flame className="h-6 w-6 text-orange-500" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between mb-1">
+                        <span className="text-sm font-medium">Current Streak</span>
+                        <span className="text-sm font-medium">7 days</span>
+                      </div>
+                      <div className="flex space-x-1">
+                        {Array.from({ length: 7 }).map((_, i) => (
+                          <div 
+                            key={i} 
+                            className={`h-2 flex-1 rounded-full ${i < 5 ? "bg-orange-500" : "bg-orange-300"}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
+            <Tabs defaultValue="tests">
+              <TabsList className="grid grid-cols-4 mb-4">
+                <TabsTrigger value="tests">Upcoming Tests</TabsTrigger>
+                <TabsTrigger value="subjects">My Subjects</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+                <TabsTrigger value="timetable">Timetable</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="tests" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Upcoming Tests</CardTitle>
+                    <CardDescription>Tests scheduled in the next 30 days</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {upcomingTests.map((test) => (
+                        <Card key={test.id}>
+                          <CardContent className="p-4">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between">
+                              <div className="space-y-1">
+                                <h3 className="font-bold">{test.title}</h3>
+                                <p className="text-sm text-muted-foreground">{test.subject} | Class {test.class}</p>
+                              </div>
+                              <div className="flex flex-col sm:flex-row gap-2 mt-2 md:mt-0">
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <Calendar className="h-4 w-4" />
+                                  <span>{new Date(test.testDate).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <Clock className="h-4 w-4" />
+                                  <span>{test.duration} mins</span>
+                                </div>
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                  <Trophy className="h-4 w-4" />
+                                  <span>{test.totalMarks} marks</span>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                          <CardFooter className="bg-muted/50 p-2 flex justify-end">
+                            <Button variant="default" size="sm">Prepare</Button>
+                          </CardFooter>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Tests</CardTitle>
+                    <CardDescription>Your recently completed tests</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {recentTests.map((test) => (
+                        <Card key={test.id}>
+                          <CardContent className="p-4">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between">
+                              <div className="space-y-1">
+                                <h3 className="font-bold">{test.title}</h3>
+                                <p className="text-sm text-muted-foreground">{test.subject} | Class {test.class}</p>
+                              </div>
+                              <div className="flex items-center gap-2 mt-2 md:mt-0">
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  85%
+                                </span>
+                                <Button variant="outline" size="sm">View Results</Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="subjects" className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  {subjects.map((subject, index) => (
+                    <Card key={index}>
+                      <CardHeader className="pb-2">
+                        <CardTitle>{subject.name}</CardTitle>
+                        <CardDescription>Teacher: {subject.teacher}</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          <div className="flex justify-between">
+                            <span className="text-sm">Progress</span>
+                            <span className="text-sm font-medium">{subject.progress}%</span>
                           </div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            <span className="inline-block mr-4">
-                              Duration: {test.duration} mins
-                            </span>
-                            <span className="inline-block">
-                              Marks: {test.totalMarks}
-                            </span>
-                          </div>
+                          <Progress value={subject.progress} className="h-2" />
                         </div>
-                        <Button asChild>
-                          <Link href={`/tests/${test.id}`}>Take Test</Link>
+                      </CardContent>
+                      <CardFooter className="pt-0">
+                        <Button variant="ghost" size="sm" className="w-full justify-start">
+                          <span>View Subject</span>
+                          <ArrowRight className="ml-auto h-4 w-4" />
                         </Button>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="analytics" className="space-y-4">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Subject Performance</CardTitle>
+                      <CardDescription>Your performance across subjects</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-[300px] flex items-center justify-center border rounded-md">
+                        <div className="flex flex-col items-center">
+                          <BarChart3 className="h-16 w-16 text-muted-foreground mb-4" />
+                          <p className="text-sm text-muted-foreground">Performance Chart Will Appear Here</p>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
-                ))}
-                
-                {upcomingTests.length > 3 && (
-                  <div className="text-center mt-4">
-                    <Button variant="outline" asChild>
-                      <Link href="/tests">View All Tests</Link>
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-
-          {/* Performance & Learning Insights */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {/* Performance Metrics */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center">
-                  <BarChart3 className="h-5 w-5 text-primary mr-2" />
-                  <CardTitle className="text-lg font-medium">My Performance</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {analyticsLoading ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-8 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-8 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-8 w-full" />
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <span className="text-sm">Physics</span>
-                        <span className="text-sm font-medium">85%</span>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Learning Analysis</CardTitle>
+                      <CardDescription>Strengths and areas for improvement</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          Strong Topics
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {analytics.strongTopics.map((topic, i) => (
+                            <span key={i} className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              {topic}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                      <Progress value={85} className="h-2" />
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <span className="text-sm">Chemistry</span>
-                        <span className="text-sm font-medium">72%</span>
+                      
+                      <div>
+                        <h3 className="text-sm font-medium mb-2 flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4 text-amber-500" />
+                          Areas for Improvement
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {analytics.weakTopics.map((topic, i) => (
+                            <span key={i} className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">
+                              {topic}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                      <Progress value={72} className="h-2" />
-                    </div>
-                    
-                    <div>
-                      <div className="flex justify-between mb-2">
-                        <span className="text-sm">Mathematics</span>
-                        <span className="text-sm font-medium">90%</span>
-                      </div>
-                      <Progress value={90} className="h-2" />
-                    </div>
-                    
-                    <Button variant="outline" size="sm" className="w-full" asChild>
-                      <Link href="/progress">View Detailed Performance</Link>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Learning Recommendations */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center">
-                  <Sparkles className="h-5 w-5 text-primary mr-2" />
-                  <CardTitle className="text-lg font-medium">AI Recommendations</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {analyticsLoading ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-20 w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-20 w-full" />
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Areas to Improve</h3>
-                      <div className="bg-muted p-3 rounded-md">
-                        <ul className="list-disc pl-5 text-sm space-y-1">
-                          {analytics?.weakTopics?.slice(0, 3).map((topic, i) => (
-                            <li key={i}>{topic}</li>
-                          )) || (
-                            <>
-                              <li>Chemical Bonding</li>
-                              <li>Newton's Laws of Motion</li>
-                              <li>Integration in Calculus</li>
-                            </>
-                          )}
+                      
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Recommended Resources</h3>
+                        <ul className="space-y-2">
+                          {analytics.recommendedResources.map((resource, i) => (
+                            <li key={i} className="text-sm flex justify-between items-center p-2 bg-muted rounded-md">
+                              <span>{resource.title}</span>
+                              <div className="flex items-center">
+                                <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full mr-2">
+                                  {resource.type}
+                                </span>
+                                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                  <ArrowRight className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </li>
+                          ))}
                         </ul>
                       </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Achievements</CardTitle>
+                    <CardDescription>Your learning achievements</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {achievements.map((achievement) => {
+                        const Icon = achievement.icon;
+                        return (
+                          <Card key={achievement.id} className="text-center p-4">
+                            <div className="flex justify-center mb-2">
+                              <div className="bg-primary/10 p-2 rounded-full">
+                                <Icon className="h-6 w-6 text-primary" />
+                              </div>
+                            </div>
+                            <h3 className="font-bold">{achievement.title}</h3>
+                            <p className="text-xs text-muted-foreground mt-1">{achievement.description}</p>
+                          </Card>
+                        );
+                      })}
                     </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Recommended Resources</h3>
-                      <div className="space-y-2">
-                        {analytics?.recommendedResources?.slice(0, 3).map((resource, i) => (
-                          <div key={i} className="bg-muted p-3 rounded-md text-sm">
-                            <div className="font-medium">{resource.title}</div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="timetable" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Weekly Timetable</CardTitle>
+                    <CardDescription>Class 10-A Schedule</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="rounded-md border">
+                      <div className="bg-muted/50 p-2 grid grid-cols-7">
+                        <div className="font-medium">Time/Day</div>
+                        {["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day, i) => (
+                          <div key={i} className="font-medium text-center">{day}</div>
+                        ))}
+                      </div>
+                      
+                      {Array.from({ length: 6 }).map((_, periodIndex) => (
+                        <div key={periodIndex} className="grid grid-cols-7 border-t">
+                          <div className="p-2 border-r">
+                            <div className="font-medium">{periodIndex + 1}</div>
                             <div className="text-xs text-muted-foreground">
-                              Type: {resource.type}
+                              {9 + periodIndex}:00 - {10 + periodIndex}:00
                             </div>
-                            {resource.url && (
-                              <a
-                                href={resource.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-primary hover:underline"
-                              >
-                                View Resource
-                              </a>
-                            )}
                           </div>
-                        )) || (
-                          <>
-                            <div className="bg-muted p-3 rounded-md text-sm">
-                              <div className="font-medium">Chemical Bonding Video Tutorial</div>
-                              <div className="text-xs text-muted-foreground">Type: Video</div>
+                          
+                          {timetable.map((day, dayIndex) => (
+                            <div 
+                              key={dayIndex} 
+                              className={`p-2 text-center ${dayIndex < 4 ? 'border-r' : ''}`}
+                            >
+                              {day.periods[periodIndex]}
                             </div>
-                            <div className="bg-muted p-3 rounded-md text-sm">
-                              <div className="font-medium">Physics Practice Problems</div>
-                              <div className="text-xs text-muted-foreground">Type: Exercise</div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <Button variant="outline" size="sm" className="w-full" asChild>
-                      <Link href="/resources">View All Resources</Link>
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-          
-          {/* Gamification Section */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {/* Achievements & Badges */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <Trophy className="h-5 w-5 text-yellow-500 mr-2" />
-                    <CardTitle className="text-lg font-medium">Achievements</CardTitle>
-                  </div>
-                  <Badge className="bg-yellow-500">2 New</Badge>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center p-3 rounded-md bg-yellow-500/10 border border-yellow-200 dark:border-yellow-900/50">
-                    <div className="w-10 h-10 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center text-yellow-700 dark:text-yellow-500 mr-3">
-                      <Trophy className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm">Math Genius</div>
-                      <div className="text-xs text-muted-foreground">Scored 95% in Calculus Test</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center p-3 rounded-md bg-blue-500/10 border border-blue-200 dark:border-blue-900/50">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-700 dark:text-blue-500 mr-3">
-                      <Brain className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="font-medium text-sm">Science Explorer</div>
-                      <div className="text-xs text-muted-foreground">Completed 10 Chemistry Experiments</div>
-                    </div>
-                  </div>
-                  <Link href="/achievements" className="text-xs text-primary hover:underline block text-center mt-2">
-                    View all achievements
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Daily Streak */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center">
-                  <Sparkles className="h-5 w-5 text-primary mr-2" />
-                  <CardTitle className="text-lg font-medium">Learning Streak</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="flex flex-col items-center justify-center p-4">
-                  <div className="text-4xl font-bold text-primary mb-2">7</div>
-                  <div className="text-sm text-center mb-4">days in a row</div>
-                  <div className="w-full bg-muted rounded-full h-2.5 mb-4">
-                    <div className="bg-gradient-to-r from-primary/80 to-primary h-2.5 rounded-full" style={{ width: '70%' }}></div>
-                  </div>
-                  <div className="text-xs text-muted-foreground text-center">3 more days to unlock "Dedicated Learner" badge</div>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Challenge Friends */}
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center">
-                  <Users className="h-5 w-5 text-primary mr-2" />
-                  <CardTitle className="text-lg font-medium">Challenge Friends</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="bg-muted p-3 rounded-md">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-medium mr-2">
-                          AK
+                          ))}
                         </div>
-                        <span className="text-sm font-medium">Aryan Kumar</span>
-                      </div>
-                      <Badge variant="outline" className="text-xs">Physics</Badge>
+                      ))}
                     </div>
-                    <Button size="sm" className="w-full" variant="outline">Accept Challenge</Button>
-                  </div>
-                  <div className="bg-muted p-3 rounded-md">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-xs font-medium mr-2">
-                          PS
-                        </div>
-                        <span className="text-sm font-medium">Priya Sharma</span>
-                      </div>
-                      <Badge variant="outline" className="text-xs">Math Quiz</Badge>
-                    </div>
-                    <Button size="sm" className="w-full" variant="outline">Accept Challenge</Button>
-                  </div>
-                  <Link href="/challenges" className="text-xs text-primary hover:underline block text-center mt-2">
-                    Create new challenge
-                  </Link>
-                </div>
-              </CardContent>
-            </Card>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
-        </div>
-
-        <MobileNav />
+        </main>
       </div>
     </div>
   );
