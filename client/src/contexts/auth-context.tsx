@@ -66,7 +66,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
       // Using the login endpoint path that matches server implementation
-      const response = await fetch("/api/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -103,7 +103,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
       // Using the register endpoint path that matches server implementation
-      const response = await fetch("/api/register", {
+      const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -140,7 +140,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
       // Using the logout endpoint path that matches server implementation
-      await fetch("/api/logout", {
+      await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include"
       });
@@ -150,8 +150,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: "You have been successfully logged out",
       });
       
-      // Redirect to login
-      window.location.href = "/login";
+      // No need to redirect as the login dialog will be shown automatically
     } catch (error) {
       console.error("Logout failed:", error);
       toast({
