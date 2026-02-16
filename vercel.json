@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "server/index.ts",
+      "use": "@vercel/node",
+      "options": {
+        "compiler": "typescript"
+      }
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "options": {
+        "buildCommand": "npm run build"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "server/index.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "dist/public/$1"
+    }
+  ]
+}
