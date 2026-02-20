@@ -2,137 +2,138 @@
 
 An AI-powered personalized learning platform designed to enhance educational experiences through intelligent test creation, comprehensive performance analytics, and adaptive learning tools for both students and teachers.
 
-## Project Overview
+## ✨ Features
 
-This educational platform integrates AI capabilities to deliver customized learning experiences, evaluate student responses, generate study plans, and analyze test performance data. The app includes features like:
+### AI-Powered Capabilities
+- **AI Tutor** — Interactive learning assistant with chat-based help
+- **Test Creation** — AI-assisted question generation
+- **Answer Evaluation** — Automatic evaluation of subjective answers
+- **Performance Analysis** — AI insights into student performance patterns
 
-- AI-driven tutoring and concept explanation
-- Adaptive test generation and evaluation
-- Teacher dashboard with class management
-- Performance tracking and analytics
-- Responsive web application with modern UI
-- Student directory organized by standards
+### Core Functionality
+- **User Management** — Role-based access control (Teacher, Student, Principal, Admin, Parent)
+- **Test Management** — Create, distribute, and evaluate tests
+- **OCR Test Scanning** — Convert physical test papers to digital format
+- **Student Directory** — Browse students organized by standards (nursery to 12th grade)
+- **Analytics Dashboard** — Visual representation of performance metrics
+- **Learning Progress Tracking** — Monitor improvement over time
 
-## Requirements
+## 🚀 Quick Start
 
-- Node.js v16+
-- npm or yarn
-- Firebase project (for authentication)
+### Option 1: Docker (Recommended)
 
-## Getting Started
-
-### 1. Clone the Repository
+No Node.js install required — just [Docker](https://docs.docker.com/get-docker/).
 
 ```bash
-git clone <your-repository-url>
-cd master-plan
+git clone https://github.com/StarkNitish/PersonalLearningPro.git
+cd PersonalLearningPro
+cp .env.example .env       # edit with your credentials
+docker compose build
+docker compose up
 ```
 
-### 2. Install Dependencies
+Open **[http://localhost:5001](http://localhost:5001)** in your browser.
+
+### Option 2: Manual Setup
+
+Requires **Node.js v18+** and **npm**.
 
 ```bash
+git clone https://github.com/StarkNitish/PersonalLearningPro.git
+cd PersonalLearningPro
+cp .env.example .env       # edit with your credentials
 npm install
-# or
-yarn install
-```
-
-### 3. Configure Firebase Authentication
-
-1. Create a new Firebase project at [https://console.firebase.google.com/](https://console.firebase.google.com/)
-2. Enable Google authentication in the Firebase console
-3. Create a `.env` file in the root directory with the following variables:
-
-```
-VITE_FIREBASE_API_KEY=your_api_key
-VITE_FIREBASE_PROJECT_ID=your_project_id
-VITE_FIREBASE_APP_ID=your_app_id
-OPENAI_API_KEY=your_openai_api_key
-```
-
-### 4. Start the Development Server
-
-Run both the frontend and backend in development mode:
-
-```bash
-# Run server and client concurrently (requires concurrently package)
 npm run dev
-
-# OR run them separately in two terminals:
-# Terminal 1 - Frontend
-npm run dev:client
-
-# Terminal 2 - Backend
-npm run dev:server
 ```
 
-The application will be available at:
-- Frontend: [http://localhost:5173](http://localhost:5173)
-- Backend: [http://localhost:5000](http://localhost:5000)
+Open **[http://localhost:5001](http://localhost:5001)** in your browser.
 
-## Project Structure
+> See [LOCAL_SETUP.md](LOCAL_SETUP.md) for detailed manual setup instructions.
+
+## ⚙️ Environment Variables
+
+Copy `.env.example` to `.env` and fill in your values. All variables are **optional** — the app runs without them but with reduced functionality:
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `VITE_FIREBASE_API_KEY` | Optional | Firebase authentication |
+| `VITE_FIREBASE_PROJECT_ID` | Optional | Firebase project identifier |
+| `VITE_FIREBASE_APP_ID` | Optional | Firebase app identifier |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Optional | Firebase Cloud Messaging |
+| `VITE_FIREBASE_MEASUREMENT_ID` | Optional | Firebase Analytics |
+| `OPENAI_API_KEY` | Optional | AI tutor, test generation, answer evaluation |
+| `SESSION_SECRET` | Optional | Session cookie signing (auto-generated in dev) |
+
+> **Without Firebase:** The app loads but auth features are disabled.
+> **Without OpenAI:** The app loads but AI features won't work.
+
+## 📁 Project Structure
 
 ```
-├── client/                # Frontend code
+├── client/                # React frontend (Vite)
 │   ├── src/
 │   │   ├── components/    # React components
-│   │   ├── contexts/      # Context providers
+│   │   ├── contexts/      # Context providers (auth, theme)
 │   │   ├── hooks/         # Custom React hooks
 │   │   ├── lib/           # Utility functions & libraries
 │   │   ├── pages/         # Page components
 │   │   ├── App.tsx        # Main application component
 │   │   └── main.tsx       # Entry point
 │   └── index.html         # HTML template
-├── server/                # Backend code
-│   ├── lib/               # Server utilities
-│   ├── index.ts           # Server entry point
+├── server/                # Express backend
+│   ├── lib/               # Server utilities (OpenAI integration)
+│   ├── index.ts           # Server entry point (port 5001)
 │   ├── routes.ts          # API routes
-│   ├── storage.ts         # Data storage interface
-│   └── vite.ts            # Server setup for Vite
-├── shared/                # Shared code between client and server
-│   └── schema.ts          # Database schema definitions
-└── various config files   # (package.json, tsconfig.json, etc.)
+│   ├── storage.ts         # In-memory data storage
+│   └── vite.ts            # Vite dev middleware setup
+├── shared/                # Shared code (client ↔ server)
+│   └── schema.ts          # Database schema (Drizzle ORM)
+├── Dockerfile             # Docker image definition
+├── docker-compose.yml     # Docker Compose services
+└── .env.example           # Environment variable template
 ```
 
-## Available Scripts
+## 📜 Available Scripts
 
-- `npm run dev` - Start both frontend and backend in development mode
-- `npm run dev:client` - Start only frontend in development mode
-- `npm run dev:server` - Start only backend in development mode
-- `npm run build` - Build the application for production
-- `npm run start` - Start the production build
-- `npm run check` - Type-check the TypeScript code
-- `npm run db:push` - Push schema changes to the database
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start the full app in development mode (port 5001) |
+| `npm run build` | Build for production |
+| `npm run start` | Run the production build |
+| `npm run check` | Type-check TypeScript |
+| `npm run db:push` | Push Drizzle schema to database |
 
-## User Roles
+## 🐳 Docker Reference
 
-The application supports multiple user roles:
+```bash
+docker compose build              # Build the image
+docker compose up                 # Start the container
+docker compose up -d              # Start in background
+docker compose down               # Stop the container
+docker compose build --no-cache   # Rebuild after dependency changes
+```
 
-- **Teacher**: Create tests, scan physical tests, view analytics, manage students
-- **Student**: Take tests, view progress, use AI tutor, join live classes
-- **Principal**: Oversee institution, staff, students, and analytics
-- **Admin**: Manage users, institutions, classes, and system settings
-- **Parent**: Monitor child's academic progress, view test results, schedule teacher meetings
+Source files (`client/`, `server/`, `shared/`) are bind-mounted for **hot reload** — no rebuild needed for code changes.
 
-## Features
+## 📝 Contributor License Agreement (CLA)
 
-### AI-Powered Capabilities
-- **AI Tutor**: Interactive learning assistant with chat-based help
-- **Test Creation**: AI-assisted question generation
-- **Answer Evaluation**: Automatic evaluation of subjective answers
-- **Performance Analysis**: AI insights into student performance patterns
+We use a CLA to ensure contributions can be safely included in the project. When you open your first Pull Request, the CLA Assistant bot will ask you to sign by commenting:
 
-### Core Functionality
-- **User Management**: Role-based access control
-- **Test Management**: Create, distribute, and evaluate tests
-- **OCR Test Scanning**: Convert physical test papers to digital format
-- **Student Directory**: Browse students organized by standards (nursery to 12th grade)
-- **Analytics Dashboard**: Visual representation of performance metrics
-- **Learning Progress Tracking**: Monitor improvement over time
+> I have read the CLA Document and I hereby sign the CLA
 
-## Contributing
+You only need to do this once. See [CLA.md](CLA.md) for the full agreement.
+
+## 🤝 Contributing
+
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+3. Sign the CLA on your first PR (one-time)
+4. Commit your changes (`git commit -m 'Add some amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.

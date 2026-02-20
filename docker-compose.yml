@@ -1,0 +1,23 @@
+services:
+  app:
+    build:
+      context: .
+      target: development
+    ports:
+      - "5001:5001"
+    env_file:
+      - .env
+    volumes:
+      # Bind-mount source directories for hot reload
+      - ./client:/app/client
+      - ./server:/app/server
+      - ./shared:/app/shared
+      # Config files needed at runtime
+      - ./vite.config.ts:/app/vite.config.ts
+      - ./tailwind.config.ts:/app/tailwind.config.ts
+      - ./postcss.config.js:/app/postcss.config.js
+      - ./tsconfig.json:/app/tsconfig.json
+      - ./theme.json:/app/theme.json
+      # Preserve container's node_modules (avoid host overwrite)
+      - /app/node_modules
+    restart: unless-stopped

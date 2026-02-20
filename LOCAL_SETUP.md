@@ -1,178 +1,135 @@
-# Master Plan - Local Development Setup
+# Master Plan — Local Development Setup
 
-This guide will help you set up and run the Master Plan application locally.
+This guide walks through setting up the project locally **without Docker**. For the quickest setup, see the [Docker instructions in README.md](README.md#-quick-start).
 
 ## Prerequisites
 
-Before you begin, ensure you have the following installed:
-
-- **Node.js**: v16 or later
-- **npm** or **yarn**
+- **Node.js** v18 or later
+- **npm** (comes with Node.js)
 - **Git**
+- **PostgreSQL** (for structured data)
+- **MongoDB** (for analytics data)
 
 ## 1. Clone the Repository
 
-Clone the project to your local machine:
-
 ```bash
-git clone <repository-url>
+git clone https://github.com/StarkNitish/PersonalLearningPro.git
 cd PersonalLearningPro
 ```
 
 ## 2. Install Dependencies
 
-Install the necessary packages using npm or yarn:
-
 ```bash
 npm install
-```
-or
-```bash
-yarn install
 ```
 
 ## 3. Environment Variables
 
-Create a `.env` file in the root of the project and add the following environment variables.
+Create a `.env` file by copying the example:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env` and fill in your values:
 
 ```env
-# Firebase Configuration
+# Firebase (optional — app runs without it, auth disabled)
 VITE_FIREBASE_API_KEY=your_firebase_api_key
 VITE_FIREBASE_PROJECT_ID=your_firebase_project_id
 VITE_FIREBASE_APP_ID=your_firebase_app_id
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+VITE_FIREBASE_MEASUREMENT_ID=your_firebase_measurement_id
 
-# Database
-DATABASE_URL=your_postgresql_connection_string
+# Databases
+DATABASE_URL=postgresql://user:password@localhost:5432/personal_learning_pro
+MONGODB_URI=mongodb://localhost:27017/personal_learning_pro
 
-# OpenAI
+# OpenAI (optional — AI features disabled without it)
 OPENAI_API_KEY=your_openai_api_key
+
+# Session secret (optional — auto-generated in dev, set in production)
+SESSION_SECRET=your_random_session_secret
 ```
 
-### Obtaining Credentials:
+### Obtaining Credentials
 
-- **Firebase**:
-    1. Go to the [Firebase Console](https://console.firebase.google.com/).
-    2. Create a new project or use an existing one.
-    3. Add a new web application.
-    4. Enable "Google" as a Sign-in method in the "Authentication" section.
-    5. Copy the configuration credentials into your `.env` file.
+#### Firebase
+1. Go to the [Firebase Console](https://console.firebase.google.com/)
+2. Create a new project or use an existing one
+3. Add a new **Web** application
+4. Enable **Google** as a Sign-in method under **Authentication → Sign-in method**
+5. Copy the config values into your `.env` file
 
-- **Database (Neon)**:
-    1. Go to [Neon](https://neon.tech/).
-    2. Create a new project.
-    3. Copy the PostgreSQL connection string for your branch and add it to the `DATABASE_URL` in your `.env` file.
+#### Databases
+1. **PostgreSQL**: Install locally or use a managed service like [Neon](https://neon.tech/). Provide the connection string in `DATABASE_URL`.
+2. **MongoDB**: Install locally or use [MongoDB Atlas](https://www.mongodb.com/cloud/atlas). Provide the connection string in `MONGODB_URI`.
 
-- **OpenAI**:
-    1. Go to the [OpenAI API platform](https://platform.openai.com/).
-    2. Get your API key and add it to the `OPENAI_API_KEY` in your `.env` file.
+#### OpenAI
+1. Go to the [OpenAI API platform](https://platform.openai.com/)
+2. Create an API key and add it to `OPENAI_API_KEY` in your `.env`
 
-
-## 4. Database Setup
-
-Once you've configured your `DATABASE_URL`, you need to push the schema to your database:
-
-```bash
-npm run db:push
-```
-
-This command uses Drizzle ORM to update your database schema according to `shared/schema.ts`.
-
-
-## 5. Clean Up Replit Configuration
-
-For a clean local setup, you should remove the Replit-specific packages and configuration.
-
-### a. Remove Replit packages from `package.json`
-
-Uninstall the following packages:
-```bash
-npm uninstall @replit/vite-plugin-shadcn-theme-json @replit/vite-plugin-cartographer @replit/vite-plugin-runtime-error-modal
-```
-
-### b. Update `vite.config.ts`
-
-Open `vite.config.ts` and remove the Replit plugins. The file should look like this:
-
-```ts
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-import path from "path";
-
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "client", "src"),
-      "@shared": path.resolve(__dirname, "shared"),
-      "@assets": path.resolve(__dirname, "attached_assets"),
-    },
-  },
-  root: path.resolve(__dirname, "client"),
-  build: {
-    outDir: path.resolve(__dirname, "dist/public"),
-    emptyOutDir: true,
-  },
-});
-```
-
-## 6. Update `package.json` Scripts
-
-The `dev` script in `package.json` should be updated to run the client and server concurrently. You'll need to install `concurrently` as a dev dependency.
-
-```bash
-npm install --save-dev concurrently
-```
-
-Then, update the `"scripts"` section in your `package.json`:
-
-```json
-"scripts": {
-  "dev": "concurrently \\"vite\\" \\"tsx server/index.ts\\"",
-  "dev:client": "vite",
-  "dev:server": "tsx server/index.ts",
-  "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
-  "start": "NODE_ENV=production node dist/index.js",
-  "check": "tsc",
-  "db:push": "drizzle-kit push"
-}
-```
-
-## 7. Start the Application
-
-You can now start the application in development mode:
+## 4. Start the Development Server
 
 ```bash
 npm run dev
 ```
 
-Alternatively, you can run the client and server in separate terminals:
+This starts a single Express server that serves both the API and the Vite-powered React frontend.
 
-**Terminal 1 (Client):**
-```bash
-npm run dev:client
-```
+The application will be available at: **[http://localhost:5001](http://localhost:5001)**
 
-**Terminal 2 (Server):**
-```bash
-npm run dev:server
-```
+> **Note:** Both the frontend and backend run on port 5001 — there is no separate Vite dev server.
 
-The application will be available at the following URLs:
+## 5. Available Scripts
 
-- **Frontend**: `http://localhost:5173`
-- **Backend API**: `http://localhost:5001`
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start the full app in development mode |
+| `npm run build` | Build for production (client + server) |
+| `npm run start` | Run the production build |
+| `npm run check` | Type-check TypeScript |
 
 ## Project Structure
 
-- `client/src/`: Contains all frontend React code.
-- `server/`: Contains the backend Express server code.
-- `shared/`: Code shared between the frontend and backend, including the database schema.
-- `migrations/`: Database migration files generated by Drizzle Kit.
+```
+client/src/     → React frontend code
+server/         → Express backend code
+shared/         → Shared types and schema
+```
+
+| Directory | Description |
+|-----------|-------------|
+| `client/src/components/` | React UI components (shadcn/ui based) |
+| `client/src/contexts/` | React context providers (auth, theme) |
+| `client/src/pages/` | Page-level components |
+| `client/src/lib/` | Utilities, Firebase config, API helpers |
+| `server/lib/` | Server utilities (OpenAI integration) |
+| `server/routes.ts` | All API route definitions |
+| `server/storage.ts` | Hybrid data storage (Postgres + MongoDB) |
+| `shared/schema.ts` | Zod schema and type definitions |
 
 ## Troubleshooting
 
-- **Port Conflicts**: If port 5001 or 5173 is already in use, you can configure the ports in `server/index.ts` and `vite.config.ts`.
-- **Firebase Authentication**: Ensure you've enabled Google Authentication in your Firebase project.
-- **Environment Variables**: Double-check that your `.env` file is in the root of the project and that all variables are set correctly.
-- **Installation Errors**: If you encounter issues, try removing `node_modules` and `package-lock.json` and running `npm install` again.
+### Port 5001 in use
+Change the port in `server/index.ts` (line with `const port = 5001`).
 
+### Firebase authentication not working
+- Ensure you've enabled **Google Authentication** in your Firebase project settings
+- Verify all `VITE_FIREBASE_*` variables are set in `.env`
+- The API key must start with `AIza` — double-check for typos
+
+### Environment variables not loading
+- Confirm `.env` is in the **project root** (not inside `client/` or `server/`)
+- Restart the dev server after changing `.env`
+
+### npm install fails
+Try a clean install:
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### Database connection errors
+- Verify that PostgreSQL and MongoDB are running locally or that your remote connection strings are correct.
+- Double-check the usernames, passwords, and database names in your connection strings.

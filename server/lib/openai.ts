@@ -1,8 +1,11 @@
 import OpenAI from "openai";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || "sk-dummy-key-for-development" 
+if (!process.env.OPENAI_API_KEY) {
+  console.warn("⚠️  OPENAI_API_KEY is not set. AI features (tutor, test generation) will not work.");
+}
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || ""
 });
 
 interface ChatMessage {
@@ -75,7 +78,7 @@ export async function evaluateSubjectiveAnswer(
     const content = response.choices[0]?.message?.content || "{}";
     try {
       const result = JSON.parse(content) as EvaluationResult;
-      
+
       // Ensure values are within expected ranges
       return {
         score: Math.max(0, Math.min(maxMarks, result.score)),
@@ -161,8 +164,8 @@ export async function generateStudyPlan(
 
 export async function analyzeTestPerformance(
   testResults: Array<{ studentId: number, score: number, answers: Array<{ questionId: number, score: number, question: string }> }>
-): Promise<{ 
-  averageScore: number, 
+): Promise<{
+  averageScore: number,
   hardestQuestions: Array<{ questionId: number, question: string, avgScore: number }>,
   recommendations: string
 }> {
@@ -188,8 +191,8 @@ export async function analyzeTestPerformance(
 
     const content = response.choices[0]?.message?.content || "{}";
     try {
-      return JSON.parse(content) as { 
-        averageScore: number, 
+      return JSON.parse(content) as {
+        averageScore: number,
         hardestQuestions: Array<{ questionId: number, question: string, avgScore: number }>,
         recommendations: string
       };

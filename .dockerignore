@@ -1,0 +1,30 @@
+# Dependencies (rebuilt in container)
+node_modules
+
+# Version control
+.git
+.github
+
+# Environment secrets
+.env
+
+# Build artifacts
+dist
+*.tar.gz
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Database migrations (not needed for dev container)
+migrations

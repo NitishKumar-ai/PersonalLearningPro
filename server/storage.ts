@@ -25,33 +25,33 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getUsers(role?: string): Promise<User[]>;
   getUsersByClass(className: string): Promise<User[]>;
-  
+
   // Test operations
   createTest(test: InsertTest): Promise<Test>;
   getTest(id: number): Promise<Test | undefined>;
   getTests(teacherId?: number, status?: string): Promise<Test[]>;
   getTestsByClass(className: string): Promise<Test[]>;
   updateTest(id: number, test: Partial<InsertTest>): Promise<Test | undefined>;
-  
+
   // Question operations
   createQuestion(question: InsertQuestion): Promise<Question>;
   getQuestion(id: number): Promise<Question | undefined>;
   getQuestionsByTest(testId: number): Promise<Question[]>;
   updateQuestion(id: number, question: Partial<InsertQuestion>): Promise<Question | undefined>;
-  
+
   // Test Attempt operations
   createTestAttempt(attempt: InsertTestAttempt): Promise<TestAttempt>;
   getTestAttempt(id: number): Promise<TestAttempt | undefined>;
   getTestAttemptsByStudent(studentId: number): Promise<TestAttempt[]>;
   getTestAttemptsByTest(testId: number): Promise<TestAttempt[]>;
   updateTestAttempt(id: number, attempt: Partial<InsertTestAttempt>): Promise<TestAttempt | undefined>;
-  
+
   // Answer operations
   createAnswer(answer: InsertAnswer): Promise<Answer>;
   getAnswer(id: number): Promise<Answer | undefined>;
   getAnswersByAttempt(attemptId: number): Promise<Answer[]>;
   updateAnswer(id: number, answer: Partial<InsertAnswer>): Promise<Answer | undefined>;
-  
+
   // Analytics operations
   createAnalytics(analytics: InsertAnalytics): Promise<Analytics>;
   getAnalyticsByUser(userId: number): Promise<Analytics[]>;
