@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import {
@@ -18,43 +19,30 @@ export default function AdminDashboard() {
   const { currentUser } = useFirebaseAuth();
 
   return (
-    <div className="flex flex-col space-y-6">
-      <div className="flex flex-col md:flex-row gap-4">
-
-        <Card className="flex-1">
-          <CardHeader className="pb-2">
-            <CardTitle>Welcome, {currentUser.profile?.displayName}</CardTitle>
-            <CardDescription>
-              Institution Administration Panel
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">
-              Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="flex-1">
-          <CardHeader className="pb-2">
-            <CardTitle>Quick Actions</CardTitle>
-          </CardHeader>
-          <CardContent className="grid grid-cols-3 gap-2">
-            <Button variant="outline" className="flex flex-col items-center h-auto py-4">
-              <UserPlus className="h-5 w-5 mb-1" />
-              <span className="text-xs">Add User</span>
-            </Button>
-            <Button variant="outline" className="flex flex-col items-center h-auto py-4">
-              <Mail className="h-5 w-5 mb-1" />
-              <span className="text-xs">Send Notice</span>
-            </Button>
-            <Button variant="outline" className="flex flex-col items-center h-auto py-4">
-              <Settings className="h-5 w-5 mb-1" />
-              <span className="text-xs">Settings</span>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+    <>
+      <PageHeader
+        title={`Welcome, ${currentUser?.profile?.displayName || "Admin"} 🛠️`}
+        subtitle="Institution Administration Panel"
+        breadcrumbs={[
+          { label: "Dashboard", href: "/" },
+          { label: "Admin Dashboard" }
+        ]}
+      >
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add User
+          </Button>
+          <Button variant="outline" size="sm">
+            <Mail className="h-4 w-4 mr-2" />
+            Send Notice
+          </Button>
+          <Button variant="outline" size="sm">
+            <Settings className="h-4 w-4 mr-2" />
+            Settings
+          </Button>
+        </div>
+      </PageHeader>
 
       <Tabs defaultValue="users">
         <TabsList className="grid grid-cols-4 mb-4">
@@ -298,6 +286,6 @@ export default function AdminDashboard() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </>
   );
 }
