@@ -307,8 +307,8 @@ export default function Dashboard() {
             <CardContent>
               <div className="space-y-2">
                 {[
-                  { icon: <Video className="h-4 w-4" />, title: "Interactive Physics Labs", subtitle: "For motion & energy topics", color: "text-blue-500 bg-blue-500/10" },
-                  { icon: <FileQuestion className="h-4 w-4" />, title: "Math Question Bank", subtitle: "Updated with new problems", color: "text-amber-500 bg-amber-500/10" },
+                  { icon: <Video className="h-4 w-4" />, title: "Interactive Physics Labs", subtitle: "For motion & energy topics", color: "text-blue-600 dark:text-blue-400 bg-blue-500/10" },
+                  { icon: <FileQuestion className="h-4 w-4" />, title: "Math Question Bank", subtitle: "Updated with new problems", color: "text-amber-600 dark:text-amber-400 bg-amber-500/10" },
                 ].map((res, i) => (
                   <div key={i} className="flex items-center p-2.5 rounded-lg hover:bg-muted transition-colors cursor-pointer group">
                     <div className={`rounded-lg p-2 mr-3 ${res.color}`}>
