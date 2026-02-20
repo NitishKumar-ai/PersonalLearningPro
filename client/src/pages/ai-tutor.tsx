@@ -30,7 +30,7 @@ import {
   X,
   History
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getInitials } from "@/lib/utils";
 
 // Define the types for the chat
 interface Message {
@@ -582,14 +582,6 @@ export default function AiTutor() {
   );
 }
 
-// Utility function to get initials from name
-function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
 
 // Format timestamp in a readable format
 function formatTime(date: Date) {
