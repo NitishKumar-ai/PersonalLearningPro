@@ -443,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // For MCQ questions, automatically evaluate answer
-      if (question.type === "mcq" && answerData.selectedOption !== undefined) {
+      if (question.type === "mcq" && answerData.selectedOption !== undefined && answerData.selectedOption !== null) {
         const isCorrect = answerData.selectedOption.toString() === question.correctAnswer;
         answerData.isCorrect = isCorrect;
         answerData.score = isCorrect ? question.marks : 0;
@@ -537,7 +537,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Evaluate with AI
       const evaluation = await evaluateSubjectiveAnswer(
-        text,
+        text || "",
         question.text,
         question.aiRubric || "Score based on accuracy and completeness",
         question.marks
