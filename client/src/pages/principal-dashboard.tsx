@@ -223,10 +223,10 @@ export default function PrincipalDashboard() {
               <CardContent>
                 <div className="space-y-3">
                   {[
-                    { label: "Total Teaching Staff", value: "87", icon: <BookOpen className="h-4 w-4" />, color: "text-blue-500 bg-blue-500/10" },
-                    { label: "Non-Teaching Staff", value: "28", icon: <Building2 className="h-4 w-4" />, color: "text-emerald-500 bg-emerald-500/10" },
-                    { label: "Staff on Leave Today", value: "4", icon: <Calendar className="h-4 w-4" />, color: "text-amber-500 bg-amber-500/10" },
-                    { label: "Avg. Experience", value: "8.5 yrs", icon: <Award className="h-4 w-4" />, color: "text-purple-500 bg-purple-500/10" },
+                    { label: "Total Teaching Staff", value: "87", icon: <BookOpen className="h-4 w-4" />, color: "text-blue-600 dark:text-blue-400 bg-blue-500/10" },
+                    { label: "Non-Teaching Staff", value: "28", icon: <Building2 className="h-4 w-4" />, color: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10" },
+                    { label: "Staff on Leave Today", value: "4", icon: <Calendar className="h-4 w-4" />, color: "text-amber-600 dark:text-amber-400 bg-amber-500/10" },
+                    { label: "Avg. Experience", value: "8.5 yrs", icon: <Award className="h-4 w-4" />, color: "text-purple-600 dark:text-purple-400 bg-purple-500/10" },
                   ].map((item) => (
                     <div key={item.label} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
                       <div className="flex items-center gap-3">
@@ -249,7 +249,7 @@ export default function PrincipalDashboard() {
               <Card key={item.label}>
                 <CardContent className="p-5">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                       <DollarSign className="h-5 w-5" />
                     </div>
                     <span className="text-sm text-muted-foreground">{item.label}</span>
