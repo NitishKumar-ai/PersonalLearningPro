@@ -12,6 +12,13 @@ import {
   Tooltip,
 } from "recharts";
 
+/**
+ * Render the Performance Analytics dashboard for classroom and student insights.
+ *
+ * Renders a dashboard composed of subject performance and completion charts, a top-students panel, and an AI-generated learning insights card with tabs for class and individual views.
+ *
+ * @returns The Analytics React element containing the dashboard layout and visualizations.
+ */
 export default function Analytics() {
   const [periodTab, setPeriodTab] = useState("monthly");
 

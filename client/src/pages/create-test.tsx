@@ -4,6 +4,14 @@ import { TestDetailsForm } from "@/components/test/test-details-form";
 import { QuestionForm } from "@/components/test/question-form";
 import { Card, CardContent } from "@/components/ui/card";
 
+/**
+ * Render a multi-tab UI for creating and reviewing a test.
+ *
+ * Manages internal state for the active tab, the created test's ID, and the incremental order for added questions.
+ * Presents three tabs: "Test Details" (shows a form to create the test), "Add Questions" (shows a question form when a test exists), and "Settings & Review" (shows review UI). The "Add Questions" and "Settings & Review" tabs are disabled until a test ID is set.
+ *
+ * @returns The JSX element tree for the CreateTest component (tabbed test creation interface).
+ */
 export default function CreateTest() {
   const [activeTab, setActiveTab] = useState("test-details");
   const [testId, setTestId] = useState<number | null>(null);
@@ -111,4 +119,3 @@ export default function CreateTest() {
     </>
   );
 }
-

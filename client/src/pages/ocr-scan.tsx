@@ -3,6 +3,13 @@ import { OCRUpload } from "@/components/test/ocr-upload";
 import { OCRProcessing } from "@/components/test/ocr-processing";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+/**
+ * Render the OCR Answer Scanning page that manages OCR text and confidence and composes upload, processing, and confidence UI.
+ *
+ * The component maintains `ocrText` and `ocrConfidence` state, provides a handler to receive OCR results from the upload component, passes recognized text to the processing component, and conditionally displays an OCR confidence analysis card with a visual progress bar and recognition tips when confidence is greater than 0.
+ *
+ * @returns The React element for the OCR scanning page, including upload and processing cards and a conditional confidence analysis card.
+ */
 export default function OcrScan() {
   const [ocrText, setOcrText] = useState<string>("");
   const [ocrConfidence, setOcrConfidence] = useState<number>(0);
@@ -86,4 +93,3 @@ export default function OcrScan() {
     </>
   );
 }
-

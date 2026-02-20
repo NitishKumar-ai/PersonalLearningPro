@@ -50,6 +50,13 @@ interface Conversation {
 const HISTORY_KEY = "ai_tutor_history";
 const SYSTEM_PROMPT = "You are an AI tutor for high school students. You're knowledgeable about physics, chemistry, mathematics, biology, and computer science. Provide clear, concise explanations. Include examples when helpful. For math problems, show step-by-step solutions. Keep explanations appropriate for high school level understanding. Be encouraging and supportive.";
 
+/**
+ * AI Tutor page component that provides a chat-based personal tutor with conversation history and tools for explaining, solving, and visualizing academic concepts.
+ *
+ * Renders a responsive UI with a collapsible conversation history sidebar, a chat interface that persists conversations to localStorage and communicates with the AI chat API, and tabs for Explain, Solve, and Visualize workflows.
+ *
+ * @returns The React element for the AI Tutor UI (conversation history, chat area, input controls, and secondary tool tabs).
+ */
 export default function AiTutor() {
   const { currentUser } = useFirebaseAuth();
   const [activeTab, setActiveTab] = useState("chat");
@@ -583,7 +590,12 @@ export default function AiTutor() {
 }
 
 
-// Format timestamp in a readable format
+/**
+ * Format a Date into a short, locale-aware time string showing hours and minutes.
+ *
+ * @param date - The Date to format
+ * @returns A locale-aware time string with two-digit hours and minutes (e.g., "09:30")
+ */
 function formatTime(date: Date) {
   return new Date(date).toLocaleTimeString([], {
     hour: '2-digit',

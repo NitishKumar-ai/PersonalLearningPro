@@ -20,7 +20,13 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { FirebaseAuthDialog } from "@/components/auth/firebase-auth-dialog";
 
 
-// Layout component with collapsible sidebar — reads sidebar width from CSS variable
+/**
+ * Layout wrapper that renders a sidebar and a main content area whose left margin is controlled by the CSS variable `--sidebar-width`.
+ *
+ * The main content is centered, constrained to a max width, and padded; children are rendered inside this container.
+ *
+ * @param children - The content to display within the main layout container
+ */
 function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background">
@@ -59,6 +65,19 @@ const WrappedAnalytics = withLayout(Analytics);
 const WrappedAiTutor = withLayout(AiTutor);
 const WrappedStudentDirectory = withLayout(StudentDirectory);
 
+/**
+ * Render application routes and handle authentication and loading states.
+ *
+ * When authentication is in progress, renders a centered loading indicator.
+ * When no authenticated user is present, renders the authentication dialog.
+ * When a user is authenticated, registers the application's routes:
+ * - A role-aware root dashboard
+ * - Role-specific dashboard routes
+ * - Common feature routes (create-test, ocr-scan, analytics, ai-tutor, student-directory)
+ * - A fallback 404 route
+ *
+ * @returns A React element containing the routing switch that enforces the above loading, auth, and route behaviors.
+ */
 function Router() {
   const { currentUser, isLoading } = useFirebaseAuth();
 

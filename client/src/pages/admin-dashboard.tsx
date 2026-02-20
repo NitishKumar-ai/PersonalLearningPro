@@ -15,6 +15,17 @@ import {
   Mail
 } from "lucide-react";
 
+/**
+ * Render the administration dashboard for institution administrators.
+ *
+ * Displays a PageHeader with user-aware greeting and action buttons, and a Tabs-driven interface
+ * with sections for User Management, Class Management, Reports & Analytics, and System Settings.
+ *
+ * The UI is static (hard-coded data) and provides layout, summary cards, lists, and action controls
+ * for each section without attached event handlers or data fetching.
+ *
+ * @returns A JSX element representing the admin dashboard UI
+ */
 export default function AdminDashboard() {
   const { currentUser } = useFirebaseAuth();
 
