@@ -1,242 +1,356 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { PageHeader } from "@/components/layout/page-header";
 import {
+  Users,
+  GraduationCap,
+  School,
+  TrendingUp,
+  Calendar,
+  Award,
+  Bell,
   BarChart3,
   BookOpen,
-  GraduationCap,
-  Users,
-  CalendarDays,
-  Award,
   Building2,
-  BriefcaseBusiness
+  DollarSign,
+  ChevronRight,
 } from "lucide-react";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+} from "recharts";
 
 export default function PrincipalDashboard() {
   const { currentUser } = useFirebaseAuth();
 
+  const stats = [
+    { label: "Total Students", value: "1,245", icon: <GraduationCap className="h-5 w-5" />, trend: "+42 this term", gradient: "from-blue-500 to-indigo-600" },
+    { label: "Teachers", value: "87", icon: <Users className="h-5 w-5" />, trend: "3 new hires", gradient: "from-emerald-500 to-teal-600" },
+    { label: "Active Classes", value: "36", icon: <School className="h-5 w-5" />, trend: "All running", gradient: "from-amber-500 to-orange-600" },
+    { label: "Pass Rate", value: "94.2%", icon: <TrendingUp className="h-5 w-5" />, trend: "+2.1% vs last year", gradient: "from-purple-500 to-violet-600" },
+  ];
+
+  const performanceData = [
+    { subject: "Physics", avgScore: 78, passRate: 92 },
+    { subject: "Chem", avgScore: 72, passRate: 88 },
+    { subject: "Math", avgScore: 82, passRate: 95 },
+    { subject: "Bio", avgScore: 76, passRate: 91 },
+    { subject: "CS", avgScore: 85, passRate: 97 },
+    { subject: "English", avgScore: 80, passRate: 94 },
+  ];
+
+  const staffDistribution = [
+    { name: "Science", value: 25, color: "hsl(var(--chart-1))" },
+    { name: "Mathematics", value: 18, color: "hsl(var(--chart-2))" },
+    { name: "Languages", value: 20, color: "hsl(var(--chart-3))" },
+    { name: "Social Studies", value: 12, color: "hsl(var(--chart-4))" },
+    { name: "Other", value: 12, color: "hsl(var(--chart-5))" },
+  ];
+
+  const financeSummary = [
+    { label: "Annual Budget", value: "₹2.4 Cr", status: "Approved" },
+    { label: "Spent YTD", value: "₹1.8 Cr", status: "75% utilized" },
+    { label: "Pending Fees", value: "₹12.5 L", status: "8% outstanding" },
+  ];
+
+  const upcomingEvents = [
+    { title: "Annual Sports Day", date: "Mar 15", type: "Event", color: "bg-blue-500" },
+    { title: "Term 2 Exams Begin", date: "Mar 20", type: "Academic", color: "bg-amber-500" },
+    { title: "Parent-Teacher Meeting", date: "Mar 25", type: "Meeting", color: "bg-emerald-500" },
+    { title: "Science Exhibition", date: "Apr 2", type: "Event", color: "bg-purple-500" },
+  ];
+
+  const notifications = [
+    { title: "Staff Leave Request", desc: "3 pending approvals for next week", time: "1h ago", urgent: true },
+    { title: "Exam Results", desc: "Term 1 results compilation complete", time: "3h ago", urgent: false },
+    { title: "Infrastructure", desc: "Lab equipment delivery scheduled for Monday", time: "5h ago", urgent: false },
+  ];
+
   return (
-    <div className="flex flex-col space-y-6">
-      <div className="flex flex-col md:flex-row gap-4">
-        <Card className="flex-1">
-          <CardHeader className="pb-2">
-            <CardTitle>Welcome, {currentUser.profile?.displayName}</CardTitle>
-            <CardDescription>
-              Principal Dashboard
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm">
-              Today is {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-            </p>
-          </CardContent>
-        </Card>
+    <>
+      <PageHeader
+        title={`Welcome, ${currentUser?.profile?.displayName || "Principal"} 🏫`}
+        subtitle="Your institution's performance dashboard"
+        className="animate-fade-in-up"
+        breadcrumbs={[
+          { label: "Dashboard", href: "/" },
+          { label: "Principal Dashboard" }
+        ]}
+      >
+        <Button variant="outline">
+          <Calendar className="h-4 w-4 mr-2" />
+          Schedule
+        </Button>
+        <Button>
+          <BarChart3 className="h-4 w-4 mr-2" />
+          Reports
+        </Button>
+      </PageHeader>
 
-        <Card className="flex-1">
-          <CardHeader className="pb-2">
-            <CardTitle>Institution Overview</CardTitle>
-            <CardDescription>
-              Key metrics and statistics
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-4">
-            <div className="flex items-center gap-2">
-              <Users className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="font-medium">1,245</p>
-                <p className="text-xs text-muted-foreground">Students</p>
+      {/* Stats */}
+      <section className="mb-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((stat, index) => (
+          <Card key={stat.label} className="animate-fade-in-up hover:shadow-md transition-shadow overflow-hidden" style={{ animationDelay: `${index * 75}ms` }}>
+            <CardContent className="p-5 relative">
+              <div className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${stat.gradient} opacity-5 rounded-bl-full`} />
+              <div className={`p-2.5 rounded-xl bg-gradient-to-br ${stat.gradient} text-white w-fit mb-3 shadow-sm`}>
+                {stat.icon}
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <GraduationCap className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="font-medium">87</p>
-                <p className="text-xs text-muted-foreground">Teachers</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-amber-500" />
-              <div>
-                <p className="font-medium">24</p>
-                <p className="text-xs text-muted-foreground">Classes</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Award className="h-5 w-5 text-purple-500" />
-              <div>
-                <p className="font-medium">96.5%</p>
-                <p className="text-xs text-muted-foreground">Pass Rate</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              <div className="text-2xl font-bold tracking-tight">{stat.value}</div>
+              <div className="text-sm text-muted-foreground">{stat.label}</div>
+              <div className="text-xs text-primary/70 mt-1 font-medium">{stat.trend}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
 
-      <Tabs defaultValue="performance">
-        <TabsList className="grid grid-cols-4 mb-4">
-          <TabsTrigger value="performance">Performance</TabsTrigger>
+      {/* Main Content Tabs */}
+      <Tabs defaultValue="academic" className="mb-8">
+        <TabsList className="mb-4">
+          <TabsTrigger value="academic">Academic</TabsTrigger>
           <TabsTrigger value="staff">Staff</TabsTrigger>
-          <TabsTrigger value="finances">Finances</TabsTrigger>
+          <TabsTrigger value="finance">Finance</TabsTrigger>
           <TabsTrigger value="infrastructure">Infrastructure</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="performance" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Academic Performance Overview</CardTitle>
-              <CardDescription>School-wide performance metrics</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] flex items-center justify-center border rounded-md">
-                <div className="flex flex-col items-center">
-                  <BarChart3 className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground">Performance Charts Will Appear Here</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <div className="grid md:grid-cols-2 gap-4">
+        {/* Academic Tab */}
+        <TabsContent value="academic" className="space-y-6 animate-fade-in-up">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card>
-              <CardHeader>
-                <CardTitle>Top Performing Classes</CardTitle>
-                <CardDescription>Based on recent assessments</CardDescription>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-semibold">Academic Performance by Subject</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
-                  {['XII-Science', 'X-A', 'XI-Commerce', 'IX-B', 'VII-A'].map((cls, i) => (
-                    <li key={i} className="flex justify-between items-center py-2 border-b">
-                      <span className="font-medium">{cls}</span>
-                      <span className="text-green-600 font-medium">{98 - i * 1.5}%</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="h-72">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={performanceData} barGap={4}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                      <XAxis dataKey="subject" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                      <YAxis tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                        }}
+                      />
+                      <Legend wrapperStyle={{ fontSize: '12px' }} />
+                      <Bar dataKey="avgScore" name="Avg Score" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="passRate" name="Pass Rate %" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle>Areas Needing Improvement</CardTitle>
-                <CardDescription>Classes requiring attention</CardDescription>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-semibold">Grade Distribution</CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-2">
-                  {['VIII-B', 'VI-C', 'IX-C', 'VII-D', 'X-D'].map((cls, i) => (
-                    <li key={i} className="flex justify-between items-center py-2 border-b">
-                      <span className="font-medium">{cls}</span>
-                      <span className="text-red-500 font-medium">{78 - i * 2}%</span>
-                    </li>
+                <div className="space-y-3">
+                  {[
+                    { grade: "A+ (90-100%)", count: 312, pct: 25, color: "from-emerald-500 to-teal-500" },
+                    { grade: "A (80-89%)", count: 436, pct: 35, color: "from-blue-500 to-indigo-500" },
+                    { grade: "B (70-79%)", count: 312, pct: 25, color: "from-amber-500 to-orange-500" },
+                    { grade: "C (60-69%)", count: 124, pct: 10, color: "from-rose-400 to-red-500" },
+                    { grade: "Below C", count: 61, pct: 5, color: "from-gray-400 to-gray-500" },
+                  ].map((g) => (
+                    <div key={g.grade} className="flex items-center gap-3">
+                      <span className="text-xs font-medium w-28 text-muted-foreground">{g.grade}</span>
+                      <div className="flex-1 relative h-3 rounded-full bg-muted overflow-hidden">
+                        <div className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${g.color}`} style={{ width: `${g.pct}%` }} />
+                      </div>
+                      <span className="text-xs font-semibold w-12 text-right">{g.count}</span>
+                    </div>
                   ))}
-                </ul>
+                </div>
               </CardContent>
             </Card>
           </div>
         </TabsContent>
 
-        <TabsContent value="staff" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Staff Management</CardTitle>
-              <CardDescription>Teacher performance and attendance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] flex items-center justify-center border rounded-md">
-                <div className="flex flex-col items-center">
-                  <Users className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground">Staff Management Dashboard Will Appear Here</p>
+        {/* Staff Tab */}
+        <TabsContent value="staff" className="space-y-6 animate-fade-in-up">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-semibold">Staff Distribution by Department</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={staffDistribution}
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={80}
+                        innerRadius={45}
+                        fill="#8884d8"
+                        dataKey="value"
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        labelLine={false}
+                      >
+                        {staffDistribution.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip formatter={(value) => `${value} staff`} />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-semibold">Staff Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {[
+                    { label: "Total Teaching Staff", value: "87", icon: <BookOpen className="h-4 w-4" />, color: "text-blue-500 bg-blue-500/10" },
+                    { label: "Non-Teaching Staff", value: "28", icon: <Building2 className="h-4 w-4" />, color: "text-emerald-500 bg-emerald-500/10" },
+                    { label: "Staff on Leave Today", value: "4", icon: <Calendar className="h-4 w-4" />, color: "text-amber-500 bg-amber-500/10" },
+                    { label: "Avg. Experience", value: "8.5 yrs", icon: <Award className="h-4 w-4" />, color: "text-purple-500 bg-purple-500/10" },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-lg ${item.color}`}>{item.icon}</div>
+                        <span className="text-sm">{item.label}</span>
+                      </div>
+                      <span className="font-semibold">{item.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
-        <TabsContent value="finances" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Financial Overview</CardTitle>
-              <CardDescription>Budget allocation and expenses</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] flex items-center justify-center border rounded-md">
-                <div className="flex flex-col items-center">
-                  <BriefcaseBusiness className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground">Financial Reports Will Appear Here</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Finance Tab */}
+        <TabsContent value="finance" className="animate-fade-in-up">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {financeSummary.map((item) => (
+              <Card key={item.label}>
+                <CardContent className="p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-500">
+                      <DollarSign className="h-5 w-5" />
+                    </div>
+                    <span className="text-sm text-muted-foreground">{item.label}</span>
+                  </div>
+                  <div className="text-2xl font-bold">{item.value}</div>
+                  <Badge variant="secondary" className="mt-2 text-xs">{item.status}</Badge>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
 
-        <TabsContent value="infrastructure" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Infrastructure Management</CardTitle>
-              <CardDescription>Facilities and maintenance</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px] flex items-center justify-center border rounded-md">
-                <div className="flex flex-col items-center">
-                  <Building2 className="h-16 w-16 text-muted-foreground mb-4" />
-                  <p className="text-sm text-muted-foreground">Infrastructure Management Will Appear Here</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Infrastructure Tab */}
+        <TabsContent value="infrastructure" className="animate-fade-in-up">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: "Classrooms", value: "42", status: "All operational", icon: <School className="h-5 w-5" /> },
+              { label: "Labs", value: "8", status: "1 under maintenance", icon: <BookOpen className="h-5 w-5" /> },
+              { label: "Library", value: "15K+", status: "Books available", icon: <BookOpen className="h-5 w-5" /> },
+              { label: "Sports Facilities", value: "6", status: "All available", icon: <Award className="h-5 w-5" /> },
+            ].map((item) => (
+              <Card key={item.label} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-5 text-center">
+                  <div className="p-2.5 rounded-xl bg-primary/10 text-primary w-fit mx-auto mb-3">
+                    {item.icon}
+                  </div>
+                  <div className="text-2xl font-bold">{item.value}</div>
+                  <div className="text-sm text-muted-foreground">{item.label}</div>
+                  <div className="text-xs text-primary/70 mt-1">{item.status}</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         </TabsContent>
       </Tabs>
 
-      <div className="grid md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader>
-            <CardTitle>Upcoming Events</CardTitle>
-            <CardDescription>School calendar</CardDescription>
+      {/* Events + Notifications */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+        {/* Upcoming Events */}
+        <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Calendar className="h-4 w-4 text-primary" />
+              </div>
+              <CardTitle className="text-lg font-semibold">Upcoming Events</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2">
-              {[
-                { title: 'Board Meeting', date: 'April 10, 2025', type: 'Meeting' },
-                { title: 'Annual Sports Day', date: 'April 15, 2025', type: 'Event' },
-                { title: 'Teacher Evaluation', date: 'April 22, 2025', type: 'Assessment' },
-                { title: 'Parent-Teacher Conference', date: 'April 30, 2025', type: 'Meeting' }
-              ].map((event, i) => (
-                <li key={i} className="flex items-center gap-3 py-2 border-b">
-                  <CalendarDays className="h-5 w-5 text-blue-500" />
-                  <div>
-                    <p className="font-medium">{event.title}</p>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">{event.date}</span>
-                      <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">{event.type}</span>
+            <div className="space-y-3">
+              {upcomingEvents.map((event, i) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <span className={`w-2 h-8 rounded-full ${event.color}`} />
+                    <div>
+                      <div className="font-medium text-sm">{event.title}</div>
+                      <div className="text-xs text-muted-foreground">{event.date}</div>
                     </div>
                   </div>
-                </li>
+                  <Badge variant="outline" className="text-xs">{event.type}</Badge>
+                </div>
               ))}
-            </ul>
+            </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Notifications</CardTitle>
-            <CardDescription>Important updates</CardDescription>
+        {/* Notifications */}
+        <Card className="animate-fade-in-up" style={{ animationDelay: '350ms' }}>
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-primary/10">
+                  <Bell className="h-4 w-4 text-primary" />
+                </div>
+                <CardTitle className="text-lg font-semibold">Notifications</CardTitle>
+              </div>
+              <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-0 text-xs">
+                {notifications.filter(n => n.urgent).length} Urgent
+              </Badge>
+            </div>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-2">
-              {[
-                { title: 'Budget Approval', desc: 'Annual budget has been approved', time: '2 hours ago' },
-                { title: 'Staff Absence Report', desc: 'Monthly staff absence report is ready', time: '5 hours ago' },
-                { title: 'New Curriculum Guidelines', desc: 'New guidelines for science curriculum', time: '1 day ago' },
-                { title: 'Infrastructure Maintenance', desc: 'Scheduled maintenance for Block B', time: '2 days ago' }
-              ].map((notification, i) => (
-                <li key={i} className="py-2 border-b">
-                  <p className="font-medium">{notification.title}</p>
-                  <p className="text-sm text-muted-foreground">{notification.desc}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
-                </li>
+            <div className="space-y-3">
+              {notifications.map((notif, i) => (
+                <div key={i} className={`p-3 rounded-lg border transition-colors hover:bg-muted/50 ${notif.urgent ? 'bg-destructive/5 border-destructive/20' : 'bg-transparent'}`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium text-sm flex items-center gap-2">
+                        {notif.title}
+                        {notif.urgent && <span className="w-1.5 h-1.5 rounded-full bg-destructive" />}
+                      </div>
+                      <p className="text-sm text-muted-foreground">{notif.desc}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{notif.time}</span>
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           </CardContent>
         </Card>
       </div>
-    </div>
+    </>
   );
 }
