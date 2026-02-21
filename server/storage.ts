@@ -4,7 +4,9 @@ import {
   questions, type Question, type InsertQuestion,
   testAttempts, type TestAttempt, type InsertTestAttempt,
   answers, type Answer, type InsertAnswer,
-  analytics, type Analytics, type InsertAnalytics
+  analytics, type Analytics, type InsertAnalytics,
+  channels, type Channel, type InsertChannel,
+  messages, type Message, type InsertMessage
 } from "@shared/schema";
 import session from "express-session";
 
@@ -12,7 +14,7 @@ export interface IStorage {
   // Session store
   sessionStore: session.Store;
   // User operations
-  getUser(id: number): Promise<User | undefined>;
+  getUser(id: number | string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
@@ -49,6 +51,16 @@ export interface IStorage {
   createAnalytics(analytics: InsertAnalytics): Promise<Analytics>;
   getAnalyticsByUser(userId: number): Promise<Analytics[]>;
   getAnalyticsByTest(testId: number): Promise<Analytics[]>;
+
+  // Channel operations
+  createChannel(channel: InsertChannel): Promise<Channel>;
+  getChannel(id: number): Promise<Channel | undefined>;
+  getChannelsByClass(className: string): Promise<Channel[]>;
+  getDMChannelsForUser(userId: string): Promise<Channel[]>;
+
+  // Message operations
+  createMessage(message: InsertMessage): Promise<Message>;
+  getMessagesByChannel(channelId: number): Promise<Message[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -58,6 +70,8 @@ export class MemStorage implements IStorage {
   private testAttempts: Map<number, TestAttempt>;
   private answers: Map<number, Answer>;
   private analytics: Map<number, Analytics>;
+  private channels: Map<number, Channel>;
+  private messages: Map<number, Message>;
 
   sessionStore: session.Store;
 
@@ -67,6 +81,8 @@ export class MemStorage implements IStorage {
   private attemptIdCounter: number;
   private answerIdCounter: number;
   private analyticsIdCounter: number;
+  private channelIdCounter: number;
+  private messageIdCounter: number;
 
   constructor() {
     // Initialize session store
@@ -87,6 +103,8 @@ export class MemStorage implements IStorage {
     this.testAttempts = new Map();
     this.answers = new Map();
     this.analytics = new Map();
+    this.channels = new Map();
+    this.messages = new Map();
 
     this.userIdCounter = 1;
     this.testIdCounter = 1;
@@ -94,6 +112,8 @@ export class MemStorage implements IStorage {
     this.attemptIdCounter = 1;
     this.answerIdCounter = 1;
     this.analyticsIdCounter = 1;
+    this.channelIdCounter = 1;
+    this.messageIdCounter = 1;
 
     // Demo seed data for development — NOT production credentials.
     // These users are created in-memory and reset on every restart.
@@ -118,11 +138,40 @@ export class MemStorage implements IStorage {
       avatar: "",
       subject: ""
     });
+
+    // Seed Demo Channels
+    this.createChannel({
+      name: "general",
+      type: "text",
+      class: "Grade 11-A",
+      subject: "General",
+    });
+    this.createChannel({
+      name: "homework-help",
+      type: "text",
+      class: "Grade 11-A",
+      subject: "Physics",
+    });
+    this.createChannel({
+      name: "announcements",
+      type: "announcement",
+      class: "Grade 11-A",
+      subject: "General",
+    });
   }
 
   // User operations
-  async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+  async getUser(id: number | string): Promise<User | undefined> {
+    // If id is a string but parses as a number, check number map. Otherwise search by something else.
+    // For this demo with purely local + mostly mocked Firebase data, we will convert back to number 
+    // or just return the current session user since we mocked local login data with demo users.
+    if (typeof id === 'number') {
+      return this.users.get(id);
+    } else {
+      // Local demo fallback: Try to return a default user if Firebase UID is passed
+      const userList = Array.from(this.users.values());
+      return userList[0]; // just return a dummy user for the messaging demo
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
@@ -342,6 +391,60 @@ export class MemStorage implements IStorage {
   async getAnalyticsByTest(testId: number): Promise<Analytics[]> {
     return Array.from(this.analytics.values())
       .filter(analytics => analytics.testId === testId);
+  }
+
+  // Channel operations
+  async createChannel(insertChannel: InsertChannel): Promise<Channel> {
+    const id = this.channelIdCounter++;
+    const channel: Channel = {
+      ...insertChannel,
+      id,
+      type: insertChannel.type ?? "text",
+      class: insertChannel.class ?? null,
+      subject: insertChannel.subject ?? null,
+      members: insertChannel.members ?? null,
+    };
+    this.channels.set(id, channel);
+    return channel;
+  }
+
+  async getChannel(id: number): Promise<Channel | undefined> {
+    return this.channels.get(id);
+  }
+
+  async getChannelsByClass(className: string): Promise<Channel[]> {
+    return Array.from(this.channels.values())
+      .filter(channel => channel.class === className);
+  }
+
+  async getDMChannelsForUser(userId: string): Promise<Channel[]> {
+    return Array.from(this.channels.values()).filter(
+      (channel) =>
+        channel.type === "dm" &&
+        Array.isArray(channel.members) &&
+        channel.members.includes(userId)
+    );
+  }
+
+  // Message operations
+  async createMessage(insertMessage: InsertMessage): Promise<Message> {
+    const id = this.messageIdCounter++;
+    const message: Message = {
+      ...insertMessage,
+      id,
+      senderName: insertMessage.senderName ?? null,
+      senderRole: insertMessage.senderRole ?? null,
+      avatar: insertMessage.avatar ?? null,
+      timestamp: insertMessage.timestamp ?? new Date(),
+    };
+    this.messages.set(id, message);
+    return message;
+  }
+
+  async getMessagesByChannel(channelId: number): Promise<Message[]> {
+    return Array.from(this.messages.values())
+      .filter(message => message.channelId === channelId)
+      .sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
   }
 }
 
