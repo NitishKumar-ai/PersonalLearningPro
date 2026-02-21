@@ -3,6 +3,7 @@ import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
+import { WebSocketServer, WebSocket } from "ws";
 
 const app = express();
 app.use(express.json());
@@ -55,6 +56,27 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // Set up WebSocket server
+  const wss = new WebSocketServer({ server, path: '/ws' });
+
+  wss.on('connection', (ws: WebSocket) => {
+    log('New WebSocket connection established');
+
+    ws.on('message', (message) => {
+      // In a real app we'd broadcast to specific channels based on the message data.
+      // For this demo, we'll keep it simple and just broadcast to everyone, 
+      // or handle the broadcasting within the REST endpoints instead.
+      // Often, the client will POST a message, and the server will broadcast it.
+    });
+
+    ws.on('close', () => {
+      log('WebSocket connection closed');
+    });
+  });
+
+  // Attach wss to the app instance so routes can use it for broadcasting
+  app.set("wss", wss);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
