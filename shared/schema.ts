@@ -67,23 +67,6 @@ export const insertAnalyticsSchema = z.object({
   insightDate: z.string().or(z.date()).optional(),
 });
 
-export const insertChannelSchema = z.object({
-  name: z.string().min(1),
-  type: z.enum(["text", "announcement", "dm"]).default("text"),
-  class: z.string().optional().nullable(),
-  subject: z.string().optional().nullable(),
-  members: z.array(z.string()).optional().nullable(),
-});
-
-export const insertMessageSchema = z.object({
-  channelId: z.number(),
-  senderId: z.string(),
-  senderName: z.string().optional().nullable(),
-  senderRole: z.string().optional().nullable(),
-  avatar: z.string().optional().nullable(),
-  content: z.string().min(1),
-  timestamp: z.string().or(z.date()).optional(),
-});
 
 // Types inferred from Zod schemas
 export type User = z.infer<typeof insertUserSchema> & { id: number };

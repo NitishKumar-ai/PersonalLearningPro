@@ -7,6 +7,7 @@ import { storage } from "./storage";
 import { WebSocketServer, WebSocket } from "ws";
 import { connectMongoDB } from "./db";
 import { setupChatWebSocket } from "./chat-ws";
+import { initCassandra } from "./lib/cassandra";
 
 const app = express();
 app.use(express.json());
