@@ -25,7 +25,7 @@ jobs:
         with:
           path-to-signatures: "signatures/version1/cla.json"
           path-to-document: "https://github.com/StarkNitish/PersonalLearningPro/blob/main/CLA.md"
-          branch: "main"
+          branch: "cla-signatures"
           allowlist: dependabot[bot],bot*
           custom-notsigned-prcomment: |
             Thank you for your contribution! Before we can merge this PR, we need you to sign our Contributor License Agreement (CLA).
