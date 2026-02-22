@@ -4,7 +4,9 @@ import session from "express-session";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
+import { WebSocketServer, WebSocket } from "ws";
 import { connectMongoDB } from "./db";
+import { setupChatWebSocket } from "./chat-ws";
 
 const app = express();
 app.use(express.json());
@@ -12,6 +14,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Initialize Databases
 connectMongoDB();
+initCassandra();
 
 // Set up session middleware
 if (!process.env.SESSION_SECRET && process.env.NODE_ENV === 'production') {
@@ -61,6 +64,9 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // Attach WebSocket chat server
+  setupChatWebSocket(server, storage.sessionStore);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

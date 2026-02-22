@@ -24,6 +24,15 @@ import {
   ResponsiveContainer
 } from "recharts";
 
+/**
+ * Render the Parent Dashboard UI showing children's overviews, academic progression, and upcoming schedule.
+ *
+ * Renders a page header with action buttons, a responsive grid of child cards (attendance, average grade,
+ * curriculum progress, and status), an academic progression line chart comparing children over time, and a list
+ * of upcoming events with icons and a control to view all events.
+ *
+ * @returns A React element representing the Parent Dashboard page.
+ */
 export default function ParentDashboard() {
   const { currentUser } = useFirebaseAuth();
 
@@ -239,7 +248,12 @@ export default function ParentDashboard() {
   );
 }
 
-// Missing Lucide icons I used
+/**
+ * Render a trophy-shaped SVG icon and forward all received props to the root <svg> element.
+ *
+ * @param props - Attributes and event handlers to spread onto the root SVG element (e.g., `className`, `width`, `height`, `style`, `aria-*`).
+ * @returns A React element containing the trophy SVG icon.
+ */
 function Trophy(props: any) {
   return (
     <svg

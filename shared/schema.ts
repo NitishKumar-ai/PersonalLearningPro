@@ -67,6 +67,24 @@ export const insertAnalyticsSchema = z.object({
   insightDate: z.string().or(z.date()).optional(),
 });
 
+export const insertChannelSchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(["text", "announcement", "dm"]).default("text"),
+  class: z.string().optional().nullable(),
+  subject: z.string().optional().nullable(),
+  members: z.array(z.string()).optional().nullable(),
+});
+
+export const insertMessageSchema = z.object({
+  channelId: z.number(),
+  senderId: z.string(),
+  senderName: z.string().optional().nullable(),
+  senderRole: z.string().optional().nullable(),
+  avatar: z.string().optional().nullable(),
+  content: z.string().min(1),
+  timestamp: z.string().or(z.date()).optional(),
+});
+
 // Types inferred from Zod schemas
 export type User = z.infer<typeof insertUserSchema> & { id: number };
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -85,3 +103,35 @@ export type InsertAnswer = z.infer<typeof insertAnswerSchema>;
 
 export type Analytics = z.infer<typeof insertAnalyticsSchema> & { id: number };
 export type InsertAnalytics = z.infer<typeof insertAnalyticsSchema>;
+
+// ─── Chat Feature Schemas ───────────────────────────────────────────────────
+
+export const insertWorkspaceSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional().nullable(),
+  ownerId: z.number(),
+  members: z.array(z.number()).default([]),
+});
+
+export const insertChannelSchema = z.object({
+  workspaceId: z.number(),
+  name: z.string().min(1),
+  type: z.enum(["text", "announcement"]).default("text"),
+});
+
+export const insertMessageSchema = z.object({
+  channelId: z.number(),
+  authorId: z.number(),
+  content: z.string().min(1),
+  type: z.enum(["text", "file", "image"]).default("text"),
+  fileUrl: z.string().optional().nullable(),
+});
+
+export type Workspace = z.infer<typeof insertWorkspaceSchema> & { id: number; createdAt: Date };
+export type InsertWorkspace = z.infer<typeof insertWorkspaceSchema>;
+
+export type Channel = z.infer<typeof insertChannelSchema> & { id: number; pinnedMessages: number[]; createdAt: Date };
+export type InsertChannel = z.infer<typeof insertChannelSchema>;
+
+export type Message = z.infer<typeof insertMessageSchema> & { id: number; isPinned: boolean; createdAt: Date };
+export type InsertMessage = z.infer<typeof insertMessageSchema>;

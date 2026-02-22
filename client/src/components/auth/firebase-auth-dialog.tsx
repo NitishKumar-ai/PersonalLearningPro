@@ -30,7 +30,12 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-// Firebase Auth Dialog
+/**
+ * Authentication dialog that provides login, registration, and Google sign-in flows,
+ * including a modal flow to complete registration for new Google users by selecting a role.
+ *
+ * @returns The rendered authentication dialog React element.
+ */
 export function FirebaseAuthDialog() {
     const { login, register, googleLogin, completeGoogleRegistration } = useFirebaseAuth();
     const [isNewGoogleUser, setIsNewGoogleUser] = useState(false);
@@ -83,6 +88,13 @@ export function FirebaseAuthDialog() {
         },
     });
 
+    /**
+     * Attempts to sign in using the provided email and password.
+     *
+     * Logs an error to the console if authentication fails.
+     *
+     * @param data - Object matching the login schema containing `email` and `password`
+     */
     async function onLoginSubmit(data: z.infer<typeof loginSchema>) {
         try {
             await login(data.email, data.password);
@@ -91,6 +103,11 @@ export function FirebaseAuthDialog() {
         }
     }
 
+    /**
+     * Creates a new user account using the provided registration form values.
+     *
+     * @param data - Registration form values: `name`, `email`, `password`, and `role`
+     */
     async function onRegisterSubmit(data: z.infer<typeof registerSchema>) {
         try {
             const additionalData = getRoleSpecificData(data.role);
@@ -100,6 +117,14 @@ export function FirebaseAuthDialog() {
         }
     }
 
+    /**
+     * Finalize a new Google user's registration by submitting their chosen role and associated role-specific data.
+     *
+     * If no temporary Google user is present this function is a no-op. On successful completion it clears the temporary
+     * Google user and exits the new-user flow.
+     *
+     * @param data - Form values containing the selected `role` to use when completing Google registration
+     */
     async function onRoleSubmit(data: z.infer<typeof roleSchema>) {
         if (!tempGoogleUser) return;
 
@@ -113,6 +138,17 @@ export function FirebaseAuthDialog() {
         }
     }
 
+    /**
+     * Provides role-specific additional data used during registration flows.
+     *
+     * @param role - Role identifier; expected values: `"student"`, `"teacher"`, `"principal"`, `"admin"`, or `"parent"`.
+     * @returns An object containing extra fields required for the given role:
+     * - `student`: `{ classId: string }`
+     * - `teacher`: `{ subjects: string[] }`
+     * - `principal` / `admin`: `{ institutionId: string }`
+     * - `parent`: `{ studentId: string }`
+     * - other values: an empty object
+     */
     function getRoleSpecificData(role: string) {
         switch (role) {
             case "student":
@@ -130,6 +166,11 @@ export function FirebaseAuthDialog() {
         }
     }
 
+    /**
+     * Initiates the Google sign-in flow and, for first-time Google users, marks the component as requiring completion and stores the temporary Google user.
+     *
+     * If sign-in fails the error is logged to the console.
+     */
     async function handleGoogleLogin() {
         try {
             const result = await googleLogin();

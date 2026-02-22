@@ -34,6 +34,14 @@ import {
   Tooltip,
 } from "recharts";
 
+/**
+ * Renders the Student Dashboard page showing subject progress, upcoming and recent tests, achievements, learning analytics, and a weekly timetable.
+ *
+ * The component composes a PageHeader (welcome, streak, AI Tutor link), a Subject Progress grid, a Tests tab (Upcoming and Recent Results),
+ * an Achievements list, a Learning Analytics panel (stats, subject performance, radar chart), and a Weekly Timetable table.
+ *
+ * @returns The JSX element for the student's dashboard overview page.
+ */
 export default function StudentDashboard() {
   const { currentUser } = useFirebaseAuth();
 

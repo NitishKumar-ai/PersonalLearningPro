@@ -1,7 +1,7 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertTestSchema, insertQuestionSchema, insertTestAttemptSchema, insertAnswerSchema, insertAnalyticsSchema } from "@shared/schema";
+import { insertUserSchema, insertTestSchema, insertQuestionSchema, insertTestAttemptSchema, insertAnswerSchema, insertAnalyticsSchema, insertWorkspaceSchema, insertChannelSchema } from "@shared/schema";
 import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat, generateStudyPlan, analyzeTestPerformance } from "./lib/openai";
@@ -574,6 +574,258 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("AI chat error:", error);
       res.status(500).json({ message: "Failed to generate AI response" });
+    }
+  });
+
+  // ─── Chat: Workspace routes ───────────────────────────────────────────────────
+
+  // POST /api/workspaces — Create a new workspace
+  app.post("/api/workspaces", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const body = insertWorkspaceSchema.parse({
+        ...req.body,
+        ownerId: req.session.userId,
+        members: [],
+      });
+
+      const workspace = await storage.createWorkspace(body);
+      return res.status(201).json(workspace);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      return res.status(500).json({ message: "Failed to create workspace" });
+    }
+  });
+
+  // GET /api/workspaces — List workspaces the current user belongs to
+  app.get("/api/workspaces", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      const workspaces = await storage.getWorkspaces(req.session.userId);
+      return res.status(200).json(workspaces);
+    } catch {
+      return res.status(500).json({ message: "Failed to fetch workspaces" });
+    }
+  });
+
+  // GET /api/workspaces/:id — Get a single workspace
+  app.get("/api/workspaces/:id", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      const workspace = await storage.getWorkspace(parseInt(req.params.id));
+      if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+      if (!workspace.members.includes(req.session.userId)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      return res.status(200).json(workspace);
+    } catch {
+      return res.status(500).json({ message: "Failed to fetch workspace" });
+    }
+  });
+
+  // POST /api/workspaces/:id/members — Add a member (teacher or owner only)
+  app.post("/api/workspaces/:id/members", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      const workspaceId = parseInt(req.params.id);
+      const workspace = await storage.getWorkspace(workspaceId);
+      if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+
+      // Only owner or teacher can add members
+      if (workspace.ownerId !== req.session.userId && req.session.userRole !== "teacher") {
+        return res.status(403).json({ message: "Only the workspace owner or teachers can add members" });
+      }
+
+      const { userId } = req.body;
+      if (!userId || typeof userId !== "number") {
+        return res.status(400).json({ message: "userId (number) is required" });
+      }
+
+      const updated = await storage.addMemberToWorkspace(workspaceId, userId);
+      return res.status(200).json(updated);
+    } catch {
+      return res.status(500).json({ message: "Failed to add member" });
+    }
+  });
+
+  // DELETE /api/workspaces/:id/members/:userId — Remove a member (teacher or owner)
+  app.delete("/api/workspaces/:id/members/:userId", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      const workspaceId = parseInt(req.params.id);
+      const targetUserId = parseInt(req.params.userId);
+
+      const workspace = await storage.getWorkspace(workspaceId);
+      if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+
+      if (workspace.ownerId !== req.session.userId && req.session.userRole !== "teacher") {
+        return res.status(403).json({ message: "Only the workspace owner or teachers can remove members" });
+      }
+
+      const updated = await storage.removeMemberFromWorkspace(workspaceId, targetUserId);
+      return res.status(200).json(updated);
+    } catch {
+      return res.status(500).json({ message: "Failed to remove member" });
+    }
+  });
+
+  // ─── Chat: Channel routes ───────────────────────────────────────────────────
+
+  // POST /api/workspaces/:id/channels — Create a channel (teachers only)
+  app.post("/api/workspaces/:id/channels", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      if (req.session.userRole !== "teacher") {
+        return res.status(403).json({ message: "Only teachers can create channels" });
+      }
+
+      const workspaceId = parseInt(req.params.id);
+      const workspace = await storage.getWorkspace(workspaceId);
+      if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+      if (!workspace.members.includes(req.session.userId)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const body = insertChannelSchema.parse({ ...req.body, workspaceId });
+      const channel = await storage.createChannel(body);
+      return res.status(201).json(channel);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      return res.status(500).json({ message: "Failed to create channel" });
+    }
+  });
+
+  // GET /api/workspaces/:id/channels — List channels in a workspace
+  app.get("/api/workspaces/:id/channels", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      const workspaceId = parseInt(req.params.id);
+      const workspace = await storage.getWorkspace(workspaceId);
+      if (!workspace) return res.status(404).json({ message: "Workspace not found" });
+      if (!workspace.members.includes(req.session.userId)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+      const channels = await storage.getChannelsByWorkspace(workspaceId);
+      return res.status(200).json(channels);
+    } catch {
+      return res.status(500).json({ message: "Failed to fetch channels" });
+    }
+  });
+
+  // ─── Chat: Message routes ───────────────────────────────────────────────────
+
+  // GET /api/channels/:id/messages — Paginated message history
+  app.get("/api/channels/:id/messages", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const channelId = parseInt(req.params.id);
+      const channel = await storage.getChannel(channelId);
+      if (!channel) return res.status(404).json({ message: "Channel not found" });
+
+      const workspace = await storage.getWorkspace(channel.workspaceId);
+      if (!workspace || !workspace.members.includes(req.session.userId)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      const before = req.query.before ? parseInt(req.query.before as string) : undefined;
+
+      const messages = await storage.getMessagesByChannel(channelId, limit, before);
+      return res.status(200).json(messages);
+    } catch {
+      return res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // DELETE /api/messages/:id — Delete a message (author or teacher)
+  app.delete("/api/messages/:id", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const messageId = parseInt(req.params.id);
+      const messages = await storage.getMessagesByChannel(0); // we'll look it up differently
+
+      // Fetch the message directly from Mongo to check ownership
+      const { MongoMessage } = await import("@shared/mongo-schema");
+      const msg = await (MongoMessage as any).findOne({ id: messageId });
+      if (!msg) return res.status(404).json({ message: "Message not found" });
+
+      const isAuthor = msg.authorId === req.session.userId;
+      const isTeacher = req.session.userRole === "teacher";
+
+      if (!isAuthor && !isTeacher) {
+        return res.status(403).json({ message: "You can only delete your own messages" });
+      }
+
+      await storage.deleteMessage(messageId);
+      return res.status(200).json({ message: "Message deleted" });
+    } catch {
+      return res.status(500).json({ message: "Failed to delete message" });
+    }
+  });
+
+  // POST /api/channels/:id/pin/:messageId — Pin a message (teachers only)
+  app.post("/api/channels/:id/pin/:messageId", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      if (req.session.userRole !== "teacher") {
+        return res.status(403).json({ message: "Only teachers can pin messages" });
+      }
+
+      const channelId = parseInt(req.params.id);
+      const messageId = parseInt(req.params.messageId);
+
+      const channel = await storage.pinMessage(channelId, messageId);
+      if (!channel) return res.status(404).json({ message: "Channel or message not found" });
+
+      return res.status(200).json(channel);
+    } catch {
+      return res.status(500).json({ message: "Failed to pin message" });
+    }
+  });
+
+  // DELETE /api/channels/:id/pin/:messageId — Unpin a message (teachers only)
+  app.delete("/api/channels/:id/pin/:messageId", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      if (req.session.userRole !== "teacher") {
+        return res.status(403).json({ message: "Only teachers can unpin messages" });
+      }
+
+      const channelId = parseInt(req.params.id);
+      const messageId = parseInt(req.params.messageId);
+
+      const channel = await storage.unpinMessage(channelId, messageId);
+      if (!channel) return res.status(404).json({ message: "Channel or message not found" });
+
+      return res.status(200).json(channel);
+    } catch {
+      return res.status(500).json({ message: "Failed to unpin message" });
+    }
+  });
+
+  // GET /api/channels/:id/pinned — Get pinned messages
+  app.get("/api/channels/:id/pinned", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const channelId = parseInt(req.params.id);
+      const channel = await storage.getChannel(channelId);
+      if (!channel) return res.status(404).json({ message: "Channel not found" });
+
+      const workspace = await storage.getWorkspace(channel.workspaceId);
+      if (!workspace || !workspace.members.includes(req.session.userId)) {
+        return res.status(403).json({ message: "Access denied" });
+      }
+
+      const pinned = await storage.getPinnedMessages(channelId);
+      return res.status(200).json(pinned);
+    } catch {
+      return res.status(500).json({ message: "Failed to fetch pinned messages" });
     }
   });
 

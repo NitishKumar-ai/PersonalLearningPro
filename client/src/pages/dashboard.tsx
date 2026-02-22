@@ -36,6 +36,11 @@ interface Notification {
   read: boolean;
 }
 
+/**
+ * Render the teacher's dashboard with header, stats, quick actions, class schedule, recent tests, analytics, AI insights, top students, notifications, and resources.
+ *
+ * @returns The dashboard's JSX content for the teacher view.
+ */
 export default function Dashboard() {
   const { currentUser } = useFirebaseAuth();
 

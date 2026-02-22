@@ -89,11 +89,45 @@ async function getNextSequenceValue(sequenceName: string) {
   return sequenceDocument.seq;
 }
 
+// ─── Chat Feature Schemas ───────────────────────────────────────────────────
+
+const WorkspaceSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  name: { type: String, required: true },
+  description: { type: String, default: null },
+  ownerId: { type: Number, required: true },
+  members: [{ type: Number }],
+  createdAt: { type: Date, default: Date.now },
+});
+
+const ChannelSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  workspaceId: { type: Number, required: true },
+  name: { type: String, required: true },
+  type: { type: String, enum: ["text", "announcement"], default: "text" },
+  pinnedMessages: [{ type: Number }],
+  createdAt: { type: Date, default: Date.now },
+});
+
+const MessageSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  channelId: { type: Number, required: true },
+  authorId: { type: Number, required: true },
+  content: { type: String, required: true },
+  type: { type: String, enum: ["text", "file", "image"], default: "text" },
+  fileUrl: { type: String, default: null },
+  isPinned: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
+});
+
 export const MongoUser = mongoose.model("User", UserSchema);
 export const MongoTest = mongoose.model("Test", TestSchema);
 export const MongoQuestion = mongoose.model("Question", QuestionSchema);
 export const MongoTestAttempt = mongoose.model("TestAttempt", TestAttemptSchema);
 export const MongoAnswer = mongoose.model("Answer", AnswerSchema);
 export const MongoAnalytics = mongoose.model("Analytics", AnalyticsSchema);
+export const MongoWorkspace = mongoose.model("Workspace", WorkspaceSchema);
+export const MongoChannel = mongoose.model("Channel", ChannelSchema);
+export const MongoMessage = mongoose.model("Message", MessageSchema);
 
 export { getNextSequenceValue };

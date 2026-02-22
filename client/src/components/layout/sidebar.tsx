@@ -33,6 +33,18 @@ interface SidebarProps {
   className?: string;
 }
 
+/**
+ * Responsive, role-aware collapsible sidebar with mobile overlay, user panel, navigation, and bottom actions.
+ *
+ * Renders a left-side navigation UI that:
+ * - selects menu items based on the current user's role
+ * - supports expanded and collapsed widths (syncs width to CSS variable `--sidebar-width`)
+ * - provides a mobile full-screen overlay and toggle
+ * - displays user initials/name, an optional student progress card, theme toggle, settings, and logout actions
+ *
+ * @param className - Optional additional class names applied to the root sidebar container
+ * @returns The sidebar React element ready to be rendered in the application layout
+ */
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
   const { currentUser, logout } = useFirebaseAuth();

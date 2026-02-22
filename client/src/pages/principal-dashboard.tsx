@@ -32,6 +32,15 @@ import {
   Legend,
 } from "recharts";
 
+/**
+ * Renders the Principal's dashboard with statistics, charts, staff and finance summaries, events, and notifications.
+ *
+ * The component pulls the current user from authentication context to personalize the header and composes
+ * multiple UI sections (stats grid, tabbed main content for Academic/Staff/Finance/Infrastructure, and
+ * Events & Notifications) driven by internal data arrays.
+ *
+ * @returns A React element that displays the principal's dashboard UI
+ */
 export default function PrincipalDashboard() {
   const { currentUser } = useFirebaseAuth();
 
