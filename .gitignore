@@ -1,0 +1,11 @@
+node_modules
+dist
+.DS_Store
+server/public
+vite.config.ts.*
+*.tar.gz
+server/.env.env
+.env
+.agent/
+GEMINI.md
+.vscode/
