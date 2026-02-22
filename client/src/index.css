@@ -3,11 +3,195 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* ─── New Education-Themed Palette ─── */
+    --background: 40 20% 98%;
+    --foreground: 224 30% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 224 30% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 224 30% 15%;
+
+    --primary: 231 70% 55%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 224 30% 15%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 10% 46%;
+
+    --accent: 220 14% 96%;
+    --accent-foreground: 224 30% 15%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 231 70% 55%;
+
+    --radius: 0.625rem;
+
+    /* ─── Chart Colors ─── */
+    --chart-1: 231 70% 55%;
+    --chart-2: 160 60% 42%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 65% 50%;
+
+    /* ─── Subject Colors ─── */
+    --subject-math: 231 70% 55%;
+    --subject-science: 160 60% 42%;
+    --subject-english: 340 65% 50%;
+    --subject-history: 30 70% 50%;
+    --subject-cs: 280 65% 60%;
+    --subject-default: 220 10% 46%;
+
+    /* ─── Sidebar ─── */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 224 30% 15%;
+    --sidebar-primary: 231 70% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 231 70% 97%;
+    --sidebar-accent-foreground: 231 70% 40%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 231 70% 55%;
+
+    /* ─── Layout ─── */
+    --sidebar-width: 16rem;
+    --sidebar-width-collapsed: 4rem;
+  }
+
+  .dark {
+    --background: 222 47% 6%;
+    --foreground: 210 20% 95%;
+
+    --card: 222 47% 8%;
+    --card-foreground: 210 20% 95%;
+
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 20% 95%;
+
+    --primary: 224 70% 62%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 215 25% 14%;
+    --secondary-foreground: 210 20% 95%;
+
+    --muted: 215 25% 14%;
+    --muted-foreground: 217 10% 60%;
+
+    --accent: 215 25% 14%;
+    --accent-foreground: 210 20% 95%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 215 25% 16%;
+    --input: 215 25% 16%;
+    --ring: 224 70% 62%;
+
+    /* ─── Chart Colors (Dark) ─── */
+    --chart-1: 224 70% 62%;
+    --chart-2: 160 55% 48%;
+    --chart-3: 30 75% 58%;
+    --chart-4: 280 60% 65%;
+    --chart-5: 340 60% 55%;
+
+    /* ─── Sidebar (Dark) ─── */
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 20% 95%;
+    --sidebar-primary: 224 70% 62%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 224 70% 12%;
+    --sidebar-accent-foreground: 224 70% 75%;
+    --sidebar-border: 215 25% 16%;
+    --sidebar-ring: 224 70% 62%;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+  }
+}
+
+/* ─── Animations ─── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@layer utilities {
+  .animate-fade-in-up {
+    animation: fade-in-up 0.5s ease-out both;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.3s ease-out both;
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.4s ease-out both;
+  }
+
+  .delay-75 {
+    animation-delay: 75ms;
+  }
+
+  .delay-150 {
+    animation-delay: 150ms;
+  }
+
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .delay-400 {
+    animation-delay: 400ms;
+  }
+
+  .delay-500 {
+    animation-delay: 500ms;
   }
 }

@@ -117,7 +117,7 @@ You only need to sign once — it applies to all future contributions. Read the 
 ## Architecture Notes
 
 - **Monolith server** — Express serves both the API and the Vite-powered React frontend on **port 5001**
-- **In-memory storage** — Data resets on restart (no database required for development)
+- **Hybrid storage** — Uses PostgreSQL for structured data and MongoDB for analytics
 - **Firebase (optional)** — Used for authentication; the app runs without it (auth features disabled)
 - **OpenAI (optional)** — Powers AI features; the app runs without it
 

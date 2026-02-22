@@ -84,10 +84,18 @@ Copy `.env.example` to `.env` and fill in your values. All variables are **optio
 │   ├── lib/               # Server utilities (OpenAI integration)
 │   ├── index.ts           # Server entry point (port 5001)
 │   ├── routes.ts          # API routes
+<<<<<<< Updated upstream
 │   ├── storage.ts         # In-memory data storage
 │   └── vite.ts            # Vite dev middleware setup
 ├── shared/                # Shared code (client ↔ server)
 │   └── schema.ts          # Database schema (Drizzle ORM)
+=======
+<<<<<<< Updated upstream
+│   ├── storage.ts         # In-memory data storage
+│   └── vite.ts            # Vite dev middleware setup
+├── shared/                # Shared code (client ↔ server)
+│   └── schema.ts          # Zod validation schemas
+>>>>>>> Stashed changes
 ├── Dockerfile             # Docker image definition
 ├── docker-compose.yml     # Docker Compose services
 └── .env.example           # Environment variable template
@@ -101,7 +109,7 @@ Copy `.env.example` to `.env` and fill in your values. All variables are **optio
 | `npm run build` | Build for production |
 | `npm run start` | Run the production build |
 | `npm run check` | Type-check TypeScript |
-| `npm run db:push` | Push Drizzle schema to database |
+| `npm run check` | Type-check TypeScript |
 
 ## 🐳 Docker Reference
 

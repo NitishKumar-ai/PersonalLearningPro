@@ -1,12 +1,21 @@
 import {
-  users, type User, type InsertUser,
-  tests, type Test, type InsertTest,
-  questions, type Question, type InsertQuestion,
-  testAttempts, type TestAttempt, type InsertTestAttempt,
-  answers, type Answer, type InsertAnswer,
-  analytics, type Analytics, type InsertAnalytics
+  type User, type InsertUser,
+  type Test, type InsertTest,
+  type Question, type InsertQuestion,
+  type TestAttempt, type InsertTestAttempt,
+  type Answer, type InsertAnswer,
+  type Analytics, type InsertAnalytics,
+  type Workspace, type InsertWorkspace,
+  type Channel, type InsertChannel,
+  type Message, type InsertMessage,
 } from "@shared/schema";
+import {
+  MongoUser, MongoTest, MongoQuestion, MongoTestAttempt, MongoAnswer, MongoAnalytics,
+  MongoWorkspace, MongoChannel, MongoMessage,
+  getNextSequenceValue
+} from "@shared/mongo-schema";
 import session from "express-session";
+import MongoStore from "connect-mongo";
 
 export interface IStorage {
   // Session store
@@ -49,300 +58,308 @@ export interface IStorage {
   createAnalytics(analytics: InsertAnalytics): Promise<Analytics>;
   getAnalyticsByUser(userId: number): Promise<Analytics[]>;
   getAnalyticsByTest(testId: number): Promise<Analytics[]>;
+
+  // Workspace operations
+  createWorkspace(workspace: InsertWorkspace): Promise<Workspace>;
+  getWorkspace(id: number): Promise<Workspace | undefined>;
+  getWorkspaces(userId: number): Promise<Workspace[]>;
+  addMemberToWorkspace(workspaceId: number, userId: number): Promise<Workspace | undefined>;
+  removeMemberFromWorkspace(workspaceId: number, userId: number): Promise<Workspace | undefined>;
+
+  // Channel operations
+  createChannel(channel: InsertChannel): Promise<Channel>;
+  getChannel(id: number): Promise<Channel | undefined>;
+  getChannelsByWorkspace(workspaceId: number): Promise<Channel[]>;
+
+  // Message operations
+  createMessage(message: InsertMessage): Promise<Message>;
+  getMessagesByChannel(channelId: number, limit?: number, before?: number): Promise<Message[]>;
+  deleteMessage(id: number): Promise<boolean>;
+  pinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
+  unpinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
+  getPinnedMessages(channelId: number): Promise<Message[]>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private tests: Map<number, Test>;
-  private questions: Map<number, Question>;
-  private testAttempts: Map<number, TestAttempt>;
-  private answers: Map<number, Answer>;
-  private analytics: Map<number, Analytics>;
-
+export class MongoStorage implements IStorage {
   sessionStore: session.Store;
 
-  private userIdCounter: number;
-  private testIdCounter: number;
-  private questionIdCounter: number;
-  private attemptIdCounter: number;
-  private answerIdCounter: number;
-  private analyticsIdCounter: number;
-
   constructor() {
-    // Initialize session store
-    // Import MemoryStore dynamically for ES modules
-    import('memorystore').then(memorystore => {
-      const MemoryStore = memorystore.default(session);
-      this.sessionStore = new MemoryStore({
-        checkPeriod: 86400000 // prune expired entries every 24h
-      });
+    this.sessionStore = MongoStore.create({
+      mongoUrl: process.env.MONGODB_URL,
+      collectionName: 'sessions',
+      ttl: 24 * 60 * 60 // 1 day
     });
+  }
 
-    // Create a temporary sessionStore until the import completes
-    this.sessionStore = new session.MemoryStore();
-
-    this.users = new Map();
-    this.tests = new Map();
-    this.questions = new Map();
-    this.testAttempts = new Map();
-    this.answers = new Map();
-    this.analytics = new Map();
-
-    this.userIdCounter = 1;
-    this.testIdCounter = 1;
-    this.questionIdCounter = 1;
-    this.attemptIdCounter = 1;
-    this.answerIdCounter = 1;
-    this.analyticsIdCounter = 1;
-
-    // Demo seed data for development — NOT production credentials.
-    // These users are created in-memory and reset on every restart.
-    this.createUser({
-      username: "teacher1",
-      password: "password123",
-      name: "John Doe",
-      email: "teacher1@example.com",
-      role: "teacher",
-      subject: "Physics",
-      avatar: "",
-      class: ""
-    });
-
-    this.createUser({
-      username: "student1",
-      password: "password123",
-      name: "Rahul Patel",
-      email: "student1@example.com",
-      role: "student",
-      class: "Grade 11-A",
-      avatar: "",
-      subject: ""
-    });
+  private mapMongoDoc<T>(doc: any): T {
+    if (!doc) return undefined as any;
+    const { _id, __v, ...rest } = doc.toObject ? doc.toObject() : doc;
+    return { ...rest } as T;
   }
 
   // User operations
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    const user = await MongoUser.findOne({ id });
+    return this.mapMongoDoc<User>(user);
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const user = await MongoUser.findOne({ username });
+    return this.mapMongoDoc<User>(user);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email === email,
-    );
+    const user = await MongoUser.findOne({ email });
+    return this.mapMongoDoc<User>(user);
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = this.userIdCounter++;
-    const user: User = {
-      ...insertUser,
-      id,
-      role: insertUser.role ?? "student", // Apply default if undefined
-      avatar: insertUser.avatar ?? null,
-      class: insertUser.class ?? null,
-      subject: insertUser.subject ?? null,
-    };
-    this.users.set(id, user);
-    return user;
+  async createUser(user: InsertUser): Promise<User> {
+    const id = await getNextSequenceValue("user_id");
+    const newUser = new MongoUser({ ...user, id });
+    await newUser.save();
+    return this.mapMongoDoc<User>(newUser);
   }
 
   async getUsers(role?: string): Promise<User[]> {
-    if (role) {
-      return Array.from(this.users.values()).filter(user => user.role === role);
-    }
-    return Array.from(this.users.values());
+    const filter = role ? { role } : {};
+    const users = await MongoUser.find(filter);
+    return users.map((u: any) => this.mapMongoDoc<User>(u));
   }
 
   async getUsersByClass(className: string): Promise<User[]> {
-    return Array.from(this.users.values()).filter(
-      (user) => user.role === "student" && user.class === className,
-    );
+    const users = await MongoUser.find({ role: 'student', class: className });
+    return users.map((u: any) => this.mapMongoDoc<User>(u));
   }
 
   // Test operations
-  async createTest(insertTest: InsertTest): Promise<Test> {
-    const id = this.testIdCounter++;
-    const test: Test = {
-      ...insertTest,
-      id,
-      createdAt: new Date(),
-      status: insertTest.status ?? "draft",
-      duration: insertTest.duration ?? 60,
-      totalMarks: insertTest.totalMarks ?? 100,
-      description: insertTest.description ?? null,
-    };
-    this.tests.set(id, test);
-    return test;
+  async createTest(test: InsertTest): Promise<Test> {
+    const id = await getNextSequenceValue("test_id");
+    const newTest = new MongoTest({ ...test, id });
+    await newTest.save();
+    return this.mapMongoDoc<Test>(newTest);
   }
 
   async getTest(id: number): Promise<Test | undefined> {
-    return this.tests.get(id);
+    const test = await MongoTest.findOne({ id });
+    return test ? this.mapMongoDoc<Test>(test) : undefined;
   }
 
   async getTests(teacherId?: number, status?: string): Promise<Test[]> {
-    let tests = Array.from(this.tests.values());
-
-    if (teacherId) {
-      tests = tests.filter(test => test.teacherId === teacherId);
-    }
-
-    if (status) {
-      tests = tests.filter(test => test.status === status);
-    }
-
-    return tests;
+    const filter: any = {};
+    if (teacherId) filter.teacherId = teacherId;
+    if (status) filter.status = status;
+    const tests = await MongoTest.find(filter);
+    return tests.map((t: any) => this.mapMongoDoc<Test>(t));
   }
 
   async getTestsByClass(className: string): Promise<Test[]> {
-    return Array.from(this.tests.values()).filter(
-      (test) => test.class === className,
-    );
+    const tests = await MongoTest.find({ class: className });
+    return tests.map((t: any) => this.mapMongoDoc<Test>(t));
   }
 
   async updateTest(id: number, testUpdate: Partial<InsertTest>): Promise<Test | undefined> {
-    const test = this.tests.get(id);
-    if (!test) return undefined;
-
-    const updatedTest = { ...test, ...testUpdate };
-    this.tests.set(id, updatedTest);
-    return updatedTest;
+    const test = await MongoTest.findOneAndUpdate({ id }, testUpdate, { new: true });
+    return test ? this.mapMongoDoc<Test>(test) : undefined;
   }
 
   // Question operations
-  async createQuestion(insertQuestion: InsertQuestion): Promise<Question> {
-    const id = this.questionIdCounter++;
-    const question: Question = {
-      ...insertQuestion,
-      id,
-      marks: insertQuestion.marks ?? 1,
-      options: insertQuestion.options ?? null,
-      correctAnswer: insertQuestion.correctAnswer ?? null,
-      aiRubric: insertQuestion.aiRubric ?? null,
-    };
-    this.questions.set(id, question);
-    return question;
+  async createQuestion(question: InsertQuestion): Promise<Question> {
+    const id = await getNextSequenceValue("question_id");
+    const newQuestion = new MongoQuestion({ ...question, id });
+    await newQuestion.save();
+    return this.mapMongoDoc<Question>(newQuestion);
   }
 
   async getQuestion(id: number): Promise<Question | undefined> {
-    return this.questions.get(id);
+    const question = await MongoQuestion.findOne({ id });
+    return question ? this.mapMongoDoc<Question>(question) : undefined;
   }
 
   async getQuestionsByTest(testId: number): Promise<Question[]> {
-    return Array.from(this.questions.values())
-      .filter(question => question.testId === testId)
-      .sort((a, b) => a.order - b.order);
+    const questions = await MongoQuestion.find({ testId }).sort({ order: 1 });
+    return questions.map((q: any) => this.mapMongoDoc<Question>(q));
   }
-
   async updateQuestion(id: number, questionUpdate: Partial<InsertQuestion>): Promise<Question | undefined> {
-    const question = this.questions.get(id);
-    if (!question) return undefined;
-
-    const updatedQuestion = { ...question, ...questionUpdate };
-    this.questions.set(id, updatedQuestion);
-    return updatedQuestion;
+    const question = await MongoQuestion.findOneAndUpdate({ id }, questionUpdate, { new: true });
+    return question ? this.mapMongoDoc<Question>(question) : undefined;
   }
 
   // Test Attempt operations
-  async createTestAttempt(insertAttempt: InsertTestAttempt): Promise<TestAttempt> {
-    const id = this.attemptIdCounter++;
-    const attempt: TestAttempt = {
-      ...insertAttempt,
-      id,
-      status: insertAttempt.status ?? "in_progress",
-      startTime: insertAttempt.startTime ?? new Date(),
-      endTime: insertAttempt.endTime ?? null,
-      score: insertAttempt.score ?? null,
-    };
-    this.testAttempts.set(id, attempt);
-    return attempt;
+  async createTestAttempt(attempt: InsertTestAttempt): Promise<TestAttempt> {
+    const id = await getNextSequenceValue("attempt_id");
+    const newAttempt = new MongoTestAttempt({ ...attempt, id });
+    await newAttempt.save();
+    return this.mapMongoDoc<TestAttempt>(newAttempt);
   }
 
   async getTestAttempt(id: number): Promise<TestAttempt | undefined> {
-    return this.testAttempts.get(id);
+    const attempt = await MongoTestAttempt.findOne({ id });
+    return attempt ? this.mapMongoDoc<TestAttempt>(attempt) : undefined;
   }
 
   async getTestAttemptsByStudent(studentId: number): Promise<TestAttempt[]> {
-    return Array.from(this.testAttempts.values())
-      .filter(attempt => attempt.studentId === studentId);
+    const attempts = await MongoTestAttempt.find({ studentId });
+    return attempts.map((a: any) => this.mapMongoDoc<TestAttempt>(a));
   }
 
   async getTestAttemptsByTest(testId: number): Promise<TestAttempt[]> {
-    return Array.from(this.testAttempts.values())
-      .filter(attempt => attempt.testId === testId);
+    const attempts = await MongoTestAttempt.find({ testId });
+    return attempts.map((a: any) => this.mapMongoDoc<TestAttempt>(a));
   }
 
   async updateTestAttempt(id: number, attemptUpdate: Partial<InsertTestAttempt>): Promise<TestAttempt | undefined> {
-    const attempt = this.testAttempts.get(id);
-    if (!attempt) return undefined;
-
-    const updatedAttempt = { ...attempt, ...attemptUpdate };
-    this.testAttempts.set(id, updatedAttempt);
-    return updatedAttempt;
+    const attempt = await MongoTestAttempt.findOneAndUpdate({ id }, attemptUpdate, { new: true });
+    return attempt ? this.mapMongoDoc<TestAttempt>(attempt) : undefined;
   }
 
   // Answer operations
-  async createAnswer(insertAnswer: InsertAnswer): Promise<Answer> {
-    const id = this.answerIdCounter++;
-    const answer: Answer = {
-      ...insertAnswer,
-      id,
-      text: insertAnswer.text ?? null,
-      selectedOption: insertAnswer.selectedOption ?? null,
-      imageUrl: insertAnswer.imageUrl ?? null,
-      ocrText: insertAnswer.ocrText ?? null,
-      score: insertAnswer.score ?? null,
-      aiConfidence: insertAnswer.aiConfidence ?? null,
-      aiFeedback: insertAnswer.aiFeedback ?? null,
-      isCorrect: insertAnswer.isCorrect ?? null,
-    };
-    this.answers.set(id, answer);
-    return answer;
+  async createAnswer(answer: InsertAnswer): Promise<Answer> {
+    const id = await getNextSequenceValue("answer_id");
+    const newAnswer = new MongoAnswer({ ...answer, id });
+    await newAnswer.save();
+    return this.mapMongoDoc<Answer>(newAnswer);
   }
 
   async getAnswer(id: number): Promise<Answer | undefined> {
-    return this.answers.get(id);
+    const answer = await MongoAnswer.findOne({ id });
+    return answer ? this.mapMongoDoc<Answer>(answer) : undefined;
   }
 
   async getAnswersByAttempt(attemptId: number): Promise<Answer[]> {
-    return Array.from(this.answers.values())
-      .filter(answer => answer.attemptId === attemptId);
+    const answers = await MongoAnswer.find({ attemptId });
+    return answers.map((a: any) => this.mapMongoDoc<Answer>(a));
   }
 
   async updateAnswer(id: number, answerUpdate: Partial<InsertAnswer>): Promise<Answer | undefined> {
-    const answer = this.answers.get(id);
-    if (!answer) return undefined;
-
-    const updatedAnswer = { ...answer, ...answerUpdate };
-    this.answers.set(id, updatedAnswer);
-    return updatedAnswer;
+    const answer = await MongoAnswer.findOneAndUpdate({ id }, answerUpdate, { new: true });
+    return answer ? this.mapMongoDoc<Answer>(answer) : undefined;
   }
 
   // Analytics operations
   async createAnalytics(insertAnalytics: InsertAnalytics): Promise<Analytics> {
-    const id = this.analyticsIdCounter++;
-    const analytics: Analytics = {
-      ...insertAnalytics,
-      id,
-      insightDate: insertAnalytics.insightDate ?? new Date(),
-    };
-    this.analytics.set(id, analytics);
-    return analytics;
+    const id = await getNextSequenceValue("analytics_id");
+    const analyticsResult = new MongoAnalytics({ ...insertAnalytics, id });
+    await analyticsResult.save();
+    return this.mapMongoDoc<Analytics>(analyticsResult);
   }
 
   async getAnalyticsByUser(userId: number): Promise<Analytics[]> {
-    return Array.from(this.analytics.values())
-      .filter(analytics => analytics.userId === userId);
+    const results = await MongoAnalytics.find({ userId });
+    return results.map((r: any) => this.mapMongoDoc<Analytics>(r));
   }
 
   async getAnalyticsByTest(testId: number): Promise<Analytics[]> {
-    return Array.from(this.analytics.values())
-      .filter(analytics => analytics.testId === testId);
+    const results = await MongoAnalytics.find({ testId });
+    return results.map((r: any) => this.mapMongoDoc<Analytics>(r));
+  }
+
+  // ─── Workspace operations ─────────────────────────────────────────────────
+
+  async createWorkspace(workspace: InsertWorkspace): Promise<Workspace> {
+    const id = await getNextSequenceValue("workspace_id");
+    const members = Array.from(new Set([workspace.ownerId, ...(workspace.members || [])]));
+    const newWorkspace = new MongoWorkspace({ ...workspace, members, id });
+    await newWorkspace.save();
+    return this.mapMongoDoc<Workspace>(newWorkspace);
+  }
+
+  async getWorkspace(id: number): Promise<Workspace | undefined> {
+    const ws = await MongoWorkspace.findOne({ id });
+    return ws ? this.mapMongoDoc<Workspace>(ws) : undefined;
+  }
+
+  async getWorkspaces(userId: number): Promise<Workspace[]> {
+    const workspaces = await MongoWorkspace.find({ members: userId });
+    return workspaces.map((w: any) => this.mapMongoDoc<Workspace>(w));
+  }
+
+  async addMemberToWorkspace(workspaceId: number, userId: number): Promise<Workspace | undefined> {
+    const ws = await MongoWorkspace.findOneAndUpdate(
+      { id: workspaceId },
+      { $addToSet: { members: userId } },
+      { new: true }
+    );
+    return ws ? this.mapMongoDoc<Workspace>(ws) : undefined;
+  }
+
+  async removeMemberFromWorkspace(workspaceId: number, userId: number): Promise<Workspace | undefined> {
+    const ws = await MongoWorkspace.findOneAndUpdate(
+      { id: workspaceId },
+      { $pull: { members: userId } },
+      { new: true }
+    );
+    return ws ? this.mapMongoDoc<Workspace>(ws) : undefined;
+  }
+
+  // ─── Channel operations ──────────────────────────────────────────────────
+
+  async createChannel(channel: InsertChannel): Promise<Channel> {
+    const id = await getNextSequenceValue("channel_id");
+    const newChannel = new MongoChannel({ ...channel, pinnedMessages: [], id });
+    await newChannel.save();
+    return this.mapMongoDoc<Channel>(newChannel);
+  }
+
+  async getChannel(id: number): Promise<Channel | undefined> {
+    const ch = await MongoChannel.findOne({ id });
+    return ch ? this.mapMongoDoc<Channel>(ch) : undefined;
+  }
+
+  async getChannelsByWorkspace(workspaceId: number): Promise<Channel[]> {
+    const channels = await MongoChannel.find({ workspaceId }).sort({ createdAt: 1 });
+    return channels.map((c: any) => this.mapMongoDoc<Channel>(c));
+  }
+
+  // ─── Message operations ──────────────────────────────────────────────────
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const id = await getNextSequenceValue("message_id");
+    const newMessage = new MongoMessage({ ...message, isPinned: false, id });
+    await newMessage.save();
+    return this.mapMongoDoc<Message>(newMessage);
+  }
+
+  async getMessagesByChannel(channelId: number, limit = 50, before?: number): Promise<Message[]> {
+    const filter: any = { channelId };
+    if (before !== undefined) {
+      filter.id = { $lt: before };
+    }
+    const messages = await MongoMessage.find(filter)
+      .sort({ id: -1 })
+      .limit(limit);
+    // Return in ascending order so clients render oldest→newest
+    return messages.reverse().map((m: any) => this.mapMongoDoc<Message>(m));
+  }
+
+  async deleteMessage(id: number): Promise<boolean> {
+    const result = await MongoMessage.deleteOne({ id });
+    return result.deletedCount > 0;
+  }
+
+  async pinMessage(channelId: number, messageId: number): Promise<Channel | undefined> {
+    await MongoMessage.findOneAndUpdate({ id: messageId }, { isPinned: true });
+    const ch = await MongoChannel.findOneAndUpdate(
+      { id: channelId },
+      { $addToSet: { pinnedMessages: messageId } },
+      { new: true }
+    );
+    return ch ? this.mapMongoDoc<Channel>(ch) : undefined;
+  }
+
+  async unpinMessage(channelId: number, messageId: number): Promise<Channel | undefined> {
+    await MongoMessage.findOneAndUpdate({ id: messageId }, { isPinned: false });
+    const ch = await MongoChannel.findOneAndUpdate(
+      { id: channelId },
+      { $pull: { pinnedMessages: messageId } },
+      { new: true }
+    );
+    return ch ? this.mapMongoDoc<Channel>(ch) : undefined;
+  }
+
+  async getPinnedMessages(channelId: number): Promise<Message[]> {
+    const messages = await MongoMessage.find({ channelId, isPinned: true }).sort({ id: 1 });
+    return messages.map((m: any) => this.mapMongoDoc<Message>(m));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new MongoStorage();

@@ -50,7 +50,12 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          const profile = await getUserProfile(user.uid);
+          // Add timeout to prevent hanging when Firestore is offline
+          const profilePromise = getUserProfile(user.uid);
+          const timeoutPromise = new Promise<null>((resolve) =>
+            setTimeout(() => resolve(null), 5000)
+          );
+          const profile = await Promise.race([profilePromise, timeoutPromise]);
           setCurrentUser({ user, profile });
         } catch (error) {
           console.error("Error getting user profile:", error);

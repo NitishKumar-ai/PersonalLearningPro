@@ -1,32 +1,265 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/page-header";
+import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  Users,
+  TrendingUp,
+  Calendar,
+  MessageSquare,
+  GraduationCap,
+  Clock,
+  ArrowUpRight,
+  CheckCircle2
+} from "lucide-react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from "recharts";
 
 export default function ParentDashboard() {
+  const { currentUser } = useFirebaseAuth();
+
+  const children = [
+    {
+      name: "Sarah Johnson",
+      grade: "10th Grade",
+      attendance: "98%",
+      avgGrade: "92%",
+      progress: 88,
+      status: "Excellent",
+      color: "blue"
+    },
+    {
+      name: "Leo Johnson",
+      grade: "8th Grade",
+      attendance: "95%",
+      avgGrade: "85%",
+      progress: 72,
+      status: "Good",
+      color: "emerald"
+    }
+  ];
+
+  const performanceData = [
+    { month: "Sep", sarah: 88, leo: 78 },
+    { month: "Oct", sarah: 90, leo: 81 },
+    { month: "Nov", sarah: 89, leo: 80 },
+    { month: "Dec", sarah: 92, leo: 84 },
+    { month: "Jan", sarah: 94, leo: 85 },
+  ];
+
+  const events = [
+    { title: "Parent-Teacher Meeting", subject: "Sarah - Mathematics", date: "Feb 25, 4:00 PM", icon: <Calendar className="h-4 w-4" /> },
+    { title: "Science Fair", subject: "Leo - Project Presentation", date: "Mar 02, 10:00 AM", icon: <Trophy className="h-4 w-4" /> },
+    { title: "Term Exam Results", subject: "Sarah - Physics", date: "Mar 05, All Day", icon: <CheckCircle2 className="h-4 w-4" /> },
+  ];
+
   return (
-    <div className="space-y-4">
-      <h1 className="text-3xl font-bold">Parent Dashboard</h1>
-      <p className="text-muted-foreground">
-        Welcome to your dashboard. Here you can see your child's progress and upcoming tests.
-      </p>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
+    <>
+      <PageHeader
+        title={`Welcome, ${currentUser?.profile?.displayName || "Parent"} 👋`}
+        subtitle="Stay updated with your children's academic journey."
+        className="animate-fade-in-up"
+        breadcrumbs={[
+          { label: "Dashboard", href: "/" },
+          { label: "Parent Dashboard" }
+        ]}
+      >
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Contact Teachers
+          </Button>
+          <Button size="sm">
+            <Calendar className="h-4 w-4 mr-2" />
+            School Calendar
+          </Button>
+        </div>
+      </PageHeader>
+
+      {/* Children Overview */}
+      <section className="mb-8">
+        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+          <Users className="h-5 w-5 text-primary" />
+          Children's Overview
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {children.map((child, i) => (
+            <Card key={child.name} className="animate-fade-in-up hover:shadow-md transition-all duration-300" style={{ animationDelay: `${i * 100}ms` }}>
+              <CardHeader className="pb-2">
+                <div className="flex justify-between items-start">
+                  <div className="flex gap-4">
+                    <div className={`h-12 w-12 rounded-full bg-${child.color}-500/10 flex items-center justify-center`}>
+                      <GraduationCap className={`h-6 w-6 text-${child.color}-600 dark:text-${child.color}-400`} />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl">{child.name}</CardTitle>
+                      <CardDescription>{child.grade}</CardDescription>
+                    </div>
+                  </div>
+                  <Badge variant={child.status === "Excellent" ? "default" : "secondary"}>
+                    {child.status}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-4 mb-4 mt-2">
+                  <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Attendance</div>
+                    <div className="text-lg font-bold mt-1">{child.attendance}</div>
+                  </div>
+                  <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Avg. Grade</div>
+                    <div className="text-lg font-bold mt-1 text-primary">{child.avgGrade}</div>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground font-medium">Curriculum Completion</span>
+                    <span className="font-semibold">{child.progress}%</span>
+                  </div>
+                  <Progress value={child.progress} className="h-2" />
+                </div>
+                <Button variant="ghost" size="sm" className="w-full mt-4 group">
+                  View Detailed Report
+                  <ArrowUpRight className="h-3 w-3 ml-2 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                </Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Academic Progression */}
+        <Card className="lg:col-span-2 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <CardHeader>
-            <CardTitle>Child's Progress</CardTitle>
-            <CardDescription>Overall performance</CardDescription>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <TrendingUp className="h-4 w-4 text-primary" />
+              </div>
+              <CardTitle className="text-lg font-semibold">Academic Progression</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
-            <p>Coming soon...</p>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={performanceData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                  <XAxis
+                    dataKey="month"
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    domain={[60, 100]}
+                    stroke="hsl(var(--muted-foreground))"
+                    fontSize={12}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(value) => `${value}%`}
+                  />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      borderColor: 'hsl(var(--border))',
+                      borderRadius: '0.75rem',
+                      fontSize: '12px'
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="sarah"
+                    name="Sarah"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: "hsl(var(--primary))" }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="leo"
+                    name="Leo"
+                    stroke="hsl(var(--emerald-500))"
+                    strokeWidth={3}
+                    dot={{ r: 4, fill: "hsl(var(--emerald-500))" }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
           </CardContent>
         </Card>
-        <Card>
+
+        {/* Upcoming Events */}
+        <Card className="animate-fade-in-up" style={{ animationDelay: '300ms' }}>
           <CardHeader>
-            <CardTitle>Upcoming Tests</CardTitle>
-            <CardDescription>Tests your child is scheduled to take</CardDescription>
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-amber-500/10">
+                <Calendar className="h-4 w-4 text-amber-500" />
+              </div>
+              <CardTitle className="text-lg font-semibold">Upcoming Schedule</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
-            <p>Coming soon...</p>
+            <div className="space-y-4">
+              {events.map((event, i) => (
+                <div key={i} className="flex gap-3 p-3 rounded-lg border border-border/50 hover:bg-muted/50 transition-colors">
+                  <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                    {event.icon}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-sm">{event.title}</div>
+                    <div className="text-xs text-muted-foreground font-medium">{event.subject}</div>
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-1 bg-muted/80 px-2 py-0.5 rounded-full w-fit">
+                      <Clock className="h-3 w-3 text-primary" />
+                      {event.date}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              <Button variant="outline" size="sm" className="w-full">
+                View All Events
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>
-    </div>
+    </>
   );
+}
+
+// Missing Lucide icons I used
+function Trophy(props: any) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+      <path d="M4 22h16" />
+      <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+      <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+      <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
+    </svg>
+  )
 }

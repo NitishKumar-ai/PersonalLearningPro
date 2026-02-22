@@ -7,6 +7,8 @@ This guide walks through setting up the project locally **without Docker**. For 
 - **Node.js** v18 or later
 - **npm** (comes with Node.js)
 - **Git**
+- **PostgreSQL** (for structured data)
+- **MongoDB** (for analytics data)
 
 ## 1. Clone the Repository
 
@@ -39,6 +41,10 @@ VITE_FIREBASE_APP_ID=your_firebase_app_id
 VITE_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
 VITE_FIREBASE_MEASUREMENT_ID=your_firebase_measurement_id
 
+# Databases
+DATABASE_URL=postgresql://user:password@localhost:5432/personal_learning_pro
+MONGODB_URI=mongodb://localhost:27017/personal_learning_pro
+
 # OpenAI (optional — AI features disabled without it)
 OPENAI_API_KEY=your_openai_api_key
 
@@ -54,6 +60,10 @@ SESSION_SECRET=your_random_session_secret
 3. Add a new **Web** application
 4. Enable **Google** as a Sign-in method under **Authentication → Sign-in method**
 5. Copy the config values into your `.env` file
+
+#### Databases
+1. **PostgreSQL**: Install locally or use a managed service like [Neon](https://neon.tech/). Provide the connection string in `DATABASE_URL`.
+2. **MongoDB**: Install locally or use [MongoDB Atlas](https://www.mongodb.com/cloud/atlas). Provide the connection string in `MONGODB_URI`.
 
 #### OpenAI
 1. Go to the [OpenAI API platform](https://platform.openai.com/)
@@ -79,14 +89,13 @@ The application will be available at: **[http://localhost:5001](http://localhost
 | `npm run build` | Build for production (client + server) |
 | `npm run start` | Run the production build |
 | `npm run check` | Type-check TypeScript |
-| `npm run db:push` | Push Drizzle schema to a PostgreSQL database |
 
 ## Project Structure
 
 ```
 client/src/     → React frontend code
 server/         → Express backend code
-shared/         → Shared types and schema (Drizzle ORM)
+shared/         → Shared types and schema
 ```
 
 | Directory | Description |
@@ -97,8 +106,8 @@ shared/         → Shared types and schema (Drizzle ORM)
 | `client/src/lib/` | Utilities, Firebase config, API helpers |
 | `server/lib/` | Server utilities (OpenAI integration) |
 | `server/routes.ts` | All API route definitions |
-| `server/storage.ts` | In-memory data storage (resets on restart) |
-| `shared/schema.ts` | Database schema definitions |
+| `server/storage.ts` | Hybrid data storage (Postgres + MongoDB) |
+| `shared/schema.ts` | Zod schema and type definitions |
 
 ## Troubleshooting
 
@@ -121,5 +130,6 @@ rm -rf node_modules package-lock.json
 npm install
 ```
 
-### App loads but no data persists
-This is expected — the app uses **in-memory storage** by default. Data resets on every server restart.
+### Database connection errors
+- Verify that PostgreSQL and MongoDB are running locally or that your remote connection strings are correct.
+- Double-check the usernames, passwords, and database names in your connection strings.
