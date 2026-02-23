@@ -102,9 +102,9 @@ const WorkspaceSchema = new mongoose.Schema({
 
 const ChannelSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
-  workspaceId: { type: Number, required: true },
+  workspaceId: { type: Number, default: null },
   name: { type: String, required: true },
-  type: { type: String, enum: ["text", "announcement"], default: "text" },
+  type: { type: String, enum: ["text", "announcement", "dm"], default: "text" },
   class: { type: String, default: null },
   subject: { type: String, default: null },
   pinnedMessages: [{ type: Number }],
