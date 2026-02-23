@@ -72,6 +72,8 @@ export interface IStorage {
   createChannel(channel: InsertChannel): Promise<Channel>;
   getChannel(id: number): Promise<Channel | undefined>;
   getChannelsByWorkspace(workspaceId: number): Promise<Channel[]>;
+  getOrCreateDMChannel(userId1: number, userId2: number): Promise<Channel>;
+  getDMsByUser(userId: number): Promise<Channel[]>;
 
   // Message operations
   createMessage(message: InsertMessage): Promise<Message>;
@@ -314,6 +316,41 @@ export class MongoStorage implements IStorage {
   async getChannelsByWorkspace(workspaceId: number): Promise<Channel[]> {
     const channels = await MongoChannel.find({ workspaceId }).sort({ createdAt: 1 });
     return channels.map((c: any) => this.mapMongoDoc<Channel>(c));
+  }
+
+  async getOrCreateDMChannel(userId1: number, userId2: number): Promise<Channel> {
+    const minId = Math.min(userId1, userId2);
+    const maxId = Math.max(userId1, userId2);
+    const dmName = `dm_${minId}_${maxId}`;
+
+    let channel = await MongoChannel.findOne({ type: "dm", name: dmName });
+    if (channel) {
+      return this.mapMongoDoc<Channel>(channel);
+    }
+
+    const id = await getNextSequenceValue("channel_id");
+    const newChannel = new MongoChannel({
+      id,
+      name: dmName,
+      type: "dm",
+      workspaceId: null,
+      pinnedMessages: [],
+    });
+    await newChannel.save();
+    return this.mapMongoDoc<Channel>(newChannel);
+  }
+
+  async getDMsByUser(userId: number): Promise<Channel[]> {
+    // DM channels are named dm_ID1_ID2
+    const pattern = new RegExp(`^dm_.*${userId}(_|$)|^dm_${userId}_`);
+    const dms = await MongoChannel.find({
+      type: "dm",
+      $or: [
+        { name: new RegExp(`^dm_${userId}_`) },
+        { name: new RegExp(`^dm_.*_${userId}$`) }
+      ]
+    });
+    return dms.map((d: any) => this.mapMongoDoc<Channel>(d));
   }
 
   // ─── Message operations ──────────────────────────────────────────────────
