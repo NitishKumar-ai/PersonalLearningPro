@@ -80,7 +80,11 @@ export interface IStorage {
   pinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
   unpinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
   getPinnedMessages(channelId: number): Promise<Message[]>;
+  gradeMessage(messageId: number, status: 'pending' | 'graded'): Promise<Message | undefined>;
+  markMessageAsRead(messageId: number, userId: number): Promise<Message | undefined>;
 }
+
+
 
 export class MongoStorage implements IStorage {
   sessionStore: session.Store;
@@ -362,6 +366,26 @@ export class MongoStorage implements IStorage {
     const messages = await MongoMessage.find({ channelId, isPinned: true }).sort({ id: 1 });
     return messages.map((m: any) => this.mapMongoDoc<Message>(m));
   }
+
+  async gradeMessage(messageId: number, status: 'pending' | 'graded'): Promise<Message | undefined> {
+    const msg = await MongoMessage.findOneAndUpdate(
+      { id: messageId },
+      { gradingStatus: status },
+      { new: true }
+    );
+    return msg ? this.mapMongoDoc<Message>(msg) : undefined;
+  }
+
+  async markMessageAsRead(messageId: number, userId: number): Promise<Message | undefined> {
+    const msg = await MongoMessage.findOneAndUpdate(
+      { id: messageId },
+      { $addToSet: { readBy: userId } },
+      { new: true }
+    );
+    return msg ? this.mapMongoDoc<Message>(msg) : undefined;
+  }
 }
+
+
 
 export const storage = new MongoStorage();

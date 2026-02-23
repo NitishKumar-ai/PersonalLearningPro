@@ -100,6 +100,8 @@ export const insertChannelSchema = z.object({
   workspaceId: z.number(),
   name: z.string().min(1),
   type: z.enum(["text", "announcement"]).default("text"),
+  class: z.string().optional().nullable(),
+  subject: z.string().optional().nullable(),
 });
 
 export const insertMessageSchema = z.object({
@@ -108,6 +110,9 @@ export const insertMessageSchema = z.object({
   content: z.string().min(1),
   type: z.enum(["text", "file", "image"]).default("text"),
   fileUrl: z.string().optional().nullable(),
+  isHomework: z.boolean().default(false),
+  gradingStatus: z.enum(["pending", "graded"]).optional().nullable(),
+  readBy: z.array(z.number()).default([]),
 });
 
 export type Workspace = z.infer<typeof insertWorkspaceSchema> & { id: number; createdAt: Date };
@@ -118,3 +123,4 @@ export type InsertChannel = z.infer<typeof insertChannelSchema>;
 
 export type Message = z.infer<typeof insertMessageSchema> & { id: number; isPinned: boolean; createdAt: Date };
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+

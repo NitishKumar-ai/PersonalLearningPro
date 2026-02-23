@@ -2,6 +2,11 @@ import { WebSocketServer, WebSocket, type RawData } from "ws";
 import type { Server } from "http";
 import type { Store } from "express-session";
 import { storage } from "./storage";
+import { aiChat } from "./lib/openai";
+
+const AI_TUTOR_ID = 999;
+const AI_TUTOR_NAME = "AI Tutor";
+
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -12,12 +17,14 @@ interface ClientMeta {
 }
 
 interface IncomingEvent {
-    type: "join_channel" | "leave_channel" | "send_message" | "typing";
+    type: "join_channel" | "leave_channel" | "send_message" | "typing" | "mark_read";
     channelId?: number;
+    messageId?: number;
     content?: string;
     messageType?: "text" | "file" | "image";
     fileUrl?: string;
 }
+
 
 // ─── State ───────────────────────────────────────────────────────────────────
 
@@ -143,7 +150,21 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
             username: user.username,
         });
 
+        // ─── Heartbeat ────────────────────────────────────────────────────────
+        let isAlive = true;
+        ws.on("pong", () => { isAlive = true; });
+
+        const heartbeatInterval = setInterval(() => {
+            if (!isAlive) {
+                console.log(`[chat-ws] Terminating inactive client for user ${user.username}`);
+                return ws.terminate();
+            }
+            isAlive = false;
+            ws.ping();
+        }, 30000); // Check every 30 seconds
+
         // ─── Message handler ──────────────────────────────────────────────────
+
         ws.on("message", async (raw: RawData) => {
             let event: IncomingEvent;
 
@@ -235,6 +256,8 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
                             content: content.trim(),
                             type: messageType,
                             fileUrl: fileUrl ?? null,
+                            isHomework: false,
+                            readBy: [],
                         });
 
                         const payload = {
@@ -248,7 +271,46 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
                         // Echo back to sender + broadcast to all other subscribers
                         send(ws, payload);
                         broadcastToChannel(channelId, payload, ws);
+
+                        // ── Handle @AI Command ─────────────────────────────────
+                        if (content.trim().startsWith("@AI") || content.trim().includes("@AI")) {
+                            (async () => {
+                                try {
+                                    // Send "typing" indicator for AI
+                                    broadcastToChannel(channelId, {
+                                        type: "user_typing",
+                                        userId: AI_TUTOR_ID,
+                                        username: AI_TUTOR_NAME,
+                                        channelId
+                                    });
+
+                                    const aiResponse = await aiChat([
+                                        { role: "user", content: content.replace("@AI", "").trim() }
+                                    ]);
+
+                                    const aiMessage = await storage.createMessage({
+                                        channelId,
+                                        authorId: AI_TUTOR_ID,
+                                        content: aiResponse.content,
+                                        type: "text",
+                                        isHomework: false,
+                                        readBy: [userId],
+                                    });
+
+                                    broadcastToChannel(channelId, {
+                                        type: "new_message",
+                                        message: {
+                                            ...aiMessage,
+                                            authorUsername: AI_TUTOR_NAME,
+                                        },
+                                    });
+                                } catch (error) {
+                                    console.error("AI Tutor error:", error);
+                                }
+                            })();
+                        }
                     } catch (err) {
+
                         send(ws, { type: "error", message: "Failed to save message." });
                     }
                     break;
@@ -268,15 +330,39 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
                     break;
                 }
 
+                // ── mark_read ───────────────────────────────────────────────────
+                case "mark_read": {
+                    const { messageId, channelId } = event;
+                    if (!messageId || !channelId) return;
+
+                    await storage.markMessageAsRead(messageId, userId);
+
+                    broadcastToChannel(channelId, {
+                        type: "message_read",
+                        messageId,
+                        userId,
+                        channelId,
+                    }, ws);
+                    break;
+                }
+
+
                 default:
                     send(ws, { type: "error", message: `Unknown event type: ${(event as any).type}` });
             }
         });
 
         // ─── Cleanup on disconnect ────────────────────────────────────────────
-        ws.on("close", () => cleanupClient(ws));
-        ws.on("error", () => cleanupClient(ws));
+        ws.on("close", () => {
+            clearInterval(heartbeatInterval);
+            cleanupClient(ws);
+        });
+        ws.on("error", () => {
+            clearInterval(heartbeatInterval);
+            cleanupClient(ws);
+        });
     });
+
 
     console.log("[chat-ws] WebSocket server attached at path /ws/chat");
     return wss;

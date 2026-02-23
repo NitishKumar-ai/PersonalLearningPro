@@ -1,7 +1,7 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertTestSchema, insertQuestionSchema, insertTestAttemptSchema, insertAnswerSchema, insertAnalyticsSchema, insertWorkspaceSchema, insertChannelSchema } from "@shared/schema";
+import { insertUserSchema, insertTestSchema, insertQuestionSchema, insertTestAttemptSchema, insertAnswerSchema, insertAnalyticsSchema, insertWorkspaceSchema, insertChannelSchema, type Channel } from "@shared/schema";
 import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat, generateStudyPlan, analyzeTestPerformance } from "./lib/openai";
@@ -829,6 +829,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/channels/query/:classOrUser — Filtered channels
+  app.get("/api/channels/query/:classOrUser", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      const { classOrUser } = req.params;
+
+      const allWorkspaces = await storage.getWorkspaces(req.session.userId);
+      let allChannels: Channel[] = [];
+
+      for (const ws of allWorkspaces) {
+        const wsChannels = await storage.getChannelsByWorkspace(ws.id);
+        allChannels = [...allChannels, ...wsChannels];
+      }
+
+      const filtered = allChannels.filter(c =>
+        !classOrUser || c.class === classOrUser || c.name.toLowerCase().includes(classOrUser.toLowerCase()) || (c.subject && c.subject.toLowerCase().includes(classOrUser.toLowerCase()))
+      );
+
+      return res.status(200).json(filtered);
+    } catch {
+      return res.status(500).json({ message: "Failed to fetch channels" });
+    }
+  });
+
+  // POST /api/messages/:id/grade — Grade homework (teachers only)
+  app.post("/api/messages/:id/grade", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId || req.session.userRole !== "teacher") {
+        return res.status(401).json({ message: "Only teachers can grade homework" });
+      }
+
+      const messageId = parseInt(req.params.id);
+      const { status } = req.body;
+
+      if (!['pending', 'graded'].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+
+      const updated = await storage.gradeMessage(messageId, status);
+      if (!updated) return res.status(404).json({ message: "Message not found" });
+
+      return res.status(200).json(updated);
+    } catch {
+      return res.status(500).json({ message: "Failed to grade message" });
+    }
+  });
+
+  // POST /api/channels — Create a new channel
+  app.post("/api/channels", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const channelData = insertChannelSchema.parse(req.body);
+
+      // Check if user is member of the workspace
+      const workspace = await storage.getWorkspace(channelData.workspaceId);
+      if (!workspace || !workspace.members.includes(req.session.userId)) {
+        return res.status(403).json({ message: "You are not a member of this workspace" });
+      }
+
+      const channel = await storage.createChannel(channelData);
+      return res.status(201).json(channel);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      return res.status(500).json({ message: "Failed to create channel" });
+    }
+  });
+
+  // POST /api/messages/:id/read — Mark message as read
+  app.post("/api/messages/:id/read", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      const messageId = parseInt(req.params.id);
+      const updated = await storage.markMessageAsRead(messageId, req.session.userId);
+      if (!updated) return res.status(404).json({ message: "Message not found" });
+      return res.status(200).json(updated);
+    } catch {
+      return res.status(500).json({ message: "Failed to mark message as read" });
+    }
+  });
+
+  // POST /api/upload — Mock file upload
+  app.post("/api/upload", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      return res.status(200).json({
+        url: "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?auto=format&fit=crop&q=80&w=800",
+        name: "document_preview.jpg"
+      });
+    } catch {
+      return res.status(500).json({ message: "Upload failed" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
+
