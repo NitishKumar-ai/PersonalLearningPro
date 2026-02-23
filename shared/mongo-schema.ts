@@ -105,6 +105,8 @@ const ChannelSchema = new mongoose.Schema({
   workspaceId: { type: Number, required: true },
   name: { type: String, required: true },
   type: { type: String, enum: ["text", "announcement"], default: "text" },
+  class: { type: String, default: null },
+  subject: { type: String, default: null },
   pinnedMessages: [{ type: Number }],
   createdAt: { type: Date, default: Date.now },
 });
@@ -117,8 +119,12 @@ const MessageSchema = new mongoose.Schema({
   type: { type: String, enum: ["text", "file", "image"], default: "text" },
   fileUrl: { type: String, default: null },
   isPinned: { type: Boolean, default: false },
+  isHomework: { type: Boolean, default: false },
+  gradingStatus: { type: String, enum: ["pending", "graded", null], default: null },
+  readBy: [{ type: Number }],
   createdAt: { type: Date, default: Date.now },
 });
+
 
 export const MongoUser = mongoose.model("User", UserSchema);
 export const MongoTest = mongoose.model("Test", TestSchema);
