@@ -97,9 +97,9 @@ export const insertWorkspaceSchema = z.object({
 });
 
 export const insertChannelSchema = z.object({
-  workspaceId: z.number(),
+  workspaceId: z.number().optional().nullable(),
   name: z.string().min(1),
-  type: z.enum(["text", "announcement"]).default("text"),
+  type: z.enum(["text", "announcement", "dm"]).default("text"),
   class: z.string().optional().nullable(),
   subject: z.string().optional().nullable(),
 });
