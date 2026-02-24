@@ -5,6 +5,7 @@ import { insertUserSchema, insertTestSchema, insertQuestionSchema, insertTestAtt
 import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat, generateStudyPlan, analyzeTestPerformance } from "./lib/openai";
+import { upload, diskPathToUrl } from "./lib/upload";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
@@ -825,13 +826,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/users/me/dms — Get all DMs for the current user, enriched with partner info
+  app.get("/api/users/me/dms", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const currentUserId = req.session.userId;
+      const dms = await storage.getDMsByUser(currentUserId);
+
+      const enrichedDms = await Promise.all(dms.map(async (dm) => {
+        // dm.name is 'dm_ID1_ID2'
+        const parts = dm.name.split('_');
+        if (parts.length === 3) {
+          const id1 = parseInt(parts[1]);
+          const id2 = parseInt(parts[2]);
+          const partnerId = id1 === currentUserId ? id2 : id1;
+
+          const partner = await storage.getUser(partnerId);
+          if (partner) {
+            return {
+              ...dm,
+              partner: {
+                id: partner.id,
+                username: partner.username,
+                avatar: partner.avatar,
+                role: partner.role
+              }
+            };
+          }
+        }
+        return dm;
+      }));
+
+      return res.status(200).json(enrichedDms);
+    } catch {
+      return res.status(500).json({ message: "Failed to fetch DMs" });
+    }
+  });
+
   // DELETE /api/messages/:id — Delete a message (author or teacher)
   app.delete("/api/messages/:id", async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
       const messageId = parseInt(req.params.id);
-      const messages = await storage.getMessagesByChannel(0); // we'll look it up differently
+      if (isNaN(messageId)) return res.status(400).json({ message: "Invalid message ID" });
 
       // Fetch the message directly from Mongo to check ownership
       const { MongoMessage } = await import("@shared/mongo-schema");
@@ -845,7 +884,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You can only delete your own messages" });
       }
 
-      await storage.deleteMessage(messageId);
+      // Pass channelId so Cassandra delete uses the correct partition key
+      await storage.deleteMessage(messageId, msg.channelId);
       return res.status(200).json({ message: "Message deleted" });
     } catch {
       return res.status(500).json({ message: "Failed to delete message" });
@@ -938,6 +978,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/channels/:id/unread — Get unread count for a channel
+  app.get("/api/channels/:id/unread", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      const channelId = parseInt(req.params.id);
+
+      const channel = await storage.getChannel(channelId);
+      if (!channel) return res.status(404).json({ message: "Channel not found" });
+
+      // Count unread in last 50 messages
+      const messages = await storage.getMessagesByChannel(channelId, 50);
+      const unreadCount = messages.filter(m => !m.readBy?.includes(req.session!.userId)).length;
+
+      return res.status(200).json({ unreadCount });
+    } catch {
+      return res.status(500).json({ message: "Failed to fetch unread count" });
+    }
+  });
+
   // POST /api/messages/:id/grade — Grade homework (teachers only)
   app.post("/api/messages/:id/grade", async (req: Request, res: Response) => {
     try {
@@ -946,13 +1005,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const messageId = parseInt(req.params.id);
-      const { status } = req.body;
+      if (isNaN(messageId)) return res.status(400).json({ message: "Invalid message ID" });
+
+      const { status, channelId } = req.body;
 
       if (!['pending', 'graded'].includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
       }
 
-      const updated = await storage.gradeMessage(messageId, status);
+      // Pass channelId so Cassandra uses the correct partition key
+      const updated = await storage.gradeMessage(messageId, status, channelId ? parseInt(channelId) : undefined);
       if (!updated) return res.status(404).json({ message: "Message not found" });
 
       return res.status(200).json(updated);
@@ -988,7 +1050,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       const messageId = parseInt(req.params.id);
-      const updated = await storage.markMessageAsRead(messageId, req.session.userId);
+      if (isNaN(messageId)) return res.status(400).json({ message: "Invalid message ID" });
+      const { channelId } = req.body;
+      // Pass channelId so Cassandra uses the correct partition key
+      const updated = await storage.markMessageAsRead(messageId, req.session.userId, channelId ? parseInt(channelId) : undefined);
       if (!updated) return res.status(404).json({ message: "Message not found" });
       return res.status(200).json(updated);
     } catch {
@@ -996,32 +1061,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/upload — Functional file upload (base64)
-  app.post("/api/upload", async (req: Request, res: Response) => {
-    try {
-      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+  // POST /api/upload — Real multipart file upload (multer disk storage)
+  app.post(
+    "/api/upload",
+    (req: Request, res: Response, next) => {
+      // Auth guard before multer processes the body
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      next();
+    },
+    upload.single("file"),
+    (req: Request, res: Response) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ message: "No file provided. Send a multipart/form-data request with field name 'file'." });
+        }
 
-      const { name, type, data } = req.body;
+        const url = diskPathToUrl(req.file.path);
+        console.log(`[upload] User ${req.session!.userId} uploaded ${req.file.originalname} → ${url}`);
 
-      // In a real production app, we would use multer and store on S3/Cloudinary/Local disk.
-      // For this implementation, we'll return a mock URL but log the "upload" action.
-      // If 'data' is provided (base64), we could potentially save it to a public folder.
-
-      console.log(`[upload] User ${req.session.userId} uploading ${name} (${type})`);
-
-      // Mocking a successful upload with a random unsplash image tag if it's an image
-      const mockUrl = type === 'image'
-        ? `https://images.unsplash.com/photo-1517673132405-a56a62b18caf?auto=format&fit=crop&q=80&w=800&sig=${Date.now()}`
-        : "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf";
-
-      return res.status(200).json({
-        url: mockUrl,
-        name: name || "uploaded_file"
-      });
-    } catch {
-      return res.status(500).json({ message: "Upload failed" });
+        return res.status(200).json({
+          url,
+          name: req.file.originalname,
+          size: req.file.size,
+          mimeType: req.file.mimetype,
+        });
+      } catch {
+        return res.status(500).json({ message: "Upload failed" });
+      }
     }
-  });
+  );
 
   const httpServer = createServer(app);
   return httpServer;

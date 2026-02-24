@@ -91,8 +91,8 @@ export interface IStorage {
   pinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
   unpinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
   getPinnedMessages(channelId: number): Promise<Message[]>;
-  gradeMessage(messageId: number, status: 'pending' | 'graded'): Promise<Message | undefined>;
-  markMessageAsRead(messageId: number, userId: number): Promise<Message | undefined>;
+  gradeMessage(messageId: number, status: 'pending' | 'graded', channelId?: number): Promise<Message | undefined>;
+  markMessageAsRead(messageId: number, userId: number, channelId?: number): Promise<Message | undefined>;
 }
 
 

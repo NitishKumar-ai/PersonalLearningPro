@@ -319,6 +319,8 @@ export default function Messages() {
                                 [userId]: { username, expires: Date.now() + 3000 }
                             }));
                         }
+                    } else if (wsMessage.type === "user_presence") {
+                        console.log(`[Presence] User ${wsMessage.username} (${wsMessage.userId}) is now ${wsMessage.status} in channel ${wsMessage.channelId}`);
                     }
                 } catch (e) {
 

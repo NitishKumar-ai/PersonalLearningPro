@@ -144,6 +144,10 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
             channels: new Set(),
         });
 
+        // Rate limiting state per connection
+        let messageTokens = 5;
+        let lastRefill = Date.now();
+
         send(ws, {
             type: "connected",
             userId,
@@ -250,11 +254,23 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
                         return;
                     }
 
-                    // Ensure sender is subscribed to channel
                     if (!meta.channels.has(channelId)) {
                         send(ws, { type: "error", message: "Join the channel before sending messages." });
                         return;
                     }
+
+                    // Rate limiting check: 5 messages per 5 seconds
+                    const now = Date.now();
+                    const secondsPassed = (now - lastRefill) / 1000;
+                    if (secondsPassed > 5) {
+                        messageTokens = 5;
+                        lastRefill = now;
+                    }
+                    if (messageTokens <= 0) {
+                        send(ws, { type: "error", message: "You are sending messages too fast. Please wait." });
+                        return;
+                    }
+                    messageTokens--;
 
                     try {
                         const message = await storage.createMessage({
