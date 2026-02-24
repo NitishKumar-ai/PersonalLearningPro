@@ -12,7 +12,7 @@ export function setupGateway(server: Server) {
 
   wss.on('connection', (ws: AuthenticatedWebSocket) => {
     ws.isAlive = true;
-    
+
     ws.on('pong', () => {
       ws.isAlive = true;
     });
@@ -20,7 +20,7 @@ export function setupGateway(server: Server) {
     ws.on('message', async (data) => {
       try {
         const payload = JSON.parse(data.toString());
-        
+
         switch (payload.op) {
           case 'IDENTIFY':
             // In a real app, we'd verify a JWT here.
@@ -29,9 +29,9 @@ export function setupGateway(server: Server) {
               const userId = payload.d.userId;
               ws.userId = userId;
               console.log(`User ${userId} identified on gateway`);
-              
+
               // Send READY event
-              const guilds = await storage.getGuildsByUser(userId);
+              const guilds = await storage.getWorkspaces(userId);
               ws.send(JSON.stringify({
                 t: 'READY',
                 d: {
@@ -41,7 +41,7 @@ export function setupGateway(server: Server) {
               }));
             }
             break;
-            
+
           case 'HEARTBEAT':
             ws.send(JSON.stringify({ op: 'HEARTBEAT_ACK' }));
             break;
@@ -72,7 +72,8 @@ export function setupGateway(server: Server) {
 export function broadcastToGuild(wss: WebSocketServer, guildId: string, event: string, data: any) {
   wss.clients.forEach(async (client: any) => {
     if (client.readyState === WebSocket.OPEN && client.userId) {
-      const isMember = await storage.isMemberOfGuild(client.userId, guildId);
+      const ws = await storage.getWorkspace(Number(guildId));
+      const isMember = ws?.members?.includes(client.userId) ?? false;
       if (isMember) {
         client.send(JSON.stringify({ t: event, d: data }));
       }
