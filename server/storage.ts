@@ -15,6 +15,15 @@ import {
   getNextSequenceValue
 } from "@shared/mongo-schema";
 import { getCassandraClient } from "./lib/cassandra";
+import {
+  cassandraCreateMessage,
+  cassandraGetMessagesByChannel,
+  cassandraDeleteMessage,
+  cassandraPinMessage,
+  cassandraGradeMessage,
+  cassandraMarkMessageAsRead,
+  cassandraGetPinnedMessages,
+} from "./lib/cassandra-message-store";
 import { Snowflake } from "./lib/snowflake";
 import session from "express-session";
 import MongoStore from "connect-mongo";
@@ -356,6 +365,10 @@ export class MongoStorage implements IStorage {
   // ─── Message operations ──────────────────────────────────────────────────
 
   async createMessage(message: InsertMessage): Promise<Message> {
+    if (getCassandraClient()) {
+      return cassandraCreateMessage(message);
+    }
+    // Fallback — MongoDB
     const id = await getNextSequenceValue("message_id");
     const newMessage = new MongoMessage({ ...message, isPinned: false, id });
     await newMessage.save();
@@ -363,6 +376,10 @@ export class MongoStorage implements IStorage {
   }
 
   async getMessagesByChannel(channelId: number, limit = 50, before?: number): Promise<Message[]> {
+    if (getCassandraClient()) {
+      return cassandraGetMessagesByChannel(channelId, limit, before);
+    }
+    // Fallback — MongoDB
     const filter: any = { channelId };
     if (before !== undefined) {
       filter.id = { $lt: before };
@@ -370,17 +387,25 @@ export class MongoStorage implements IStorage {
     const messages = await MongoMessage.find(filter)
       .sort({ id: -1 })
       .limit(limit);
-    // Return in ascending order so clients render oldest→newest
     return messages.reverse().map((m: any) => this.mapMongoDoc<Message>(m));
   }
 
-  async deleteMessage(id: number): Promise<boolean> {
+  async deleteMessage(id: number, channelId?: number): Promise<boolean> {
+    if (getCassandraClient() && channelId !== undefined) {
+      return cassandraDeleteMessage(channelId, id);
+    }
+    // Fallback — MongoDB
     const result = await MongoMessage.deleteOne({ id });
     return result.deletedCount > 0;
   }
 
   async pinMessage(channelId: number, messageId: number): Promise<Channel | undefined> {
-    await MongoMessage.findOneAndUpdate({ id: messageId }, { isPinned: true });
+    if (getCassandraClient()) {
+      await cassandraPinMessage(channelId, messageId, true);
+    } else {
+      await MongoMessage.findOneAndUpdate({ id: messageId }, { isPinned: true });
+    }
+    // Always update the Channel's pinnedMessages list in MongoDB (source of truth for channel metadata)
     const ch = await MongoChannel.findOneAndUpdate(
       { id: channelId },
       { $addToSet: { pinnedMessages: messageId } },
@@ -390,7 +415,11 @@ export class MongoStorage implements IStorage {
   }
 
   async unpinMessage(channelId: number, messageId: number): Promise<Channel | undefined> {
-    await MongoMessage.findOneAndUpdate({ id: messageId }, { isPinned: false });
+    if (getCassandraClient()) {
+      await cassandraPinMessage(channelId, messageId, false);
+    } else {
+      await MongoMessage.findOneAndUpdate({ id: messageId }, { isPinned: false });
+    }
     const ch = await MongoChannel.findOneAndUpdate(
       { id: channelId },
       { $pull: { pinnedMessages: messageId } },
@@ -400,11 +429,21 @@ export class MongoStorage implements IStorage {
   }
 
   async getPinnedMessages(channelId: number): Promise<Message[]> {
+    if (getCassandraClient()) {
+      return cassandraGetPinnedMessages(channelId);
+    }
+    // Fallback — MongoDB
     const messages = await MongoMessage.find({ channelId, isPinned: true }).sort({ id: 1 });
     return messages.map((m: any) => this.mapMongoDoc<Message>(m));
   }
 
-  async gradeMessage(messageId: number, status: 'pending' | 'graded'): Promise<Message | undefined> {
+  async gradeMessage(messageId: number, status: 'pending' | 'graded', channelId?: number): Promise<Message | undefined> {
+    if (getCassandraClient() && channelId !== undefined) {
+      await cassandraGradeMessage(channelId, messageId, status);
+      // Return a minimal updated object — routes only check for truthiness
+      return { id: messageId, channelId, authorId: 0, content: "", type: "text", fileUrl: null, isPinned: false, isHomework: false, gradingStatus: status, readBy: [], createdAt: new Date() };
+    }
+    // Fallback — MongoDB
     const msg = await MongoMessage.findOneAndUpdate(
       { id: messageId },
       { gradingStatus: status },
@@ -413,7 +452,12 @@ export class MongoStorage implements IStorage {
     return msg ? this.mapMongoDoc<Message>(msg) : undefined;
   }
 
-  async markMessageAsRead(messageId: number, userId: number): Promise<Message | undefined> {
+  async markMessageAsRead(messageId: number, userId: number, channelId?: number): Promise<Message | undefined> {
+    if (getCassandraClient() && channelId !== undefined) {
+      await cassandraMarkMessageAsRead(channelId, messageId, userId);
+      return { id: messageId, channelId, authorId: 0, content: "", type: "text", fileUrl: null, isPinned: false, isHomework: false, gradingStatus: null, readBy: [userId], createdAt: new Date() };
+    }
+    // Fallback — MongoDB
     const msg = await MongoMessage.findOneAndUpdate(
       { id: messageId },
       { $addToSet: { readBy: userId } },
