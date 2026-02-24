@@ -831,7 +831,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
       const messageId = parseInt(req.params.id);
-      const messages = await storage.getMessagesByChannel(0); // we'll look it up differently
+      if (isNaN(messageId)) return res.status(400).json({ message: "Invalid message ID" });
 
       // Fetch the message directly from Mongo to check ownership
       const { MongoMessage } = await import("@shared/mongo-schema");
@@ -845,7 +845,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You can only delete your own messages" });
       }
 
-      await storage.deleteMessage(messageId);
+      // Pass channelId so Cassandra delete uses the correct partition key
+      await storage.deleteMessage(messageId, msg.channelId);
       return res.status(200).json({ message: "Message deleted" });
     } catch {
       return res.status(500).json({ message: "Failed to delete message" });
@@ -946,13 +947,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const messageId = parseInt(req.params.id);
-      const { status } = req.body;
+      if (isNaN(messageId)) return res.status(400).json({ message: "Invalid message ID" });
+
+      const { status, channelId } = req.body;
 
       if (!['pending', 'graded'].includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
       }
 
-      const updated = await storage.gradeMessage(messageId, status);
+      // Pass channelId so Cassandra uses the correct partition key
+      const updated = await storage.gradeMessage(messageId, status, channelId ? parseInt(channelId) : undefined);
       if (!updated) return res.status(404).json({ message: "Message not found" });
 
       return res.status(200).json(updated);
@@ -988,7 +992,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       const messageId = parseInt(req.params.id);
-      const updated = await storage.markMessageAsRead(messageId, req.session.userId);
+      if (isNaN(messageId)) return res.status(400).json({ message: "Invalid message ID" });
+      const { channelId } = req.body;
+      // Pass channelId so Cassandra uses the correct partition key
+      const updated = await storage.markMessageAsRead(messageId, req.session.userId, channelId ? parseInt(channelId) : undefined);
       if (!updated) return res.status(404).json({ message: "Message not found" });
       return res.status(200).json(updated);
     } catch {
