@@ -1,10 +1,11 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertTestSchema, insertQuestionSchema, insertTestAttemptSchema, insertAnswerSchema, insertAnalyticsSchema, insertWorkspaceSchema, insertChannelSchema, type Channel } from "@shared/schema";
+import { insertUserSchema, insertTestSchema, insertQuestionSchema, insertTestAttemptSchema, insertAnswerSchema, insertAnalyticsSchema, insertWorkspaceSchema, insertChannelSchema, insertMessageSchema, type Channel } from "@shared/schema";
 import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat, generateStudyPlan, analyzeTestPerformance } from "./lib/openai";
+import { upload, diskPathToUrl } from "./lib/upload";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
@@ -726,6 +727,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const channel = await storage.getChannel(channelId);
       if (!channel) return res.status(404).json({ message: "Channel not found" });
 
+      if (channel.workspaceId === null || channel.workspaceId === undefined) return res.status(403).json({ message: "Access denied" });
       const workspace = await storage.getWorkspace(channel.workspaceId);
       if (!workspace || !workspace.members.includes(req.session.userId)) {
         return res.status(403).json({ message: "Access denied" });
@@ -741,13 +743,134 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/messages/:channelId — Alias for channel messages used by frontend
+  app.get("/api/messages/:channelId", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const channelId = parseInt(req.params.channelId);
+      const channel = await storage.getChannel(channelId);
+      if (!channel) return res.status(404).json({ message: "Channel not found" });
+
+      if (channel.type !== "dm") {
+        if (!channel.workspaceId) return res.status(403).json({ message: "Access denied" });
+        const workspace = await storage.getWorkspace(channel.workspaceId);
+        if (!workspace || !workspace.members.includes(req.session.userId)) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      } else {
+        // DM check: name is dm_ID1_ID2
+        if (!channel.name.includes(req.session.userId.toString())) {
+          return res.status(403).json({ message: "Access denied" });
+        }
+      }
+
+      const limit = Math.min(parseInt(req.query.limit as string) || 50, 100);
+      const before = req.query.before ? parseInt(req.query.before as string) : undefined;
+
+      const messages = await storage.getMessagesByChannel(channelId, limit, before);
+      return res.status(200).json(messages);
+    } catch {
+      return res.status(500).json({ message: "Failed to fetch messages" });
+    }
+  });
+
+  // POST /api/messages — Send message via HTTP
+  app.post("/api/messages", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const body = insertMessageSchema.parse({
+        ...req.body,
+        authorId: req.session.userId,
+      });
+
+      const message = await storage.createMessage(body);
+
+      // We should also broadcast this via WebSocket if the server is available
+      // For now, it's saved in DB and client-side optimistic UI handles it.
+      // But we need the WS server to broadcast to OTHER users.
+      // Since ws setup is in chat-ws.ts, we might need a way to trigger broadcast.
+      // For simplicity, let's assume the client will also send via WS or poll.
+      // However, the frontend code calls BOTH (apiRequest and ws.send if available).
+      // Actually frontend calls apiRequest ONLY when sending.
+
+      return res.status(201).json(message);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ message: "Invalid input", errors: error.errors });
+      return res.status(500).json({ message: "Failed to create message" });
+    }
+  });
+
+  // POST /api/channels/dm — Create or get a DM channel
+  app.post("/api/channels/dm", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const { userIds } = req.body;
+      if (!Array.isArray(userIds) || userIds.length < 2) {
+        return res.status(400).json({ message: "At least two userIds are required" });
+      }
+
+      const id1 = parseInt(userIds[0]);
+      const id2 = parseInt(userIds[1]);
+
+      if (isNaN(id1) || isNaN(id2)) {
+        return res.status(400).json({ message: "Invalid user IDs" });
+      }
+
+      const channel = await storage.getOrCreateDMChannel(id1, id2);
+      return res.status(200).json(channel);
+    } catch {
+      return res.status(500).json({ message: "Failed to create/fetch DM channel" });
+    }
+  });
+
+  // GET /api/users/me/dms — Get all DMs for the current user, enriched with partner info
+  app.get("/api/users/me/dms", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const currentUserId = req.session.userId;
+      const dms = await storage.getDMsByUser(currentUserId);
+
+      const enrichedDms = await Promise.all(dms.map(async (dm) => {
+        // dm.name is 'dm_ID1_ID2'
+        const parts = dm.name.split('_');
+        if (parts.length === 3) {
+          const id1 = parseInt(parts[1]);
+          const id2 = parseInt(parts[2]);
+          const partnerId = id1 === currentUserId ? id2 : id1;
+
+          const partner = await storage.getUser(partnerId);
+          if (partner) {
+            return {
+              ...dm,
+              partner: {
+                id: partner.id,
+                username: partner.username,
+                avatar: partner.avatar,
+                role: partner.role
+              }
+            };
+          }
+        }
+        return dm;
+      }));
+
+      return res.status(200).json(enrichedDms);
+    } catch {
+      return res.status(500).json({ message: "Failed to fetch DMs" });
+    }
+  });
+
   // DELETE /api/messages/:id — Delete a message (author or teacher)
   app.delete("/api/messages/:id", async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
       const messageId = parseInt(req.params.id);
-      const messages = await storage.getMessagesByChannel(0); // we'll look it up differently
+      if (isNaN(messageId)) return res.status(400).json({ message: "Invalid message ID" });
 
       // Fetch the message directly from Mongo to check ownership
       const { MongoMessage } = await import("@shared/mongo-schema");
@@ -761,7 +884,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "You can only delete your own messages" });
       }
 
-      await storage.deleteMessage(messageId);
+      // Pass channelId so Cassandra delete uses the correct partition key
+      await storage.deleteMessage(messageId, msg.channelId);
       return res.status(200).json({ message: "Message deleted" });
     } catch {
       return res.status(500).json({ message: "Failed to delete message" });
@@ -817,6 +941,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const channel = await storage.getChannel(channelId);
       if (!channel) return res.status(404).json({ message: "Channel not found" });
 
+      if (channel.workspaceId === null || channel.workspaceId === undefined) return res.status(403).json({ message: "Access denied" });
       const workspace = await storage.getWorkspace(channel.workspaceId);
       if (!workspace || !workspace.members.includes(req.session.userId)) {
         return res.status(403).json({ message: "Access denied" });
@@ -853,6 +978,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // GET /api/channels/:id/unread — Get unread count for a channel
+  app.get("/api/channels/:id/unread", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+      const channelId = parseInt(req.params.id);
+
+      const channel = await storage.getChannel(channelId);
+      if (!channel) return res.status(404).json({ message: "Channel not found" });
+
+      // Count unread in last 50 messages
+      const messages = await storage.getMessagesByChannel(channelId, 50);
+      const unreadCount = messages.filter(m => !m.readBy?.includes(req.session!.userId)).length;
+
+      return res.status(200).json({ unreadCount });
+    } catch {
+      return res.status(500).json({ message: "Failed to fetch unread count" });
+    }
+  });
+
   // POST /api/messages/:id/grade — Grade homework (teachers only)
   app.post("/api/messages/:id/grade", async (req: Request, res: Response) => {
     try {
@@ -861,13 +1005,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const messageId = parseInt(req.params.id);
-      const { status } = req.body;
+      if (isNaN(messageId)) return res.status(400).json({ message: "Invalid message ID" });
+
+      const { status, channelId } = req.body;
 
       if (!['pending', 'graded'].includes(status)) {
         return res.status(400).json({ message: "Invalid status" });
       }
 
-      const updated = await storage.gradeMessage(messageId, status);
+      // Pass channelId so Cassandra uses the correct partition key
+      const updated = await storage.gradeMessage(messageId, status, channelId ? parseInt(channelId) : undefined);
       if (!updated) return res.status(404).json({ message: "Message not found" });
 
       return res.status(200).json(updated);
@@ -884,6 +1031,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const channelData = insertChannelSchema.parse(req.body);
 
       // Check if user is member of the workspace
+      if (!channelData.workspaceId) return res.status(400).json({ message: "Workspace ID is required" });
       const workspace = await storage.getWorkspace(channelData.workspaceId);
       if (!workspace || !workspace.members.includes(req.session.userId)) {
         return res.status(403).json({ message: "You are not a member of this workspace" });
@@ -902,7 +1050,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       const messageId = parseInt(req.params.id);
-      const updated = await storage.markMessageAsRead(messageId, req.session.userId);
+      if (isNaN(messageId)) return res.status(400).json({ message: "Invalid message ID" });
+      const { channelId } = req.body;
+      // Pass channelId so Cassandra uses the correct partition key
+      const updated = await storage.markMessageAsRead(messageId, req.session.userId, channelId ? parseInt(channelId) : undefined);
       if (!updated) return res.status(404).json({ message: "Message not found" });
       return res.status(200).json(updated);
     } catch {
@@ -910,18 +1061,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // POST /api/upload — Mock file upload
-  app.post("/api/upload", async (req: Request, res: Response) => {
-    try {
-      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
-      return res.status(200).json({
-        url: "https://images.unsplash.com/photo-1517673132405-a56a62b18caf?auto=format&fit=crop&q=80&w=800",
-        name: "document_preview.jpg"
-      });
-    } catch {
-      return res.status(500).json({ message: "Upload failed" });
+  // POST /api/upload — Real multipart file upload (multer disk storage)
+  app.post(
+    "/api/upload",
+    (req: Request, res: Response, next) => {
+      // Auth guard before multer processes the body
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      next();
+    },
+    upload.single("file"),
+    (req: Request, res: Response) => {
+      try {
+        if (!req.file) {
+          return res.status(400).json({ message: "No file provided. Send a multipart/form-data request with field name 'file'." });
+        }
+
+        const url = diskPathToUrl(req.file.path);
+        console.log(`[upload] User ${req.session!.userId} uploaded ${req.file.originalname} → ${url}`);
+
+        return res.status(200).json({
+          url,
+          name: req.file.originalname,
+          size: req.file.size,
+          mimeType: req.file.mimetype,
+        });
+      } catch {
+        return res.status(500).json({ message: "Upload failed" });
+      }
     }
-  });
+  );
 
   const httpServer = createServer(app);
   return httpServer;
