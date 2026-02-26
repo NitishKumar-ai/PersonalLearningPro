@@ -6,6 +6,9 @@ import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat, generateStudyPlan, analyzeTestPerformance } from "./lib/openai";
 import { upload, diskPathToUrl } from "./lib/upload";
+import { verifyFirebaseToken } from "./lib/firebase-admin";
+import { MongoUser, MongoWorkspace, MongoChannel } from "@shared/mongo-schema";
+import { getNextSequenceValue } from "@shared/mongo-schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
@@ -989,7 +992,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Count unread in last 50 messages
       const messages = await storage.getMessagesByChannel(channelId, 50);
-      const unreadCount = messages.filter(m => !m.readBy?.includes(req.session!.userId)).length;
+      const unreadCount = messages.filter(m => !m.readBy?.includes(req.session!.userId!)).length;
 
       return res.status(200).json({ unreadCount });
     } catch {
@@ -1093,7 +1096,188 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // ─── Phase 1: Firebase Auth Bridge ──────────────────────────────────────────
+  //
+  // POST /api/auth/firebase
+  // Client sends { idToken } after Firebase login. We verify with firebase-admin,
+  // then find-or-create a MongoDB user and establish an Express session.
+
+  app.post("/api/auth/firebase", async (req: Request, res: Response) => {
+    try {
+      const { idToken } = req.body;
+      if (!idToken || typeof idToken !== "string") {
+        return res.status(400).json({ message: "idToken is required" });
+      }
+
+      const decoded = await verifyFirebaseToken(idToken);
+      if (!decoded) {
+        return res.status(401).json({ message: "Invalid or expired Firebase ID token" });
+      }
+
+      const { uid, email, name, picture } = decoded;
+      if (!email) {
+        return res.status(400).json({ message: "Firebase account must have an email address" });
+      }
+
+      // Find by firebaseUid or email
+      let mongoUser: any = await (MongoUser as any).findOne({ firebaseUid: uid });
+      if (!mongoUser) mongoUser = await (MongoUser as any).findOne({ email });
+
+      if (!mongoUser) {
+        const id = await getNextSequenceValue("user_id");
+        mongoUser = new (MongoUser as any)({
+          id,
+          username: email.split("@")[0] + "_" + id,
+          password: "firebase-" + uid,
+          name: name || email.split("@")[0],
+          email,
+          role: "student",
+          avatar: picture || null,
+          firebaseUid: uid,
+          displayName: name || null,
+        });
+        await mongoUser.save();
+        console.log(`[auth/firebase] Created new user ${email} (id=${id})`);
+      } else if (!mongoUser.firebaseUid) {
+        mongoUser.firebaseUid = uid;
+        if (picture && !mongoUser.avatar) mongoUser.avatar = picture;
+        await mongoUser.save();
+      }
+
+      if (req.session) {
+        req.session.userId = mongoUser.id;
+        req.session.userRole = mongoUser.role;
+      }
+
+      return res.status(200).json({
+        userId: mongoUser.id,
+        displayName: mongoUser.displayName || mongoUser.name,
+        role: mongoUser.role,
+        avatar: mongoUser.avatar,
+      });
+    } catch (err) {
+      console.error("[auth/firebase] Error:", err);
+      return res.status(500).json({ message: "Firebase auth bridge failed" });
+    }
+  });
+
+  // ─── Phase 2: Chat Conversations API ────────────────────────────────────────
+  //
+  // GET /api/chat/conversations — Returns all channels accessible to the user.
+  // Seeds a default School workspace on first login if the user has none.
+
+  app.get("/api/chat/conversations", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const userId = req.session.userId;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const role = user.role ?? "student";
+
+      // Seed default workspace on first access
+      let workspaces = await storage.getWorkspaces(userId);
+      if (workspaces.length === 0) {
+        const wsId = await getNextSequenceValue("workspace_id");
+        const newWs = new (MongoWorkspace as any)({
+          id: wsId,
+          name: "School",
+          description: "Default school workspace",
+          ownerId: userId,
+          members: [userId],
+        });
+        await newWs.save();
+
+        const defaultChannels = [
+          { name: "school-announcements", type: "announcement", category: "announcement", isReadOnly: true },
+          { name: "class-10a-mathematics", type: "text", category: "class", isReadOnly: false, subject: "Mathematics" },
+          { name: "class-10a-science", type: "text", category: "class", isReadOnly: false, subject: "Science" },
+          { name: "class-10a-english", type: "text", category: "class", isReadOnly: false, subject: "English" },
+        ];
+
+        for (const ch of defaultChannels) {
+          const chId = await getNextSequenceValue("channel_id");
+          const newCh = new (MongoChannel as any)({
+            id: chId, workspaceId: wsId,
+            name: ch.name, type: ch.type,
+            category: ch.category, isReadOnly: ch.isReadOnly,
+            subject: (ch as any).subject || null,
+            pinnedMessages: [],
+          });
+          await newCh.save();
+        }
+
+        workspaces = await storage.getWorkspaces(userId);
+        console.log(`[chat/conversations] Seeded workspace for user ${userId}`);
+      }
+
+      // Gather all channels across workspaces
+      let allChannels: any[] = [];
+      for (const ws of workspaces) {
+        const channels = await storage.getChannelsByWorkspace(ws.id);
+        allChannels = [...allChannels, ...channels];
+      }
+
+      // Role-based filtering
+      const accessible = allChannels.filter((ch: any) => {
+        const category = ch.category ?? "class";
+        if (category === "announcement") return true;
+        if (category === "class" && (role === "student" || role === "teacher")) return true;
+        if (category === "teacher" && role === "student") return true;
+        if (category === "parent" && role === "teacher") return true;
+        if (category === "friend" && role === "student") return true;
+        return false;
+      });
+
+      // Shape into frontend Conversation format
+      const conversations = accessible.map((ch: any) => ({
+        id: String(ch.id),
+        name: ch.name,
+        category: ch.category ?? "class",
+        isGroup: ch.type !== "dm",
+        isReadOnly: ch.isReadOnly ?? false,
+        participants: [],
+        lastMessage: undefined,
+        unreadCount: 0,
+        subject: ch.subject ?? undefined,
+      }));
+
+      return res.status(200).json(conversations);
+    } catch (err) {
+      console.error("[chat/conversations] Error:", err);
+      return res.status(500).json({ message: "Failed to fetch conversations" });
+    }
+  });
+
+  // POST /api/chat/conversations/:id/read — mark all messages in a conversation as read
+  app.post("/api/chat/conversations/:id/read", async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
+
+      const channelId = parseInt(req.params.id);
+      if (isNaN(channelId)) return res.status(400).json({ message: "Invalid conversation ID" });
+
+      const messages = await storage.getMessagesByChannel(channelId, 100);
+      await Promise.all(
+        messages
+          .filter((m: any) => !m.readBy?.includes(req.session!.userId))
+          .map((m: any) => storage.markMessageAsRead(m.id, req.session!.userId!))
+      );
+
+      await (MongoChannel as any).findOneAndUpdate(
+        { id: channelId },
+        { $set: { [`unreadCounts.${req.session.userId}`]: 0 } }
+      );
+
+      return res.status(200).json({ message: "Marked as read" });
+    } catch {
+      return res.status(500).json({ message: "Failed to mark conversation as read" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
-
