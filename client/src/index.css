@@ -63,6 +63,35 @@
     /* ─── Layout ─── */
     --sidebar-width: 16rem;
     --sidebar-width-collapsed: 4rem;
+
+    /* ─── Chat: Bubble Colors ─── */
+    --bubble-own: 231 60% 85%;
+    --bubble-own-foreground: 231 70% 20%;
+    --bubble-other: 0 0% 100%;
+    --bubble-other-foreground: 224 30% 15%;
+
+    /* ─── Chat: Status Colors ─── */
+    --status-sent: 220 10% 60%;
+    --status-delivered: 160 60% 42%;
+    --status-read: 199 89% 48%;
+
+    /* ─── Chat: Presence ─── */
+    --online: 142 71% 45%;
+    --typing: 231 70% 55%;
+
+    /* ─── Chat: Role Colors ─── */
+    --role-student: 217 91% 60%;
+    --role-teacher: 262 83% 58%;
+    --role-parent: 25 95% 53%;
+
+    /* ─── Chat: Message Type Colors ─── */
+    --announcement: 45 93% 47%;
+    --announcement-bg: 45 93% 94%;
+    --doubt: 262 83% 58%;
+    --doubt-bg: 262 40% 94%;
+    --assignment: 199 89% 48%;
+    --assignment-bg: 199 60% 92%;
+    --pinned: 45 93% 47%;
   }
 
   .dark {
@@ -110,6 +139,35 @@
     --sidebar-accent-foreground: 224 70% 75%;
     --sidebar-border: 215 25% 16%;
     --sidebar-ring: 224 70% 62%;
+
+    /* ─── Chat: Bubble Colors (Dark) ─── */
+    --bubble-own: 231 50% 22%;
+    --bubble-own-foreground: 210 20% 90%;
+    --bubble-other: 215 25% 14%;
+    --bubble-other-foreground: 210 20% 92%;
+
+    /* ─── Chat: Status Colors (Dark) ─── */
+    --status-sent: 215 12% 45%;
+    --status-delivered: 160 50% 45%;
+    --status-read: 199 89% 48%;
+
+    /* ─── Chat: Presence (Dark) ─── */
+    --online: 142 71% 45%;
+    --typing: 224 70% 62%;
+
+    /* ─── Chat: Role Colors (Dark) ─── */
+    --role-student: 217 91% 60%;
+    --role-teacher: 262 83% 58%;
+    --role-parent: 25 95% 53%;
+
+    /* ─── Chat: Message Type Colors (Dark) ─── */
+    --announcement: 45 93% 47%;
+    --announcement-bg: 45 50% 14%;
+    --doubt: 262 83% 58%;
+    --doubt-bg: 262 40% 16%;
+    --assignment: 199 89% 48%;
+    --assignment-bg: 199 40% 14%;
+    --pinned: 45 93% 47%;
   }
 
   * {
@@ -263,5 +321,24 @@
 
   .glow-border-purple {
     box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.3), 0 0 24px rgba(139, 92, 246, 0.12);
+  }
+
+  /* Thin scrollbar for chat panels */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 2px;
   }
 }
