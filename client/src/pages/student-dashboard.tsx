@@ -28,6 +28,28 @@ import {
   BellRing,
   Sparkles,
   Video,
+  Lightbulb,
+  Award,
+  Gamepad2,
+  Heart,
+  MessageSquare,
+  BarChart3,
+  Activity,
+  Compass,
+  Target as TargetIcon,
+  BookMarked,
+  RefreshCw,
+  Settings,
+  HelpCircle,
+  LogOut,
+  User,
+  Volume2,
+  Mic,
+  MicOff,
+  VideoOff,
+  Monitor,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,7 +65,6 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const subjectMeta: Record<
@@ -123,6 +144,9 @@ const getTimetableCellColor = (name: string) => {
 export default function StudentDashboard() {
   const { currentUser } = useFirebaseAuth();
   const [communitiesOpen, setCommunitiesOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [focusMode, setFocusMode] = useState(false);
+  const [studyRoomJoined, setStudyRoomJoined] = useState(false);
 
   // ── Data ──────────────────────────────────────────────────────────────────
 
@@ -993,9 +1017,91 @@ export default function StudentDashboard() {
                 </table>
               </div>
             </div>
+            <div className="flex gap-2">
+              <Button size="sm" className="flex-1 bg-gradient-to-r from-purple-500 to-pink-600 text-white border-0 hover:opacity-90">
+                <UserCheck className="h-3 w-3 mr-1" />
+                Connect
+              </Button>
+              <Button variant="outline" size="sm" className="border-purple-500/20 text-purple-600 hover:bg-purple-500/10">
+                <RefreshCw className="h-3 w-3" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </section>
+
+      {/* Interactive Learning Tools */}
+      <section className="mb-7 animate-fade-in-up" style={{ animationDelay: "600ms" }}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Learning Tools
+            <Badge className="bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-500/20 text-[10px]">
+              INTERACTIVE
+            </Badge>
+          </h2>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {[
+            { icon: <BookMarked className="h-4 w-4" />, title: "Smart Notes", desc: "AI-powered", color: "from-blue-500 to-cyan-600" },
+            { icon: <TargetIcon className="h-4 w-4" />, title: "Practice Hub", desc: "Adaptive tests", color: "from-green-500 to-emerald-600" },
+            { icon: <BarChart3 className="h-4 w-4" />, title: "Progress Tracker", desc: "Real-time insights", color: "from-purple-500 to-violet-600" },
+            { icon: <Award className="h-4 w-4" />, title: "Skill Badges", desc: "Earn rewards", color: "from-orange-500 to-amber-600" },
+          ].map((tool, i) => (
+            <Card key={i} className="group hover:-translate-y-1 hover:shadow-md transition-all duration-250 cursor-pointer">
+              <CardContent className="p-4 text-center">
+                <div className={`p-3 rounded-xl bg-gradient-to-br ${tool.color} text-white mx-auto mb-3 w-fit group-hover:scale-110 transition-transform`}>
+                  {tool.icon}
+                </div>
+                <div className="font-semibold text-sm mb-1">{tool.title}</div>
+                <div className="text-xs text-muted-foreground">{tool.desc}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Focus Mode Toggle */}
+      {focusMode && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+          <Card className="w-full max-w-2xl mx-4 border-0 shadow-2xl">
+            <CardContent className="p-8">
+              <div className="text-center mb-6">
+                <div className="p-4 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white mx-auto mb-4 w-fit">
+                  <Headphones className="h-8 w-8" />
+                </div>
+                <h2 className="text-2xl font-bold mb-2">Focus Mode Active</h2>
+                <p className="text-muted-foreground">Deep work session in progress • All distractions blocked</p>
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="text-center p-4 rounded-lg bg-muted/50">
+                  <div className="text-2xl font-bold text-emerald-600">25:00</div>
+                  <div className="text-sm text-muted-foreground">Time Remaining</div>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-muted/50">
+                  <div className="text-2xl font-bold text-blue-600">Physics</div>
+                  <div className="text-sm text-muted-foreground">Current Subject</div>
+                </div>
+                <div className="text-center p-4 rounded-lg bg-muted/50">
+                  <div className="text-2xl font-bold text-purple-600">87%</div>
+                  <div className="text-sm text-muted-foreground">Focus Score</div>
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <Button variant="outline" className="flex-1" onClick={() => setFocusMode(false)}>
+                  Exit Focus Mode
+                </Button>
+                <Button className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white border-0">
+                  Extend Session
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </>
   );
 }
