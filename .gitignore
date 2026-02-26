@@ -9,3 +9,4 @@ server/.env.env
 .agent/
 GEMINI.md
 .vscode/
+.env.example
