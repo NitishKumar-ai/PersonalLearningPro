@@ -85,6 +85,38 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Chat-specific color tokens
+        bubble: {
+          own: "hsl(var(--bubble-own))",
+          "own-foreground": "hsl(var(--bubble-own-foreground))",
+          other: "hsl(var(--bubble-other))",
+          "other-foreground": "hsl(var(--bubble-other-foreground))",
+        },
+        status: {
+          sent: "hsl(var(--status-sent))",
+          delivered: "hsl(var(--status-delivered))",
+          read: "hsl(var(--status-read))",
+        },
+        online: "hsl(var(--online))",
+        typing: "hsl(var(--typing))",
+        role: {
+          student: "hsl(var(--role-student))",
+          teacher: "hsl(var(--role-teacher))",
+          parent: "hsl(var(--role-parent))",
+        },
+        announcement: {
+          DEFAULT: "hsl(var(--announcement))",
+          bg: "hsl(var(--announcement-bg))",
+        },
+        doubt: {
+          DEFAULT: "hsl(var(--doubt))",
+          bg: "hsl(var(--doubt-bg))",
+        },
+        assignment: {
+          DEFAULT: "hsl(var(--assignment))",
+          bg: "hsl(var(--assignment-bg))",
+        },
+        pinned: "hsl(var(--pinned))",
       },
       keyframes: {
         "accordion-down": {
@@ -107,6 +139,14 @@ export default {
           from: { opacity: "0", transform: "translateX(12px)" },
           to: { opacity: "1", transform: "translateX(0)" },
         },
+        "typing-dot": {
+          "0%, 60%, 100%": { opacity: "0.3", transform: "scale(0.8)" },
+          "30%": { opacity: "1", transform: "scale(1)" },
+        },
+        "slide-in": {
+          from: { opacity: "0", transform: "translateY(8px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -114,6 +154,8 @@ export default {
         "fade-in-up": "fade-in-up 0.5s ease-out both",
         "scale-in": "scale-in 0.3s ease-out both",
         "slide-in-right": "slide-in-right 0.4s ease-out both",
+        "typing-dot": "typing-dot 1.4s ease-in-out infinite",
+        "slide-in": "slide-in 0.2s ease-out",
       },
     },
   },

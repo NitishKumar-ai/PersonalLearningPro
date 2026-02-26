@@ -1,115 +1,109 @@
 import { useState, useRef } from 'react';
+import { Send, Paperclip, Smile, HelpCircle, FileText, AlertTriangle } from 'lucide-react';
 import { useRole } from '@/contexts/chat-role-context';
-import { Conversation } from '@/types/chat';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Send, HelpCircle, Paperclip, Smile } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface MessageInputProps {
-    conversation: Conversation;
-    onSend: (content: string, type?: 'text' | 'doubt') => void;
-    /** Called on every keystroke so the parent can fire a typing WS event */
-    onTyping?: () => void;
+  onSend: (content: string, type?: 'text' | 'doubt') => void;
+  isReadOnly?: boolean;
 }
 
-export default function MessageInput({ conversation, onSend, onTyping }: MessageInputProps) {
-    const { currentRole } = useRole();
-    const [content, setContent] = useState('');
-    const [isDoubtMode, setIsDoubtMode] = useState(false);
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
+const MessageInput = ({ onSend, isReadOnly }: MessageInputProps) => {
+  const [text, setText] = useState('');
+  const [doubtMode, setDoubtMode] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const { currentRole } = useRole();
 
-    const isReadOnly = conversation.isReadOnly && currentRole === 'student';
-
-    if (isReadOnly) {
-        return (
-            <div className="px-4 py-3 border-t border-border bg-muted/30 text-center text-sm text-muted-foreground">
-                This is an announcement channel — only teachers can post here.
-            </div>
-        );
-    }
-
-    const handleSend = () => {
-        const trimmed = content.trim();
-        if (!trimmed) return;
-        onSend(trimmed, isDoubtMode ? 'doubt' : 'text');
-        setContent('');
-        setIsDoubtMode(false);
-        textareaRef.current?.focus();
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-        setContent(e.target.value);
-        onTyping?.();
-    };
-
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            handleSend();
-        }
-    };
-
+  if (isReadOnly) {
     return (
-        <div className="border-t border-border bg-background px-4 pt-3 pb-4">
-            {isDoubtMode && (
-                <div className="flex items-center gap-1.5 text-xs font-medium text-doubt mb-2 px-1">
-                    <HelpCircle className="h-3.5 w-3.5" />
-                    Doubt mode — your message will be marked as a doubt for teachers to answer
-                </div>
-            )}
-
-            <div className={cn(
-                'flex items-end gap-2 rounded-xl border bg-background transition-colors',
-                isDoubtMode ? 'border-doubt/50' : 'border-border',
-                'focus-within:ring-1 focus-within:ring-primary/30'
-            )}>
-                {currentRole === 'student' && (
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                            'h-9 w-9 rounded-xl flex-shrink-0 self-end mb-0.5 ml-1',
-                            isDoubtMode ? 'text-doubt bg-doubt-bg' : 'text-muted-foreground hover:text-doubt'
-                        )}
-                        onClick={() => setIsDoubtMode(d => !d)}
-                        title={isDoubtMode ? 'Cancel doubt mode' : 'Ask a doubt'}
-                    >
-                        <HelpCircle className="h-4 w-4" />
-                    </Button>
-                )}
-
-                <Textarea
-                    ref={textareaRef}
-                    value={content}
-                    onChange={handleChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder={isDoubtMode ? 'Type your doubt...' : 'Type a message... (use @AI to ask the AI Tutor)'}
-                    className="min-h-[44px] max-h-[140px] resize-none border-0 shadow-none focus-visible:ring-0 rounded-none py-3 text-sm"
-                    rows={1}
-                />
-
-                <div className="flex items-center gap-1 self-end mb-1 mr-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg">
-                        <Smile className="h-4 w-4" />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg">
-                        <Paperclip className="h-4 w-4" />
-                    </Button>
-                    <Button
-                        size="icon"
-                        onClick={handleSend}
-                        disabled={!content.trim()}
-                        className="h-8 w-8 rounded-lg"
-                    >
-                        <Send className="h-4 w-4" />
-                    </Button>
-                </div>
-            </div>
-
-            <p className="text-[10px] text-muted-foreground/50 mt-1 text-center">
-                Enter to send · Shift+Enter for new line · @AI for AI Tutor
-            </p>
+      <div className="border-t border-border bg-card px-4 py-3">
+        <div className="flex items-center justify-center gap-2 text-muted-foreground">
+          <AlertTriangle className="h-4 w-4" />
+          <span className="text-sm">This is a read-only announcement channel</span>
         </div>
+      </div>
     );
-}
+  }
+
+  const handleSend = () => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    onSend(trimmed, doubtMode ? 'doubt' : 'text');
+    setText('');
+    setDoubtMode(false);
+    inputRef.current?.focus();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="border-t border-border bg-card px-4 py-3">
+      {/* Quick actions */}
+      {(currentRole === 'student' || currentRole === 'teacher') && (
+        <div className="flex items-center gap-2 mb-2">
+          {currentRole === 'student' && (
+            <button
+              onClick={() => setDoubtMode(!doubtMode)}
+              className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-all ${
+                doubtMode
+                  ? 'bg-doubt text-primary-foreground'
+                  : 'bg-secondary text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <HelpCircle className="h-3.5 w-3.5" />
+              Ask Doubt
+            </button>
+          )}
+          {currentRole === 'teacher' && (
+            <button className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-secondary text-muted-foreground hover:text-foreground transition-all">
+              <FileText className="h-3.5 w-3.5" />
+              Send Assignment
+            </button>
+          )}
+        </div>
+      )}
+
+      {doubtMode && (
+        <div className="flex items-center gap-2 mb-2 px-2">
+          <span className="text-[11px] text-doubt font-medium">🟣 Doubt mode — your message will be tagged as a question</span>
+        </div>
+      )}
+
+      <div className="flex items-end gap-2">
+        <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-secondary">
+          <Paperclip className="h-5 w-5" />
+        </button>
+        <button className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-lg hover:bg-secondary">
+          <Smile className="h-5 w-5" />
+        </button>
+        <div className="flex-1 relative">
+          <textarea
+            ref={inputRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={doubtMode ? 'Type your doubt...' : 'Type a message...'}
+            rows={1}
+            className={`w-full resize-none rounded-xl bg-secondary text-foreground placeholder:text-muted-foreground px-4 py-2.5 text-sm focus:outline-none focus:ring-1 scrollbar-thin max-h-32 ${
+              doubtMode ? 'focus:ring-doubt border border-doubt/30' : 'focus:ring-ring'
+            }`}
+            style={{ minHeight: '40px' }}
+          />
+        </div>
+        <button
+          onClick={handleSend}
+          disabled={!text.trim()}
+          className="p-2.5 rounded-xl bg-primary text-primary-foreground hover:opacity-90 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          <Send className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default MessageInput;

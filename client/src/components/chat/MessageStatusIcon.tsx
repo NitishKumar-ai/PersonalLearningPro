@@ -1,24 +1,23 @@
-import { MessageStatus } from '@/types/chat';
-import { Check, CheckCheck } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Check, CheckCheck, Clock } from 'lucide-react';
+import { MessageStatus as Status } from '@/types/chat';
 
-interface MessageStatusIconProps {
-    status: MessageStatus;
-    className?: string;
+interface MessageStatusProps {
+  status: Status;
 }
 
-export default function MessageStatusIcon({ status, className }: MessageStatusIconProps) {
-    if (status === 'sending') {
-        return <span className={cn('text-muted-foreground/50 text-xs', className)}>⏳</span>;
-    }
-    if (status === 'sent') {
-        return <Check className={cn('h-3 w-3 text-status-sent', className)} />;
-    }
-    if (status === 'delivered') {
-        return <CheckCheck className={cn('h-3 w-3 text-status-delivered', className)} />;
-    }
-    if (status === 'read') {
-        return <CheckCheck className={cn('h-3 w-3 text-status-read', className)} />;
-    }
-    return null;
-}
+const MessageStatusIcon = ({ status }: MessageStatusProps) => {
+  switch (status) {
+    case 'sending':
+      return <Clock className="h-3.5 w-3.5 text-status-sent" />;
+    case 'sent':
+      return <Check className="h-3.5 w-3.5 text-status-sent" />;
+    case 'delivered':
+      return <CheckCheck className="h-3.5 w-3.5 text-status-delivered" />;
+    case 'read':
+      return <CheckCheck className="h-3.5 w-3.5 text-status-read" />;
+    default:
+      return null;
+  }
+};
+
+export default MessageStatusIcon;

@@ -1,132 +1,156 @@
 import { Message } from '@/types/chat';
-import { useRole } from '@/contexts/chat-role-context';
 import MessageStatusIcon from './MessageStatusIcon';
-import { cn } from '@/lib/utils';
-import { format, isToday, isYesterday } from 'date-fns';
-import { Pin, HelpCircle, CheckCircle2, FileText, Megaphone } from 'lucide-react';
+import { format } from 'date-fns';
+import { Pin, HelpCircle, CheckCircle2, Megaphone, FileText, Calendar, Reply } from 'lucide-react';
 
 interface MessageBubbleProps {
-    message: Message;
-    showAvatar?: boolean;
-    replyMessage?: Message;
+  message: Message;
+  isOwn: boolean;
+  showSender?: boolean;
+  senderName?: string;
+  replyContent?: string;
 }
 
-function formatTime(date: Date) {
-    return format(date, 'h:mm a');
-}
+const MessageBubble = ({ message, isOwn, showSender, senderName, replyContent }: MessageBubbleProps) => {
+  const time = format(message.timestamp, 'HH:mm');
 
-function formatDate(date: Date) {
-    if (isToday(date)) return 'Today';
-    if (isYesterday(date)) return 'Yesterday';
-    return format(date, 'dd MMM yyyy');
-}
-
-export function DayDivider({ date }: { date: Date }) {
+  // Announcement
+  if (message.type === 'announcement') {
     return (
-        <div className="flex items-center gap-3 my-4 px-4">
-            <div className="flex-1 h-px bg-border" />
-            <span className="text-xs text-muted-foreground font-medium px-2">
-                {formatDate(date)}
+      <div className="flex justify-center mb-2 px-4 animate-slide-in">
+        <div className="max-w-[85%] bg-announcement-bg border border-announcement/20 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-2 mb-1.5">
+            <Megaphone className="h-4 w-4 text-announcement" />
+            <span className="text-xs font-semibold text-announcement">Announcement</span>
+            {message.isPinned && <Pin className="h-3 w-3 text-pinned" />}
+          </div>
+          <p className="text-sm text-foreground leading-relaxed">{message.content}</p>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-[10px] text-muted-foreground">{senderName}</span>
+            <span className="text-[10px] text-muted-foreground">•</span>
+            <span className="text-[10px] text-muted-foreground">{time}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Assignment
+  if (message.type === 'assignment' && message.assignmentData) {
+    const ad = message.assignmentData;
+    return (
+      <div className="flex justify-center mb-2 px-4 animate-slide-in">
+        <div className="max-w-[85%] w-full bg-assignment-bg border border-assignment/20 rounded-xl px-4 py-3">
+          <div className="flex items-center gap-2 mb-2">
+            <FileText className="h-4 w-4 text-assignment" />
+            <span className="text-xs font-semibold text-assignment">Assignment</span>
+          </div>
+          <h4 className="text-sm font-semibold text-foreground mb-1">{ad.title}</h4>
+          <p className="text-sm text-foreground/80 mb-2">{message.content}</p>
+          <div className="flex items-center gap-3 text-[11px]">
+            <span className="flex items-center gap-1 text-assignment">
+              <Calendar className="h-3 w-3" />
+              Due: {format(ad.dueDate, 'MMM d, yyyy')}
             </span>
-            <div className="flex-1 h-px bg-border" />
+            <span className="text-muted-foreground">{ad.subject}</span>
+          </div>
+          <div className="flex items-center gap-2 mt-2">
+            <span className="text-[10px] text-muted-foreground">{senderName} • {time}</span>
+          </div>
         </div>
+      </div>
     );
-}
+  }
 
-export default function MessageBubble({ message, showAvatar = true, replyMessage }: MessageBubbleProps) {
-    const { currentUser } = useRole();
-    const isOwn = message.senderId === currentUser.id;
+  // Doubt
+  const isDoubt = message.type === 'doubt';
 
-    const isAnnouncement = message.type === 'announcement';
-    const isAssignment = message.type === 'assignment';
-    const isDoubt = message.type === 'doubt';
-
-    // Full-width special message types
-    if (isAnnouncement) {
-        return (
-            <div className="mx-4 my-2 rounded-xl border border-announcement/40 bg-announcement-bg p-3 flex gap-3 items-start animate-slide-in">
-                <Megaphone className="h-5 w-5 text-announcement mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-announcement mb-0.5">Announcement</p>
-                    <p className="text-sm text-foreground">{message.content}</p>
-                    <span className="text-xs text-muted-foreground mt-1 block">{formatTime(new Date(message.timestamp))}</span>
-                </div>
-            </div>
-        );
-    }
-
-    if (isAssignment && message.assignmentData) {
-        const { title, dueDate, subject } = message.assignmentData;
-        return (
-            <div className="mx-4 my-2 rounded-xl border border-assignment/40 bg-assignment-bg p-3 flex gap-3 items-start animate-slide-in">
-                <FileText className="h-5 w-5 text-assignment mt-0.5 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-assignment">Assignment · {subject}</p>
-                    <p className="text-sm font-semibold text-foreground mt-0.5">{title}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                        Due: {format(new Date(dueDate), 'dd MMM yyyy')}
-                    </p>
-                    <span className="text-xs text-muted-foreground mt-1 block">{formatTime(new Date(message.timestamp))}</span>
-                </div>
-            </div>
-        );
-    }
-
+  // System
+  if (message.type === 'system') {
     return (
-        <div className={cn('flex items-end gap-2 px-4 py-0.5 group animate-slide-in', isOwn ? 'flex-row-reverse' : 'flex-row')}>
-            {/* Avatar placeholder */}
-            {showAvatar && !isOwn ? (
-                <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-xs font-bold flex-shrink-0 mb-1">
-                    {message.senderId.charAt(0).toUpperCase()}
-                </div>
-            ) : (
-                <div className="w-7 flex-shrink-0" />
-            )}
-
-            <div className={cn('max-w-[75%] flex flex-col', isOwn ? 'items-end' : 'items-start')}>
-                {/* Reply preview */}
-                {replyMessage && (
-                    <div className={cn(
-                        'text-xs px-2 py-1 rounded-t-lg border-l-2 mb-0.5 max-w-full truncate',
-                        isOwn ? 'bg-bubble-own/60 border-primary/50 text-bubble-own-foreground/70' : 'bg-muted border-muted-foreground/30 text-muted-foreground'
-                    )}>
-                        {replyMessage.content}
-                    </div>
-                )}
-
-                {/* Bubble */}
-                <div className={cn(
-                    'rounded-2xl px-3 py-2 text-sm relative',
-                    isOwn
-                        ? 'bg-bubble-own text-bubble-own-foreground rounded-br-sm'
-                        : 'bg-bubble-other text-bubble-other-foreground shadow-sm border border-border rounded-bl-sm',
-                    isDoubt && !isOwn && 'border-l-2 border-doubt bg-doubt-bg',
-                )}>
-                    {isDoubt && (
-                        <div className="flex items-center gap-1 text-xs font-medium text-doubt mb-1">
-                            {message.isDoubtAnswered
-                                ? <><CheckCircle2 className="h-3 w-3" /> Doubt Answered</>
-                                : <><HelpCircle className="h-3 w-3" /> Doubt</>
-                            }
-                        </div>
-                    )}
-
-                    <p className="leading-relaxed whitespace-pre-wrap break-words">{message.content}</p>
-
-                    {/* Time + status */}
-                    <div className={cn('flex items-center gap-1 mt-0.5', isOwn ? 'justify-end' : 'justify-start')}>
-                        <span className="text-[10px] opacity-60">{formatTime(new Date(message.timestamp))}</span>
-                        {isOwn && <MessageStatusIcon status={message.status} className="opacity-80" />}
-                    </div>
-                </div>
-
-                {/* Pinned indicator */}
-                {message.isPinned && (
-                    <div className="flex items-center gap-0.5 text-[10px] text-pinned mt-0.5">
-                        <Pin className="h-2.5 w-2.5" /> Pinned
-                    </div>
-                )}
-            </div>
-        </div>
+      <div className="flex justify-center mb-2 px-4 animate-slide-in">
+        <span className="text-[11px] text-muted-foreground bg-muted px-3 py-1 rounded-full">{message.content}</span>
+      </div>
     );
-}
+  }
+
+  // Regular text / media / doubt
+  const roleColorClass =
+    message.senderRole === 'teacher'
+      ? 'text-role-teacher'
+      : message.senderRole === 'parent'
+      ? 'text-role-parent'
+      : 'text-role-student';
+
+  return (
+    <div className={`flex animate-slide-in ${isOwn ? 'justify-end' : 'justify-start'} mb-1 px-4`}>
+      <div
+        className={`max-w-[75%] rounded-2xl px-3.5 py-2 ${
+          isDoubt ? 'border border-doubt/30 ' : ''
+        }${
+          isOwn
+            ? `${isDoubt ? 'bg-doubt-bg' : 'bg-bubble-own'} text-bubble-own-foreground rounded-br-md`
+            : `${isDoubt ? 'bg-doubt-bg' : 'bg-bubble-other'} text-bubble-other-foreground rounded-bl-md`
+        }`}
+      >
+        {/* Doubt badge */}
+        {isDoubt && (
+          <div className="flex items-center gap-1.5 mb-1">
+            <HelpCircle className="h-3.5 w-3.5 text-doubt" />
+            <span className="text-[10px] font-semibold text-doubt">
+              {message.isDoubtAnswered === false ? 'Doubt — Unanswered' : message.isDoubtAnswered ? 'Doubt — Answered ✅' : 'Doubt'}
+            </span>
+          </div>
+        )}
+
+        {/* Sender name */}
+        {showSender && senderName && (
+          <p className={`text-xs font-semibold mb-0.5 ${roleColorClass}`}>{senderName}</p>
+        )}
+
+        {/* Reply preview */}
+        {replyContent && (
+          <div className="flex items-center gap-1.5 mb-1.5 pl-2 border-l-2 border-primary/40">
+            <Reply className="h-3 w-3 text-muted-foreground" />
+            <span className="text-[11px] text-muted-foreground truncate">{replyContent}</span>
+          </div>
+        )}
+
+        {/* Pinned badge */}
+        {message.isPinned && (
+          <div className="flex items-center gap-1 mb-1">
+            <Pin className="h-3 w-3 text-pinned" />
+            <span className="text-[10px] text-pinned font-medium">Pinned</span>
+          </div>
+        )}
+
+        {/* Image */}
+        {message.type === 'image' && message.mediaUrl && (
+          <div className="mb-1.5 overflow-hidden rounded-lg">
+            <img src={message.mediaUrl} alt={message.content} className="w-full max-w-[280px] h-auto object-cover" loading="lazy" />
+          </div>
+        )}
+
+        {/* Text content */}
+        <p className="text-sm leading-relaxed break-words whitespace-pre-wrap">{message.content}</p>
+
+        {/* Mentions */}
+        {message.mentions && message.mentions.length > 0 && (
+          <div className="mt-0.5">
+            {message.mentions.map((m) => (
+              <span key={m} className="text-[10px] text-primary font-medium">@mentioned </span>
+            ))}
+          </div>
+        )}
+
+        {/* Time + status */}
+        <div className={`flex items-center gap-1 mt-0.5 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+          <span className="text-[10px] text-muted-foreground">{time}</span>
+          {isOwn && <MessageStatusIcon status={message.status} />}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default MessageBubble;

@@ -43,7 +43,7 @@ export const ChatRoleProvider = ({ children }: { children: ReactNode }) => {
             value={{
                 currentRole,
                 currentUser: chatUser,
-                setRole: () => { }, // Role is derived from Firebase auth
+                setRole: () => { }, // Role is derived from Firebase auth; ignore manual changes
             }}
         >
             {children}
