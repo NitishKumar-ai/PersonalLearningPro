@@ -81,6 +81,7 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Students", href: "/students", icon: <GraduationCap className="h-5 w-5" /> },
     { title: "Student Directory", href: "/student-directory", icon: <Award className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
+    { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
     { title: "Calendar", href: "/calendar", icon: <CalendarDays className="h-5 w-5" /> },
     { title: "Infrastructure", href: "/infrastructure", icon: <Building2 className="h-5 w-5" /> },
 
@@ -95,6 +96,7 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Classes", href: "/classes", icon: <School className="h-5 w-5" /> },
     { title: "Student Directory", href: "/student-directory", icon: <GraduationCap className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
+    { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
     { title: "Reports", href: "/reports", icon: <FileQuestion className="h-5 w-5" /> },
     { title: "System Settings", href: "/system-settings", icon: <Settings className="h-5 w-5" /> },
   ];
@@ -109,7 +111,7 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Student Directory", href: "/student-directory", icon: <GraduationCap className="h-5 w-5" /> },
     { title: "AI Study Plans", href: "/ai-study-plans", icon: <Sparkles className="h-5 w-5" /> },
     { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
-
+    { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
@@ -123,6 +125,7 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
     { title: "Study Groups", href: "/study-groups", icon: <Users className="h-5 w-5" /> },
     { title: "Achievements", href: "/achievements", icon: <Trophy className="h-5 w-5" /> },
+    { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
@@ -133,7 +136,7 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Academic Progress", href: "/progress", icon: <BarChart className="h-5 w-5" /> },
     { title: "Tests & Results", href: "/test-results", icon: <FileQuestion className="h-5 w-5" /> },
     { title: "Teacher Meetings", href: "/meetings", icon: <Video className="h-5 w-5" /> },
-
+    { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
   ];
 
