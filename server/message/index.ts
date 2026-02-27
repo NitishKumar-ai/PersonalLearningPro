@@ -5,7 +5,7 @@ import { MessageStore } from "./message-store";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const MESSAGE_PORT = 5002;
+const MESSAGEPAL_PORT = 5002;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -274,7 +274,7 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
     });
 
     wss.on("connection", async (ws: WebSocket) => {
-        console.log("New Message WebSocket connection");
+        console.log("New MessagePal WebSocket connection");
 
         // Validate session
         const userMeta = await validateSession(ws, sessionStore);
@@ -291,7 +291,7 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
         }
         userConnections.get(userMeta.userId)?.add(ws);
 
-        console.log(`User ${userMeta.username} (${userMeta.userId}) connected to Message`);
+        console.log(`User ${userMeta.username} (${userMeta.userId}) connected to MessagePal`);
 
         // Send welcome message
         send(ws, {
@@ -370,7 +370,7 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
         });
     });
 
-    console.log(`Message WebSocket server listening on port ${MESSAGE_PORT}`);
+    console.log(`MessagePal WebSocket server listening on port ${MESSAGEPAL_PORT}`);
     return wss;
 }
 
@@ -402,8 +402,8 @@ export async function startMessagePalServer() {
         }
     });
     
-    const server = app.listen(MESSAGE_PORT, () => {
-        console.log(`Message HTTP server running on port ${MESSAGE_PORT}`);
+    const server = app.listen(MESSAGEPAL_PORT, () => {
+        console.log(`MessagePal HTTP server running on port ${MESSAGEPAL_PORT}`);
     });
     
     return server;

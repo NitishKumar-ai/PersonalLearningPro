@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { CassandraMessageStore } from "./cassandra-message-store";
+import { CassandraMessageStore } from "../messagepal/cassandra-message-store";
 
 const router = Router();
 const messageStore = new CassandraMessageStore();
