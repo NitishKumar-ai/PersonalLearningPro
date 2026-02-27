@@ -9,8 +9,12 @@ import { upload, diskPathToUrl } from "./lib/upload";
 import { verifyFirebaseToken } from "./lib/firebase-admin";
 import { MongoUser, MongoWorkspace, MongoChannel } from "@shared/mongo-schema";
 import { getNextSequenceValue } from "@shared/mongo-schema";
+import messageRoutes from "./message/routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Mount MessagePal REST API routes
+  app.use("/api/messagepal", messageRoutes);
+
   // Authentication routes
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
@@ -1146,7 +1150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (req.session) {
         req.session.userId = mongoUser.id;
-        req.session.userRole = mongoUser.role;
+        req.session.role = mongoUser.role;
       }
 
       return res.status(200).json({
