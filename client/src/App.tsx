@@ -141,7 +141,7 @@ function Router() {
       <Route path="/ai-tutor" component={WrappedAiTutor} />
       <Route path="/student-directory" component={WrappedStudentDirectory} />
       <Route path="/messages" component={WrappedMessages} />
-      <Route path="/message" component={WrappedMessage} />
+      <Route path="/messagepal" component={WrappedMessage} />
 
       {/* Fallback to 404 */}
       <Route component={NotFound} />
