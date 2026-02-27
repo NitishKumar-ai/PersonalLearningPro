@@ -87,6 +87,21 @@ export type InsertAnswer = z.infer<typeof insertAnswerSchema>;
 export type Analytics = z.infer<typeof insertAnalyticsSchema> & { id: number };
 export type InsertAnalytics = z.infer<typeof insertAnalyticsSchema>;
 
+// ─── Test Assignment Schemas ────────────────────────────────────────────────
+
+export const insertTestAssignmentSchema = z.object({
+  testId: z.number(),
+  studentId: z.number(),
+  assignedBy: z.number(),
+  assignedDate: z.string().or(z.date()).optional(),
+  dueDate: z.string().or(z.date()),
+  status: z.enum(["pending", "started", "completed", "overdue"]).default("pending"),
+  notificationSent: z.boolean().default(false),
+});
+
+export type TestAssignment = z.infer<typeof insertTestAssignmentSchema> & { id: number };
+export type InsertTestAssignment = z.infer<typeof insertTestAssignmentSchema>;
+
 // ─── Chat Feature Schemas ───────────────────────────────────────────────────
 
 export const insertWorkspaceSchema = z.object({
