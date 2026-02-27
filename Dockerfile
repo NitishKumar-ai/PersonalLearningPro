@@ -1,57 +1,67 @@
 # ── PersonalLearningPro Dockerfile ──
-# Multi-stage build: development + production
+# Multi-stage build optimized for:
+# - Fast rebuilds (layer caching)
+# - Small-ish production image
+# - Non-root runtime
+# - Separate dev target for docker-compose
 
-# ────────────────────────────────────
-# Stage 1: Development
-# ────────────────────────────────────
-FROM node:20-slim AS development
-
+# ------------------------------------------------------------
+# Stage 1: deps (install once, reused by build/dev)
+# ------------------------------------------------------------
+FROM node:20-slim AS deps
 WORKDIR /app
 
-# Copy dependency manifests first for layer caching
 COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
 
-# Install all dependencies (including devDependencies for dev mode)
-RUN npm ci
+# ------------------------------------------------------------
+# Stage 2: development (hot reload)
+# ------------------------------------------------------------
+FROM node:20-slim AS development
+WORKDIR /app
 
-# Copy the rest of the source code
+ENV NODE_ENV=development
+
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Expose the app port (Express serves both API + Vite client)
 EXPOSE 5001
-
-# Start in development mode
 CMD ["npm", "run", "dev"]
 
-# ────────────────────────────────────
-# Stage 2: Build
-# ────────────────────────────────────
+# ------------------------------------------------------------
+# Stage 3: build (vite + server bundle)
+# ------------------------------------------------------------
 FROM node:20-slim AS build
-
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
-
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
 RUN npm run build
 
-# ────────────────────────────────────
-# Stage 3: Production
-# ────────────────────────────────────
+# ------------------------------------------------------------
+# Stage 4: production runtime
+# ------------------------------------------------------------
 FROM node:20-slim AS production
-
 WORKDIR /app
 
-# Copy dependency manifests and install production deps only
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+ENV NODE_ENV=production
+ENV PORT=5001
 
-# Copy built artifacts from the build stage
+# Install only production dependencies (separate from build cache)
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund \
+  && npm cache clean --force
+
+# Copy built artifacts
 COPY --from=build /app/dist ./dist
+
+# Ensure uploads dir exists (server serves /public/uploads)
+RUN mkdir -p public/uploads \
+  && chown -R node:node /app
+
+USER node
 
 EXPOSE 5001
 
-ENV NODE_ENV=production
-
-CMD ["npm", "run", "start"]
+CMD ["node", "dist/index.js"]

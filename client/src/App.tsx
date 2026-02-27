@@ -1,3 +1,4 @@
+import type React from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -110,9 +111,24 @@ function Router() {
     return <FirebaseAuthDialog />;
   }
 
+  // Wait for profile to load before deciding routes/dashboards.
+  // Without this, role can be temporarily undefined and we fall back to the teacher dashboard.
+  if (!currentUser.profile) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const profile = currentUser.profile;
+
   // Get appropriate dashboard component based on user role
   const getDashboardComponent = () => {
-    const role = currentUser.profile?.role;
+    const role = profile.role;
     switch (role) {
       case "principal": return WrappedPrincipalDashboard;
       case "admin": return WrappedAdminDashboard;
@@ -123,23 +139,54 @@ function Router() {
     }
   };
 
+  // Role-based route protection
+  const canAccessRoute = (requiredRole: string | string[]) => {
+    const userRole = profile.role;
+    if (Array.isArray(requiredRole)) {
+      return requiredRole.includes(userRole);
+    }
+    return userRole === requiredRole;
+  };
+
+  // Protected route wrapper
+  const ProtectedRoute = ({ component: Component, requiredRole, ...props }: { 
+    component: React.ComponentType, 
+    requiredRole: string | string[] 
+  }) => {
+    if (!canAccessRoute(requiredRole)) {
+      return <NotFound />;
+    }
+    return <Component {...props} />;
+  };
+
+  // Wrap components with protection
+  const ProtectedTeacherDashboard = () => <ProtectedRoute component={WrappedDashboard} requiredRole="teacher" />;
+  const ProtectedPrincipalDashboard = () => <ProtectedRoute component={WrappedPrincipalDashboard} requiredRole="principal" />;
+  const ProtectedAdminDashboard = () => <ProtectedRoute component={WrappedAdminDashboard} requiredRole="admin" />;
+  const ProtectedStudentDashboard = () => <ProtectedRoute component={WrappedStudentDashboard} requiredRole="student" />;
+  const ProtectedCreateTest = () => <ProtectedRoute component={WrappedCreateTest} requiredRole="teacher" />;
+  const ProtectedOcrScan = () => <ProtectedRoute component={WrappedOcrScan} requiredRole="teacher" />;
+  const ProtectedAnalytics = () => <ProtectedRoute component={WrappedAnalytics} requiredRole={["teacher", "principal", "admin"]} />;
+  const ProtectedStudentDirectory = () => <ProtectedRoute component={WrappedStudentDirectory} requiredRole={["teacher", "principal", "admin"]} />;
+  const ProtectedAiTutor = () => <ProtectedRoute component={WrappedAiTutor} requiredRole={["teacher", "student"]} />;
+
   return (
     <Switch>
       {/* Dashboard route - redirects to appropriate dashboard based on role */}
       <Route path="/" component={getDashboardComponent()} />
 
-      {/* Role-specific dashboards */}
-      <Route path="/dashboard" component={WrappedDashboard} />
-      <Route path="/principal-dashboard" component={WrappedPrincipalDashboard} />
-      <Route path="/admin-dashboard" component={WrappedAdminDashboard} />
-      <Route path="/student-dashboard" component={WrappedStudentDashboard} />
+      {/* Role-specific dashboards - now protected */}
+      <Route path="/dashboard" component={ProtectedTeacherDashboard} />
+      <Route path="/principal-dashboard" component={ProtectedPrincipalDashboard} />
+      <Route path="/admin-dashboard" component={ProtectedAdminDashboard} />
+      <Route path="/student-dashboard" component={ProtectedStudentDashboard} />
 
-      {/* Common routes */}
-      <Route path="/create-test" component={WrappedCreateTest} />
-      <Route path="/ocr-scan" component={WrappedOcrScan} />
-      <Route path="/analytics" component={WrappedAnalytics} />
-      <Route path="/ai-tutor" component={WrappedAiTutor} />
-      <Route path="/student-directory" component={WrappedStudentDirectory} />
+      {/* Common routes - protected as needed */}
+      <Route path="/create-test" component={ProtectedCreateTest} />
+      <Route path="/ocr-scan" component={ProtectedOcrScan} />
+      <Route path="/analytics" component={ProtectedAnalytics} />
+      <Route path="/ai-tutor" component={ProtectedAiTutor} />
+      <Route path="/student-directory" component={ProtectedStudentDirectory} />
       <Route path="/messages" component={WrappedMessages} />
       <Route path="/message" component={WrappedMessage} />
 
