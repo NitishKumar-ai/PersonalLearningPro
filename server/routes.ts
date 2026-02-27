@@ -6,6 +6,7 @@ import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat, generateStudyPlan, analyzeTestPerformance } from "./lib/openai";
 import { upload, diskPathToUrl } from "./lib/upload";
+import messagePalRoutes from "./message/routes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
@@ -33,7 +34,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set session
       if (req.session) {
         req.session.userId = user.id;
-        req.session.userRole = user.role;
+        req.session.role = user.role;
       }
 
       res.status(201).json(userWithoutPassword);
@@ -62,7 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Set session
       if (req.session) {
         req.session.userId = user.id;
-        req.session.userRole = user.role;
+        req.session.role = user.role;
       }
 
       // Don't return the password
@@ -108,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test routes
   app.post("/api/tests", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.userRole !== "teacher") {
+      if (!req.session?.userId || req.session.role !== "teacher") {
         return res.status(401).json({ message: "Unauthorized: Only teachers can create tests" });
       }
 
@@ -144,7 +145,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // For teachers: get their own tests or all tests if admin
       // For students: get tests for their class
       let tests;
-      if (req.session.userRole === "teacher") {
+      if (req.session.role === "teacher") {
         tests = await storage.getTests(
           teacherIdNum || req.session.userId,
           status as string | undefined
@@ -190,9 +191,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user has access to this test
-      if (req.session.userRole === "teacher" && test.teacherId !== req.session.userId) {
+      if (req.session.role === "teacher" && test.teacherId !== req.session.userId) {
         return res.status(403).json({ message: "Forbidden: Not your test" });
-      } else if (req.session.userRole === "student") {
+      } else if (req.session.role === "student") {
         // Get user to check their class
         const user = await storage.getUser(req.session.userId);
 
@@ -209,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/tests/:id", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.userRole !== "teacher") {
+      if (!req.session?.userId || req.session.role !== "teacher") {
         return res.status(401).json({ message: "Unauthorized: Only teachers can update tests" });
       }
 
@@ -248,7 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Question routes
   app.post("/api/questions", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.userRole !== "teacher") {
+      if (!req.session?.userId || req.session.role !== "teacher") {
         return res.status(401).json({ message: "Unauthorized: Only teachers can create questions" });
       }
 
@@ -295,9 +296,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user has access to this test
-      if (req.session.userRole === "teacher" && test.teacherId !== req.session.userId) {
+      if (req.session.role === "teacher" && test.teacherId !== req.session.userId) {
         return res.status(403).json({ message: "Forbidden: Not your test" });
-      } else if (req.session.userRole === "student") {
+      } else if (req.session.role === "student") {
         // Get user to check their class
         const user = await storage.getUser(req.session.userId);
 
@@ -317,7 +318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test Attempt routes
   app.post("/api/test-attempts", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.userRole !== "student") {
+      if (!req.session?.userId || req.session.role !== "student") {
         return res.status(401).json({ message: "Unauthorized: Only students can attempt tests" });
       }
 
@@ -387,9 +388,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // Check if user owns this attempt or is the teacher for this test
-      if (req.session.userRole === "student" && attempt.studentId !== req.session.userId) {
+      if (req.session.role === "student" && attempt.studentId !== req.session.userId) {
         return res.status(403).json({ message: "Forbidden: Not your attempt" });
-      } else if (req.session.userRole === "teacher") {
+      } else if (req.session.role === "teacher") {
         const test = await storage.getTest(attempt.testId);
 
         if (!test || test.teacherId !== req.session.userId) {
@@ -415,7 +416,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Answer routes
   app.post("/api/answers", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.userRole !== "student") {
+      if (!req.session?.userId || req.session.role !== "student") {
         return res.status(401).json({ message: "Unauthorized: Only students can submit answers" });
       }
 
@@ -486,7 +487,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI evaluation routes
   app.post("/api/evaluate", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.userRole !== "teacher") {
+      if (!req.session?.userId || req.session.role !== "teacher") {
         return res.status(401).json({ message: "Unauthorized: Only teachers can evaluate answers" });
       }
 
@@ -636,7 +637,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 
       // Only owner or teacher can add members
-      if (workspace.ownerId !== req.session.userId && req.session.userRole !== "teacher") {
+      if (workspace.ownerId !== req.session.userId && req.session.role !== "teacher") {
         return res.status(403).json({ message: "Only the workspace owner or teachers can add members" });
       }
 
@@ -662,7 +663,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const workspace = await storage.getWorkspace(workspaceId);
       if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 
-      if (workspace.ownerId !== req.session.userId && req.session.userRole !== "teacher") {
+      if (workspace.ownerId !== req.session.userId && req.session.role !== "teacher") {
         return res.status(403).json({ message: "Only the workspace owner or teachers can remove members" });
       }
 
@@ -679,7 +680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/workspaces/:id/channels", async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
-      if (req.session.userRole !== "teacher") {
+      if (req.session.role !== "teacher") {
         return res.status(403).json({ message: "Only teachers can create channels" });
       }
 
@@ -878,7 +879,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!msg) return res.status(404).json({ message: "Message not found" });
 
       const isAuthor = msg.authorId === req.session.userId;
-      const isTeacher = req.session.userRole === "teacher";
+      const isTeacher = req.session.role === "teacher";
 
       if (!isAuthor && !isTeacher) {
         return res.status(403).json({ message: "You can only delete your own messages" });
@@ -896,7 +897,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/channels/:id/pin/:messageId", async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
-      if (req.session.userRole !== "teacher") {
+      if (req.session.role !== "teacher") {
         return res.status(403).json({ message: "Only teachers can pin messages" });
       }
 
@@ -916,7 +917,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/channels/:id/pin/:messageId", async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
-      if (req.session.userRole !== "teacher") {
+      if (req.session.role !== "teacher") {
         return res.status(403).json({ message: "Only teachers can unpin messages" });
       }
 
@@ -1000,7 +1001,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/messages/:id/grade — Grade homework (teachers only)
   app.post("/api/messages/:id/grade", async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.userRole !== "teacher") {
+      if (!req.session?.userId || req.session.role !== "teacher") {
         return res.status(401).json({ message: "Only teachers can grade homework" });
       }
 
@@ -1093,6 +1094,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   );
 
+  // Message API routes
+  app.use("/api/message", messagePalRoutes);
+  
   const httpServer = createServer(app);
   return httpServer;
 }
