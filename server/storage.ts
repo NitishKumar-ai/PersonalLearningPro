@@ -5,19 +5,30 @@ import {
   type TestAttempt, type InsertTestAttempt,
   type Answer, type InsertAnswer,
   type Analytics, type InsertAnalytics,
+  type TestAssignment, type InsertTestAssignment,
   type Workspace, type InsertWorkspace,
   type Channel, type InsertChannel,
   type Message, type InsertMessage,
 } from "@shared/schema";
 import {
   MongoUser, MongoTest, MongoQuestion, MongoTestAttempt, MongoAnswer, MongoAnalytics,
+  MongoTestAssignment,
   MongoWorkspace, MongoChannel, MongoMessage,
   getNextSequenceValue
 } from "@shared/mongo-schema";
 import { getCassandraClient } from "./lib/cassandra";
+import {
+  cassandraCreateMessage,
+  cassandraGetMessagesByChannel,
+  cassandraDeleteMessage,
+  cassandraPinMessage,
+  cassandraGradeMessage,
+  cassandraMarkMessageAsRead,
+  cassandraGetPinnedMessages,
+} from "./lib/cassandra-message-store";
 import { Snowflake } from "./lib/snowflake";
 import session from "express-session";
-import MongoStore from "connect-mongo";
+import MemoryStore from "memorystore";
 
 export interface IStorage {
   // Session store
@@ -61,6 +72,14 @@ export interface IStorage {
   getAnalyticsByUser(userId: number): Promise<Analytics[]>;
   getAnalyticsByTest(testId: number): Promise<Analytics[]>;
 
+  // Test Assignment operations
+  createTestAssignment(assignment: InsertTestAssignment): Promise<TestAssignment>;
+  getTestAssignment(id: number): Promise<TestAssignment | undefined>;
+  getTestAssignments(filters: { studentId?: number; testId?: number; status?: string }): Promise<TestAssignment[]>;
+  updateTestAssignment(id: number, update: Partial<InsertTestAssignment>): Promise<TestAssignment | undefined>;
+  getTestAssignmentsByTest(testId: number): Promise<TestAssignment[]>;
+  getTestAssignmentByStudentAndTest(studentId: number, testId: number): Promise<TestAssignment | undefined>;
+
   // Workspace operations
   createWorkspace(workspace: InsertWorkspace): Promise<Workspace>;
   getWorkspace(id: number): Promise<Workspace | undefined>;
@@ -72,6 +91,8 @@ export interface IStorage {
   createChannel(channel: InsertChannel): Promise<Channel>;
   getChannel(id: number): Promise<Channel | undefined>;
   getChannelsByWorkspace(workspaceId: number): Promise<Channel[]>;
+  getOrCreateDMChannel(userId1: number, userId2: number): Promise<Channel>;
+  getDMsByUser(userId: number): Promise<Channel[]>;
 
   // Message operations
   createMessage(message: InsertMessage): Promise<Message>;
@@ -80,16 +101,19 @@ export interface IStorage {
   pinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
   unpinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
   getPinnedMessages(channelId: number): Promise<Message[]>;
+  gradeMessage(messageId: number, status: 'pending' | 'graded', channelId?: number): Promise<Message | undefined>;
+  markMessageAsRead(messageId: number, userId: number, channelId?: number): Promise<Message | undefined>;
 }
+
+
 
 export class MongoStorage implements IStorage {
   sessionStore: session.Store;
 
   constructor() {
-    this.sessionStore = MongoStore.create({
-      mongoUrl: process.env.MONGODB_URL,
-      collectionName: 'sessions',
-      ttl: 24 * 60 * 60 // 1 day
+    const MemStore = MemoryStore(session);
+    this.sessionStore = new MemStore({
+      checkPeriod: 24 * 60 * 60 * 1000, // prune expired entries every 24h
     });
   }
 
@@ -255,6 +279,43 @@ export class MongoStorage implements IStorage {
     return results.map((r: any) => this.mapMongoDoc<Analytics>(r));
   }
 
+  // Test Assignment operations
+  async createTestAssignment(assignment: InsertTestAssignment): Promise<TestAssignment> {
+    const id = await getNextSequenceValue("assignment_id");
+    const newAssignment = new MongoTestAssignment({ ...assignment, id });
+    await newAssignment.save();
+    return this.mapMongoDoc<TestAssignment>(newAssignment);
+  }
+
+  async getTestAssignment(id: number): Promise<TestAssignment | undefined> {
+    const assignment = await MongoTestAssignment.findOne({ id });
+    return assignment ? this.mapMongoDoc<TestAssignment>(assignment) : undefined;
+  }
+
+  async getTestAssignments(filters: { studentId?: number; testId?: number; status?: string }): Promise<TestAssignment[]> {
+    const filter: any = {};
+    if (filters.studentId !== undefined) filter.studentId = filters.studentId;
+    if (filters.testId !== undefined) filter.testId = filters.testId;
+    if (filters.status) filter.status = filters.status;
+    const assignments = await MongoTestAssignment.find(filter);
+    return assignments.map((a: any) => this.mapMongoDoc<TestAssignment>(a));
+  }
+
+  async updateTestAssignment(id: number, update: Partial<InsertTestAssignment>): Promise<TestAssignment | undefined> {
+    const assignment = await MongoTestAssignment.findOneAndUpdate({ id }, update, { new: true });
+    return assignment ? this.mapMongoDoc<TestAssignment>(assignment) : undefined;
+  }
+
+  async getTestAssignmentsByTest(testId: number): Promise<TestAssignment[]> {
+    const assignments = await MongoTestAssignment.find({ testId });
+    return assignments.map((a: any) => this.mapMongoDoc<TestAssignment>(a));
+  }
+
+  async getTestAssignmentByStudentAndTest(studentId: number, testId: number): Promise<TestAssignment | undefined> {
+    const assignment = await MongoTestAssignment.findOne({ studentId, testId });
+    return assignment ? this.mapMongoDoc<TestAssignment>(assignment) : undefined;
+  }
+
   // ─── Workspace operations ─────────────────────────────────────────────────
 
   async createWorkspace(workspace: InsertWorkspace): Promise<Workspace> {
@@ -312,9 +373,48 @@ export class MongoStorage implements IStorage {
     return channels.map((c: any) => this.mapMongoDoc<Channel>(c));
   }
 
+  async getOrCreateDMChannel(userId1: number, userId2: number): Promise<Channel> {
+    const minId = Math.min(userId1, userId2);
+    const maxId = Math.max(userId1, userId2);
+    const dmName = `dm_${minId}_${maxId}`;
+
+    let channel = await MongoChannel.findOne({ type: "dm", name: dmName });
+    if (channel) {
+      return this.mapMongoDoc<Channel>(channel);
+    }
+
+    const id = await getNextSequenceValue("channel_id");
+    const newChannel = new MongoChannel({
+      id,
+      name: dmName,
+      type: "dm",
+      workspaceId: null,
+      pinnedMessages: [],
+    });
+    await newChannel.save();
+    return this.mapMongoDoc<Channel>(newChannel);
+  }
+
+  async getDMsByUser(userId: number): Promise<Channel[]> {
+    // DM channels are named dm_ID1_ID2
+    const pattern = new RegExp(`^dm_.*${userId}(_|$)|^dm_${userId}_`);
+    const dms = await MongoChannel.find({
+      type: "dm",
+      $or: [
+        { name: new RegExp(`^dm_${userId}_`) },
+        { name: new RegExp(`^dm_.*_${userId}$`) }
+      ]
+    });
+    return dms.map((d: any) => this.mapMongoDoc<Channel>(d));
+  }
+
   // ─── Message operations ──────────────────────────────────────────────────
 
   async createMessage(message: InsertMessage): Promise<Message> {
+    if (getCassandraClient()) {
+      return cassandraCreateMessage(message);
+    }
+    // Fallback — MongoDB
     const id = await getNextSequenceValue("message_id");
     const newMessage = new MongoMessage({ ...message, isPinned: false, id });
     await newMessage.save();
@@ -322,6 +422,10 @@ export class MongoStorage implements IStorage {
   }
 
   async getMessagesByChannel(channelId: number, limit = 50, before?: number): Promise<Message[]> {
+    if (getCassandraClient()) {
+      return cassandraGetMessagesByChannel(channelId, limit, before);
+    }
+    // Fallback — MongoDB
     const filter: any = { channelId };
     if (before !== undefined) {
       filter.id = { $lt: before };
@@ -329,17 +433,25 @@ export class MongoStorage implements IStorage {
     const messages = await MongoMessage.find(filter)
       .sort({ id: -1 })
       .limit(limit);
-    // Return in ascending order so clients render oldest→newest
     return messages.reverse().map((m: any) => this.mapMongoDoc<Message>(m));
   }
 
-  async deleteMessage(id: number): Promise<boolean> {
+  async deleteMessage(id: number, channelId?: number): Promise<boolean> {
+    if (getCassandraClient() && channelId !== undefined) {
+      return cassandraDeleteMessage(channelId, id);
+    }
+    // Fallback — MongoDB
     const result = await MongoMessage.deleteOne({ id });
     return result.deletedCount > 0;
   }
 
   async pinMessage(channelId: number, messageId: number): Promise<Channel | undefined> {
-    await MongoMessage.findOneAndUpdate({ id: messageId }, { isPinned: true });
+    if (getCassandraClient()) {
+      await cassandraPinMessage(channelId, messageId, true);
+    } else {
+      await MongoMessage.findOneAndUpdate({ id: messageId }, { isPinned: true });
+    }
+    // Always update the Channel's pinnedMessages list in MongoDB (source of truth for channel metadata)
     const ch = await MongoChannel.findOneAndUpdate(
       { id: channelId },
       { $addToSet: { pinnedMessages: messageId } },
@@ -349,7 +461,11 @@ export class MongoStorage implements IStorage {
   }
 
   async unpinMessage(channelId: number, messageId: number): Promise<Channel | undefined> {
-    await MongoMessage.findOneAndUpdate({ id: messageId }, { isPinned: false });
+    if (getCassandraClient()) {
+      await cassandraPinMessage(channelId, messageId, false);
+    } else {
+      await MongoMessage.findOneAndUpdate({ id: messageId }, { isPinned: false });
+    }
     const ch = await MongoChannel.findOneAndUpdate(
       { id: channelId },
       { $pull: { pinnedMessages: messageId } },
@@ -359,9 +475,44 @@ export class MongoStorage implements IStorage {
   }
 
   async getPinnedMessages(channelId: number): Promise<Message[]> {
+    if (getCassandraClient()) {
+      return cassandraGetPinnedMessages(channelId);
+    }
+    // Fallback — MongoDB
     const messages = await MongoMessage.find({ channelId, isPinned: true }).sort({ id: 1 });
     return messages.map((m: any) => this.mapMongoDoc<Message>(m));
   }
+
+  async gradeMessage(messageId: number, status: 'pending' | 'graded', channelId?: number): Promise<Message | undefined> {
+    if (getCassandraClient() && channelId !== undefined) {
+      await cassandraGradeMessage(channelId, messageId, status);
+      // Return a minimal updated object — routes only check for truthiness
+      return { id: messageId, channelId, authorId: 0, content: "", type: "text", fileUrl: null, isPinned: false, isHomework: false, gradingStatus: status, readBy: [], createdAt: new Date() };
+    }
+    // Fallback — MongoDB
+    const msg = await MongoMessage.findOneAndUpdate(
+      { id: messageId },
+      { gradingStatus: status },
+      { new: true }
+    );
+    return msg ? this.mapMongoDoc<Message>(msg) : undefined;
+  }
+
+  async markMessageAsRead(messageId: number, userId: number, channelId?: number): Promise<Message | undefined> {
+    if (getCassandraClient() && channelId !== undefined) {
+      await cassandraMarkMessageAsRead(channelId, messageId, userId);
+      return { id: messageId, channelId, authorId: 0, content: "", type: "text", fileUrl: null, isPinned: false, isHomework: false, gradingStatus: null, readBy: [userId], createdAt: new Date() };
+    }
+    // Fallback — MongoDB
+    const msg = await MongoMessage.findOneAndUpdate(
+      { id: messageId },
+      { $addToSet: { readBy: userId } },
+      { new: true }
+    );
+    return msg ? this.mapMongoDoc<Message>(msg) : undefined;
+  }
 }
+
+
 
 export const storage = new MongoStorage();

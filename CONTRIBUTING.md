@@ -140,4 +140,8 @@ If you have an idea for an enhancement, please create an issue on GitHub. Includ
 - A clear and descriptive title
 - A description of the enhancement and the problem it solves
 
+## Additional Resources
+
+- [A guide to contributing to open source](https://opensource.guide/)
+
 Thank you for your interest in contributing to this project!

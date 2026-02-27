@@ -67,23 +67,6 @@ export const insertAnalyticsSchema = z.object({
   insightDate: z.string().or(z.date()).optional(),
 });
 
-export const insertChannelSchema = z.object({
-  name: z.string().min(1),
-  type: z.enum(["text", "announcement", "dm"]).default("text"),
-  class: z.string().optional().nullable(),
-  subject: z.string().optional().nullable(),
-  members: z.array(z.string()).optional().nullable(),
-});
-
-export const insertMessageSchema = z.object({
-  channelId: z.number(),
-  senderId: z.string(),
-  senderName: z.string().optional().nullable(),
-  senderRole: z.string().optional().nullable(),
-  avatar: z.string().optional().nullable(),
-  content: z.string().min(1),
-  timestamp: z.string().or(z.date()).optional(),
-});
 
 // Types inferred from Zod schemas
 export type User = z.infer<typeof insertUserSchema> & { id: number };
@@ -104,6 +87,21 @@ export type InsertAnswer = z.infer<typeof insertAnswerSchema>;
 export type Analytics = z.infer<typeof insertAnalyticsSchema> & { id: number };
 export type InsertAnalytics = z.infer<typeof insertAnalyticsSchema>;
 
+// ─── Test Assignment Schemas ────────────────────────────────────────────────
+
+export const insertTestAssignmentSchema = z.object({
+  testId: z.number(),
+  studentId: z.number(),
+  assignedBy: z.number(),
+  assignedDate: z.string().or(z.date()).optional(),
+  dueDate: z.string().or(z.date()),
+  status: z.enum(["pending", "started", "completed", "overdue"]).default("pending"),
+  notificationSent: z.boolean().default(false),
+});
+
+export type TestAssignment = z.infer<typeof insertTestAssignmentSchema> & { id: number };
+export type InsertTestAssignment = z.infer<typeof insertTestAssignmentSchema>;
+
 // ─── Chat Feature Schemas ───────────────────────────────────────────────────
 
 export const insertWorkspaceSchema = z.object({
@@ -114,9 +112,11 @@ export const insertWorkspaceSchema = z.object({
 });
 
 export const insertChannelSchema = z.object({
-  workspaceId: z.number(),
+  workspaceId: z.number().optional().nullable(),
   name: z.string().min(1),
-  type: z.enum(["text", "announcement"]).default("text"),
+  type: z.enum(["text", "announcement", "dm"]).default("text"),
+  class: z.string().optional().nullable(),
+  subject: z.string().optional().nullable(),
 });
 
 export const insertMessageSchema = z.object({
@@ -125,6 +125,9 @@ export const insertMessageSchema = z.object({
   content: z.string().min(1),
   type: z.enum(["text", "file", "image"]).default("text"),
   fileUrl: z.string().optional().nullable(),
+  isHomework: z.boolean().default(false),
+  gradingStatus: z.enum(["pending", "graded"]).optional().nullable(),
+  readBy: z.array(z.number()).default([]),
 });
 
 export type Workspace = z.infer<typeof insertWorkspaceSchema> & { id: number; createdAt: Date };
@@ -135,3 +138,4 @@ export type InsertChannel = z.infer<typeof insertChannelSchema>;
 
 export type Message = z.infer<typeof insertMessageSchema> & { id: number; isPinned: boolean; createdAt: Date };
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+

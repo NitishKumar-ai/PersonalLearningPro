@@ -41,6 +41,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@replit/vite-plugin-shadcn-theme-json": "^0.0.4",
     "@tanstack/react-query": "^5.60.5",
+    "@types/multer": "^2.0.0",
     "cassandra-driver": "^4.8.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
@@ -60,6 +61,7 @@
     "memorystore": "^1.6.7",
     "mongodb": "^7.1.0",
     "mongoose": "^9.2.1",
+    "multer": "^2.0.2",
     "openai": "^4.91.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
@@ -70,6 +72,7 @@
     "react-icons": "^5.4.0",
     "react-markdown": "^10.1.0",
     "react-resizable-panels": "^2.1.4",
+    "react-virtuoso": "^4.18.1",
     "recharts": "^2.15.1",
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
@@ -87,6 +90,9 @@
     "@replit/vite-plugin-cartographer": "^0.0.11",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.1",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/express": "4.17.21",
     "@types/express-session": "^1.18.0",
@@ -99,11 +105,13 @@
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.20",
     "esbuild": "^0.25.0",
+    "jsdom": "^28.1.0",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
     "tsx": "^4.19.1",
     "typescript": "5.6.3",
-    "vite": "^5.4.21"
+    "vite": "^5.4.21",
+    "vitest": "^4.0.18"
   },
   "optionalDependencies": {
     "bufferutil": "^4.0.8"

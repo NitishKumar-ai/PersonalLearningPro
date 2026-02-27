@@ -1,16 +1,27 @@
 import "dotenv/config";
+
+// Prevent unhandled promise rejections from crashing the server
+process.on('unhandledRejection', (reason: any) => {
+  console.error('[unhandledRejection] non-fatal:', reason?.message ?? reason);
+});
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { storage } from "./storage";
 import { WebSocketServer, WebSocket } from "ws";
 import { connectMongoDB } from "./db";
 import { setupChatWebSocket } from "./chat-ws";
+import { setupMessagePalWebSocket, startMessagePalServer } from "./message";
+import { initCassandra } from "./lib/cassandra";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Serve uploaded files
+app.use("/uploads", express.static(path.resolve("public", "uploads")));
 
 // Initialize Databases
 connectMongoDB();
@@ -65,8 +76,12 @@ app.use((req, res, next) => {
 (async () => {
   const server = await registerRoutes(app);
 
-  // Attach WebSocket chat server
+  // Attach WebSocket servers
   setupChatWebSocket(server, storage.sessionStore);
+  setupMessagePalWebSocket(server, storage.sessionStore);
+    
+  // Start Message HTTP server
+  startMessagePalServer();
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
