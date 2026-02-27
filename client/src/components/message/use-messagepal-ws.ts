@@ -44,7 +44,7 @@ export function useMessagePalWebSocket() {
         if (wsRef.current?.readyState === WebSocket.OPEN) return;
 
         try {
-            const ws = new WebSocket(`ws://localhost:5001/message`);
+            const ws = new WebSocket(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/message`);
 
             ws.onopen = () => {
                 console.log('Message WebSocket connected');
@@ -252,7 +252,7 @@ export function useMessagePalWebSocket() {
     useEffect(() => {
         const loadConversations = async () => {
             try {
-                const response = await fetch('/api/messagepal/conversations');
+                const response = await fetch('/api/message/conversations');
                 if (response.ok) {
                     const data = await response.json();
                     setConversations(data);
