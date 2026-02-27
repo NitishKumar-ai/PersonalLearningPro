@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { CassandraMessageStore } from "../messagepal/cassandra-message-store";
+import { CassandraMessageStore } from "./cassandra-message-store";
 
 const router = Router();
 const messageStore = new CassandraMessageStore();
@@ -25,7 +25,7 @@ router.get("/conversations/:conversationId/history", async (req, res) => {
     try {
         const { conversationId } = req.params;
         const { userId, limit = 50 } = req.query;
-        
+
         if (!userId) {
             return res.status(400).json({ error: "User ID is required" });
         }
@@ -35,7 +35,7 @@ router.get("/conversations/:conversationId/history", async (req, res) => {
             parseInt(userId as string),
             parseInt(limit as string)
         );
-        
+
         res.json(messages);
     } catch (error) {
         console.error("Error fetching conversation history:", error);
@@ -48,7 +48,7 @@ router.get("/messages/:messageId", async (req, res) => {
     try {
         const { messageId } = req.params;
         const { conversationId } = req.query;
-        
+
         if (!conversationId) {
             return res.status(400).json({ error: "Conversation ID is required" });
         }
@@ -57,11 +57,11 @@ router.get("/messages/:messageId", async (req, res) => {
             conversationId as string,
             messageId
         );
-        
+
         if (!message) {
             return res.status(404).json({ error: "Message not found" });
         }
-        
+
         res.json(message);
     } catch (error) {
         console.error("Error fetching message:", error);
@@ -72,12 +72,12 @@ router.get("/messages/:messageId", async (req, res) => {
 // Send new message (HTTP fallback)
 router.post("/messages", async (req, res) => {
     try {
-        const { 
-            conversationId, 
-            senderId, 
-            senderName, 
-            senderRole, 
-            recipientId, 
+        const {
+            conversationId,
+            senderId,
+            senderName,
+            senderRole,
+            recipientId,
             content,
             messageType = "text",
             fileUrl
@@ -85,8 +85,8 @@ router.post("/messages", async (req, res) => {
 
         // Validate required fields
         if (!conversationId || !senderId || !senderName || !recipientId || !content) {
-            return res.status(400).json({ 
-                error: "Missing required fields: conversationId, senderId, senderName, recipientId, content" 
+            return res.status(400).json({
+                error: "Missing required fields: conversationId, senderId, senderName, recipientId, content"
             });
         }
 
@@ -113,7 +113,7 @@ router.patch("/messages/:messageId/read", async (req, res) => {
     try {
         const { messageId } = req.params;
         const { conversationId, userId } = req.body;
-        
+
         if (!conversationId || !userId) {
             return res.status(400).json({ error: "Conversation ID and User ID are required" });
         }
@@ -123,7 +123,7 @@ router.patch("/messages/:messageId/read", async (req, res) => {
             messageId,
             parseInt(userId)
         );
-        
+
         res.json({ success: true });
     } catch (error) {
         console.error("Error marking message as read:", error);
@@ -135,12 +135,12 @@ router.patch("/messages/:messageId/read", async (req, res) => {
 router.delete("/conversations/:conversationId/users/:userId", async (req, res) => {
     try {
         const { conversationId, userId } = req.params;
-        
+
         const success = await messageStore.deleteUserConversation(
             parseInt(userId),
             conversationId
         );
-        
+
         if (success) {
             res.json({ success: true });
         } else {
@@ -162,7 +162,7 @@ router.get("/users/:userId/unread-count", async (req, res) => {
 
         const conversations = await messageStore.getUserConversations(userId);
         const totalUnread = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
-        
+
         res.json({ unreadCount: totalUnread });
     } catch (error) {
         console.error("Error fetching unread count:", error);
@@ -174,7 +174,7 @@ router.get("/users/:userId/unread-count", async (req, res) => {
 router.post("/conversations/between-users", async (req, res) => {
     try {
         const { userId1, userId2 } = req.body;
-        
+
         if (!userId1 || !userId2) {
             return res.status(400).json({ error: "Both user IDs are required" });
         }

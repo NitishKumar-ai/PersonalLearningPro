@@ -128,7 +128,7 @@ cqlsh -f server/messagepal/cassandra-schema.cql
 2. **Environment Variables**
 ```env
 # Add to your .env file
-ASTRA_DB_SECURE_BUNDLE_PATH=./secure-connect-chat-db.zip
+ASTRA_DB_SECURE_BUNDLE_PATH=./config/secure-connect-chat-db.zip
 ASTRA_DB_APPLICATION_TOKEN=your_token_here
 ASTRA_DB_KEYSPACE=chat_db
 ```

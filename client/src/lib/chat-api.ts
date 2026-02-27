@@ -9,6 +9,27 @@ import { Conversation, Message } from '@/types/chat';
 
 const BASE = '/api';
 
+// ─── Shared types ─────────────────────────────────────────────────────────────
+
+export interface ApiWorkspace {
+    id: number;
+    name: string;
+    slug: string;
+}
+
+export interface ApiChannel {
+    id: number;
+    name: string;
+    type: 'channel' | 'dm' | 'announcement';
+    subject?: string;
+    class?: string;
+    partner?: {
+        id: number;
+        username: string;
+        role: string;
+    };
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     const res = await fetch(`${BASE}${path}`, {
         credentials: 'include',
@@ -58,4 +79,61 @@ export async function sendMessageHttp(
         method: 'POST',
         body: JSON.stringify({ channelId: Number(channelId), content, messageType }),
     });
+}
+
+// ─── Workspace / Channel / DM helpers ────────────────────────────────────────
+
+/** Fetch all workspaces the current user belongs to. */
+export async function fetchWorkspaces(): Promise<ApiWorkspace[]> {
+    return apiFetch<ApiWorkspace[]>('/workspaces');
+}
+
+/** Fetch all channels for a given workspace. */
+export async function fetchChannels(workspaceId: number): Promise<ApiChannel[]> {
+    return apiFetch<ApiChannel[]>(`/workspaces/${workspaceId}/channels`);
+}
+
+/** Fetch all DM conversations for the current user. */
+export async function fetchDMs(): Promise<ApiChannel[]> {
+    return apiFetch<ApiChannel[]>('/chat/dms');
+}
+
+/**
+ * Alias for getMessages — fetch paginated message history for a channel.
+ * @param channelId  Channel ID
+ * @param limit      Max messages to return (default 50)
+ * @param before     Message ID cursor — return messages older than this
+ */
+export async function fetchMessages(
+    channelId: number | string,
+    limit = 50,
+    before?: number
+): Promise<Message[]> {
+    return getMessages(channelId, limit, before);
+}
+
+// ─── File upload ──────────────────────────────────────────────────────────────
+
+export interface UploadResult {
+    url: string;
+    name: string;
+    mimeType: string;
+}
+
+/**
+ * Upload a file to the server and return its URL + original name.
+ */
+export async function uploadFile(file: File): Promise<UploadResult> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch(`${BASE}/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+    });
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: res.statusText }));
+        throw new Error(err.message || `Upload error ${res.status}`);
+    }
+    return res.json();
 }
