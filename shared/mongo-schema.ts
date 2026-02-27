@@ -73,6 +73,24 @@ const AnswerSchema = new mongoose.Schema({
   isCorrect: Boolean,
 });
 
+// ─── Test Assignment Schema ─────────────────────────────────────────────────
+
+const TestAssignmentSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  testId: { type: Number, required: true },
+  studentId: { type: Number, required: true },
+  assignedBy: { type: Number, required: true },
+  assignedDate: { type: Date, default: Date.now },
+  dueDate: { type: Date, required: true },
+  status: { type: String, enum: ["pending", "started", "completed", "overdue"], default: "pending" },
+  notificationSent: { type: Boolean, default: false },
+});
+
+// Indexes for efficient queries
+TestAssignmentSchema.index({ studentId: 1, status: 1 });
+TestAssignmentSchema.index({ testId: 1 });
+TestAssignmentSchema.index({ dueDate: 1, status: 1 });
+
 // Auto-increment counter for MongoDB IDs
 const CounterSchema = new mongoose.Schema({
   _id: { type: String, required: true },
@@ -132,6 +150,7 @@ export const MongoQuestion = mongoose.model("Question", QuestionSchema);
 export const MongoTestAttempt = mongoose.model("TestAttempt", TestAttemptSchema);
 export const MongoAnswer = mongoose.model("Answer", AnswerSchema);
 export const MongoAnalytics = mongoose.model("Analytics", AnalyticsSchema);
+export const MongoTestAssignment = mongoose.model("TestAssignment", TestAssignmentSchema);
 export const MongoWorkspace = mongoose.model("Workspace", WorkspaceSchema);
 export const MongoChannel = mongoose.model("Channel", ChannelSchema);
 export const MongoMessage = mongoose.model("Message", MessageSchema);
