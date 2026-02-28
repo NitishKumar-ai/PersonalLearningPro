@@ -7,6 +7,7 @@ import Dashboard from "@/pages/dashboard";
 import StudentDashboard from "@/pages/student-dashboard";
 import PrincipalDashboard from "@/pages/principal-dashboard";
 import AdminDashboard from "@/pages/admin-dashboard";
+import ParentDashboard from "@/pages/parent-dashboard";
 import CreateTest from "@/pages/create-test";
 import OcrScan from "@/pages/ocr-scan";
 import Analytics from "@/pages/analytics";
@@ -69,6 +70,7 @@ const WrappedDashboard = withLayout(Dashboard);
 const WrappedStudentDashboard = withLayout(StudentDashboard);
 const WrappedPrincipalDashboard = withLayout(PrincipalDashboard);
 const WrappedAdminDashboard = withLayout(AdminDashboard);
+const WrappedParentDashboard = withLayout(ParentDashboard);
 const WrappedCreateTest = withLayout(CreateTest);
 const WrappedOcrScan = withLayout(OcrScan);
 const WrappedAnalytics = withLayout(Analytics);
@@ -118,8 +120,18 @@ function Router() {
       case "admin": return WrappedAdminDashboard;
       case "teacher": return WrappedDashboard;
       case "student": return WrappedStudentDashboard;
-      case "parent": return WrappedDashboard;
-      default: return WrappedDashboard;
+      case "parent": return WrappedParentDashboard;
+      default:
+        // Profile not loaded yet or unknown role — show loading instead of
+        // falling through to the teacher dashboard
+        return () => (
+          <div className="h-screen w-full flex items-center justify-center bg-background">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <p className="text-sm text-muted-foreground">Loading your dashboard…</p>
+            </div>
+          </div>
+        );
     }
   };
 
@@ -133,6 +145,7 @@ function Router() {
       <Route path="/principal-dashboard" component={WrappedPrincipalDashboard} />
       <Route path="/admin-dashboard" component={WrappedAdminDashboard} />
       <Route path="/student-dashboard" component={WrappedStudentDashboard} />
+      <Route path="/parent-dashboard" component={WrappedParentDashboard} />
 
       {/* Common routes */}
       <Route path="/create-test" component={WrappedCreateTest} />
