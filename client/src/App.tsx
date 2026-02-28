@@ -19,9 +19,12 @@ import ComingSoon from "@/pages/coming-soon";
 import { FirebaseAuthProvider, useFirebaseAuth } from "./contexts/firebase-auth-context";
 import { ThemeProvider } from "./contexts/theme-context";
 import "./blackboard-login.css";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { FirebaseAuthDialog } from "@/components/auth/firebase-auth-dialog";
+import { getUserProfile, UserRole } from "@/lib/firebase";
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 
 
 /**
@@ -95,6 +98,112 @@ const WrappedComingSoon = withLayout(ComingSoon, { fullWidth: true });
  *
  * @returns A React element containing the routing switch that enforces the above loading, auth, and route behaviors.
  */
+/**
+ * Shown when the user is authenticated but we couldn't load their Firestore
+ * profile (Firestore offline / new device / first login race).
+ *
+ * Retries up to 3 times automatically, then offers a manual role selector so
+ * users can enter the correct dashboard without being locked out.
+ */
+function ProfileGate({ uid }: { uid: string }) {
+  const { currentUser } = useFirebaseAuth();
+  const [attempts, setAttempts] = useState(0);
+  const [role, setRole] = useState<UserRole | null>(currentUser.profile?.role ?? null);
+  const [retrying, setRetrying] = useState(false);
+
+  // Auto-retry up to 3 times, 3 s apart
+  useEffect(() => {
+    if (role || attempts >= 3) return;
+    const timer = setTimeout(async () => {
+      setRetrying(true);
+      try {
+        const profile = await getUserProfile(uid);
+        if (profile?.role) setRole(profile.role);
+      } catch { /* ignore */ } finally {
+        setRetrying(false);
+        setAttempts((a) => a + 1);
+      }
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [uid, attempts, role]);
+
+  // Profile loaded — redirect to the right dashboard
+  useEffect(() => {
+    if (role) window.location.replace("/");
+  }, [role]);
+
+  const roles: { value: UserRole; label: string; emoji: string }[] = [
+    { value: "teacher", label: "Teacher", emoji: "👩‍🏫" },
+    { value: "student", label: "Student", emoji: "🎒" },
+    { value: "principal", label: "Principal", emoji: "🏫" },
+    { value: "admin", label: "Admin", emoji: "⚙️" },
+    { value: "parent", label: "Parent", emoji: "👪" },
+  ];
+
+  if (attempts < 3 || retrying) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-4 text-center max-w-sm px-4">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="font-medium">Loading your profile…</p>
+          <p className="text-sm text-muted-foreground">
+            Attempt {Math.min(attempts + 1, 3)} of 3 — connecting to Firestore
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // All retries exhausted — show role picker fallback
+  return (
+    <div className="h-screen w-full flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-6 text-center max-w-sm px-4">
+        <div className="p-3 rounded-full bg-amber-500/10">
+          <AlertCircle className="h-7 w-7 text-amber-500" />
+        </div>
+        <div>
+          <h2 className="text-lg font-bold mb-1">Couldn't load your profile</h2>
+          <p className="text-sm text-muted-foreground">
+            Firestore is unreachable. Select your role to continue anyway:
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-2 w-full">
+          {roles.map((r) => (
+            <Button
+              key={r.value}
+              variant="outline"
+              className="w-full justify-start gap-3 h-11 text-base"
+              onClick={() => {
+                // Store the chosen role locally then navigate
+                sessionStorage.setItem("fallback_role", r.value);
+                window.location.replace(
+                  r.value === "teacher" ? "/dashboard" :
+                    r.value === "student" ? "/student-dashboard" :
+                      r.value === "principal" ? "/principal-dashboard" :
+                        r.value === "admin" ? "/admin-dashboard" :
+                          "/parent-dashboard"
+                );
+              }}
+            >
+              <span className="text-xl">{r.emoji}</span>
+              {r.label}
+            </Button>
+          ))}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="gap-2 text-muted-foreground"
+          onClick={() => { setAttempts(0); setRetrying(false); }}
+        >
+          <RefreshCw className="h-4 w-4" />
+          Retry connection
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function Router() {
   const { currentUser, isLoading } = useFirebaseAuth();
 
@@ -115,6 +224,11 @@ function Router() {
     return <FirebaseAuthDialog />;
   }
 
+  // If authenticated but profile not loaded, use ProfileGate to retry or offer fallback
+  if (!currentUser.profile?.role) {
+    return <ProfileGate uid={currentUser.user.uid} />;
+  }
+
   // Get appropriate dashboard component based on user role
   const getDashboardComponent = () => {
     const role = currentUser.profile?.role;
@@ -124,17 +238,7 @@ function Router() {
       case "teacher": return WrappedDashboard;
       case "student": return WrappedStudentDashboard;
       case "parent": return WrappedParentDashboard;
-      default:
-        // Profile not loaded yet or unknown role — show loading instead of
-        // falling through to the teacher dashboard
-        return () => (
-          <div className="h-screen w-full flex items-center justify-center bg-background">
-            <div className="flex flex-col items-center gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-              <p className="text-sm text-muted-foreground">Loading your dashboard…</p>
-            </div>
-          </div>
-        );
+      default: return WrappedDashboard;
     }
   };
 
