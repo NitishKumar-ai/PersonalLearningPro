@@ -517,3 +517,298 @@
         font-size: 0.85rem;
     }
 }
+
+/* ── Entrance animation ── */
+.bb-board {
+    animation: bb-fadeIn 0.5s ease-out;
+}
+
+@keyframes bb-fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ── Password visibility toggle ── */
+.bb-password-wrap {
+    position: relative;
+}
+
+.bb-password-toggle {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    color: rgba(232, 228, 217, 0.35);
+    transition: color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.bb-password-toggle:hover {
+    color: rgba(232, 228, 217, 0.7);
+}
+
+.bb-password-toggle svg {
+    width: 16px;
+    height: 16px;
+}
+
+.bb-input--password {
+    padding-right: 2.75rem;
+}
+
+/* ── Password strength indicator ── */
+.bb-strength {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.4rem;
+    padding-left: 0.25rem;
+}
+
+.bb-strength-bar {
+    flex: 1;
+    height: 3px;
+    background: rgba(232, 228, 217, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    max-width: 180px;
+}
+
+.bb-strength-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease, background 0.3s ease;
+}
+
+.bb-strength-fill--weak {
+    width: 25%;
+    background: #f5a0a0;
+}
+
+.bb-strength-fill--fair {
+    width: 50%;
+    background: #f5c542;
+}
+
+.bb-strength-fill--strong {
+    width: 75%;
+    background: #6ec6e6;
+}
+
+.bb-strength-fill--very-strong {
+    width: 100%;
+    background: #7cd87c;
+}
+
+.bb-strength-text {
+    font-size: 0.7rem;
+    color: rgba(232, 228, 217, 0.45);
+    white-space: nowrap;
+}
+
+/* ── Form-level error banner ── */
+.bb-error-banner {
+    background: rgba(245, 160, 160, 0.12);
+    border: 1px solid rgba(245, 160, 160, 0.25);
+    border-radius: 8px;
+    padding: 0.6rem 0.85rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    animation: bb-shake 0.35s ease-in-out;
+}
+
+.bb-error-banner svg {
+    width: 16px;
+    height: 16px;
+    color: #f5a0a0;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.bb-error-banner-text {
+    font-size: 0.8rem;
+    color: #f5a0a0;
+    line-height: 1.4;
+}
+
+@keyframes bb-shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-4px); }
+    40% { transform: translateX(4px); }
+    60% { transform: translateX(-3px); }
+    80% { transform: translateX(2px); }
+}
+
+/* ── Success banner ── */
+.bb-success-banner {
+    background: rgba(124, 216, 124, 0.12);
+    border: 1px solid rgba(124, 216, 124, 0.25);
+    border-radius: 8px;
+    padding: 0.6rem 0.85rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.bb-success-banner svg {
+    width: 16px;
+    height: 16px;
+    color: #7cd87c;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+.bb-success-banner-text {
+    font-size: 0.8rem;
+    color: #7cd87c;
+    line-height: 1.4;
+}
+
+/* ── Forgot password modal ── */
+.bb-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: bb-overlayIn 0.2s ease-out;
+    padding: 1rem;
+}
+
+@keyframes bb-overlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.bb-modal {
+    background: #1e3124;
+    border: 2px solid rgba(232, 228, 217, 0.15);
+    border-radius: 12px;
+    padding: 2rem;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+    animation: bb-modalIn 0.25s ease-out;
+}
+
+@keyframes bb-modalIn {
+    from {
+        opacity: 0;
+        transform: scale(0.92) translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.bb-modal-title {
+    font-family: 'Kalam', cursive;
+    font-size: 1.4rem;
+    color: #e8e4d9;
+    margin-bottom: 0.35rem;
+    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.3);
+}
+
+.bb-modal-desc {
+    font-size: 0.82rem;
+    color: rgba(232, 228, 217, 0.55);
+    margin-bottom: 1.25rem;
+    line-height: 1.45;
+}
+
+.bb-modal-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.bb-btn-secondary {
+    flex: 1;
+    padding: 0.65rem;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(232, 228, 217, 0.12);
+    border-radius: 999px;
+    color: #e8e4d9;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.bb-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(232, 228, 217, 0.22);
+}
+
+.bb-btn-primary-sm {
+    flex: 1;
+    padding: 0.65rem;
+    background: #3d5c40;
+    border: none;
+    border-radius: 999px;
+    color: #e8e4d9;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.bb-btn-primary-sm:hover {
+    background: #4d7a50;
+}
+
+.bb-btn-primary-sm:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ── Google button loading state ── */
+.bb-btn-google:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.bb-btn-google:disabled:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(232, 228, 217, 0.12);
+}
+
+/* ── Match error for confirm password ── */
+.bb-match-error {
+    font-size: 0.75rem;
+    color: #f5a0a0;
+    margin-top: 0.3rem;
+    padding-left: 1rem;
+}
+
+.bb-match-success {
+    font-size: 0.75rem;
+    color: #7cd87c;
+    margin-top: 0.3rem;
+    padding-left: 1rem;
+}
