@@ -15,6 +15,7 @@ import AiTutor from "@/pages/ai-tutor";
 import StudentDirectory from "@/pages/student-directory";
 import MessagesPage from "@/pages/messages";
 import MessagePage from "@/pages/messagepal-demo";
+import ComingSoon from "@/pages/coming-soon";
 import { FirebaseAuthProvider, useFirebaseAuth } from "./contexts/firebase-auth-context";
 import { ThemeProvider } from "./contexts/theme-context";
 import "./blackboard-login.css";
@@ -78,6 +79,8 @@ const WrappedAiTutor = withLayout(AiTutor);
 const WrappedStudentDirectory = withLayout(StudentDirectory);
 const WrappedMessages = withLayout(MessagesPage, { fullWidth: true });
 const WrappedMessage = withLayout(MessagePage, { fullWidth: true });
+// ComingSoon gets fullWidth so it fills the page without extra padding constraints
+const WrappedComingSoon = withLayout(ComingSoon, { fullWidth: true });
 
 /**
  * Render application routes and handle authentication and loading states.
@@ -137,7 +140,7 @@ function Router() {
 
   return (
     <Switch>
-      {/* Dashboard route - redirects to appropriate dashboard based on role */}
+      {/* Root — role-aware dashboard */}
       <Route path="/" component={getDashboardComponent()} />
 
       {/* Role-specific dashboards */}
@@ -147,7 +150,7 @@ function Router() {
       <Route path="/student-dashboard" component={WrappedStudentDashboard} />
       <Route path="/parent-dashboard" component={WrappedParentDashboard} />
 
-      {/* Common routes */}
+      {/* Implemented feature routes */}
       <Route path="/create-test" component={WrappedCreateTest} />
       <Route path="/ocr-scan" component={WrappedOcrScan} />
       <Route path="/analytics" component={WrappedAnalytics} />
@@ -155,6 +158,31 @@ function Router() {
       <Route path="/student-directory" component={WrappedStudentDirectory} />
       <Route path="/messages" component={WrappedMessages} />
       <Route path="/messagepal" component={WrappedMessage} />
+
+      {/* Coming Soon — unimplemented sidebar links */}
+      <Route path="/institution" component={WrappedComingSoon} />
+      <Route path="/staff" component={WrappedComingSoon} />
+      <Route path="/students" component={WrappedComingSoon} />
+      <Route path="/calendar" component={WrappedComingSoon} />
+      <Route path="/infrastructure" component={WrappedComingSoon} />
+      <Route path="/live-classes" component={WrappedComingSoon} />
+      <Route path="/tests" component={WrappedComingSoon} />
+      <Route path="/progress" component={WrappedComingSoon} />
+      <Route path="/resources" component={WrappedComingSoon} />
+      <Route path="/study-groups" component={WrappedComingSoon} />
+      <Route path="/achievements" component={WrappedComingSoon} />
+      <Route path="/settings" component={WrappedComingSoon} />
+      <Route path="/system-settings" component={WrappedComingSoon} />
+      <Route path="/users" component={WrappedComingSoon} />
+      <Route path="/classes" component={WrappedComingSoon} />
+      <Route path="/focus" component={WrappedComingSoon} />
+      <Route path="/partners" component={WrappedComingSoon} />
+      <Route path="/children" component={WrappedComingSoon} />
+      <Route path="/meetings" component={WrappedComingSoon} />
+      <Route path="/notifications" component={WrappedComingSoon} />
+      <Route path="/reports" component={WrappedComingSoon} />
+      <Route path="/ai-study-plans" component={WrappedComingSoon} />
+      <Route path="/test-results" component={WrappedComingSoon} />
 
       {/* Fallback to 404 */}
       <Route component={NotFound} />
