@@ -35,6 +35,12 @@ interface AuthContextType {
 
 const FirebaseAuthContext = createContext<AuthContextType | undefined>(undefined);
 
+/** Fetches a user profile but never hangs longer than 5 s (Firestore may be slow/offline). */
+async function getProfileWithTimeout(uid: string): Promise<UserProfile | null> {
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+  return Promise.race([getUserProfile(uid), timeout]);
+}
+
 export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser>({ user: null, profile: null });
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -74,7 +80,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       setIsLoading(true);
       const user = await loginWithEmail(email, password);
-      const profile = await getUserProfile(user.uid);
+      const profile = await getProfileWithTimeout(user.uid);
       setCurrentUser({ user, profile });
 
       toast({
@@ -104,7 +110,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     try {
       setIsLoading(true);
       const user = await registerWithEmail(email, password, name, role, additionalData);
-      const profile = await getUserProfile(user.uid);
+      const profile = await getProfileWithTimeout(user.uid);
       setCurrentUser({ user, profile });
 
       toast({
