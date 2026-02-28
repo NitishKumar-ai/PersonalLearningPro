@@ -62,18 +62,41 @@ export interface UserProfile {
   lastLogin?: any;
 }
 
+// ── Friendly Firebase error mapping ──
+const firebaseErrorMap: Record<string, string> = {
+  "auth/user-not-found": "No account found with this email address.",
+  "auth/wrong-password": "Incorrect password. Please try again.",
+  "auth/invalid-credential": "Invalid email or password. Please try again.",
+  "auth/email-already-in-use": "An account with this email already exists.",
+  "auth/weak-password": "Password is too weak. Use at least 6 characters.",
+  "auth/invalid-email": "Please enter a valid email address.",
+  "auth/user-disabled": "This account has been disabled. Contact support.",
+  "auth/too-many-requests": "Too many attempts. Please wait a moment and try again.",
+  "auth/network-request-failed": "Network error. Check your connection and try again.",
+  "auth/popup-closed-by-user": "Sign-in popup was closed. Please try again.",
+  "auth/operation-not-allowed": "This sign-in method is not enabled.",
+  "auth/requires-recent-login": "Please log in again to complete this action.",
+};
+
+export function mapFirebaseError(error: any): string {
+  const code = error?.code || "";
+  return firebaseErrorMap[code] || error?.message || "An unexpected error occurred. Please try again.";
+}
+
 // Authentication functions
 export const loginWithEmail = async (email: string, password: string) => {
   if (!firebaseEnabled || !auth || !db) throw new Error("Firebase is not configured");
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    await updateDoc(doc(db, "users", userCredential.user.uid), {
+    // Update last login — don't fail the login if Firestore is unreachable
+    updateDoc(doc(db, "users", userCredential.user.uid), {
       lastLogin: serverTimestamp(),
-    });
+    }).catch(() => { });
     return userCredential.user;
-  } catch (error) {
+  } catch (error: any) {
+    const friendlyMsg = mapFirebaseError(error);
     console.error("Error logging in with email:", error);
-    throw error;
+    throw new Error(friendlyMsg);
   }
 };
 
@@ -108,9 +131,10 @@ export const registerWithEmail = async (
     await setDoc(doc(db, "users", user.uid), userData);
 
     return user;
-  } catch (error) {
+  } catch (error: any) {
+    const friendlyMsg = mapFirebaseError(error);
     console.error("Error registering with email:", error);
-    throw error;
+    throw new Error(friendlyMsg);
   }
 };
 
@@ -143,9 +167,10 @@ export const loginWithGoogle = async () => {
         isNewUser: false
       };
     }
-  } catch (error) {
+  } catch (error: any) {
+    const friendlyMsg = mapFirebaseError(error);
     console.error("Error logging in with Google:", error);
-    throw error;
+    throw new Error(friendlyMsg);
   }
 };
 
@@ -170,9 +195,10 @@ export const completeGoogleSignUp = async (
     await setDoc(doc(db, "users", user.uid), userData);
 
     return userData;
-  } catch (error) {
+  } catch (error: any) {
+    const friendlyMsg = mapFirebaseError(error);
     console.error("Error completing Google sign up:", error);
-    throw error;
+    throw new Error(friendlyMsg);
   }
 };
 
@@ -180,9 +206,9 @@ export const logoutUser = async () => {
   if (!firebaseEnabled || !auth) throw new Error("Firebase is not configured");
   try {
     await signOut(auth);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error signing out:", error);
-    throw error;
+    throw new Error(mapFirebaseError(error));
   }
 };
 
@@ -190,9 +216,9 @@ export const resetPassword = async (email: string) => {
   if (!firebaseEnabled || !auth) throw new Error("Firebase is not configured");
   try {
     await sendPasswordResetEmail(auth, email);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error sending password reset email:", error);
-    throw error;
+    throw new Error(mapFirebaseError(error));
   }
 };
 
