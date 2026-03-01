@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { cn, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useAuth } from "@/contexts/auth-context";
+import { useFirebaseAuth as useAuth } from "@/contexts/firebase-auth-context";
 import {
   LayoutDashboard,
   FileQuestion,
@@ -54,7 +54,7 @@ interface SidebarProps {
  */
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
-  const { state: { user }, logout } = useAuth();
+  const { currentUser: { profile: user }, logout } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -215,15 +215,15 @@ export function Sidebar({ className }: SidebarProps) {
         <div className={cn("mt-4 px-4 mb-6", isCollapsed && "flex justify-center px-2")}>
           {isCollapsed ? (
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/80 to-primary/60 text-primary-foreground flex items-center justify-center font-medium shadow-sm text-sm">
-              {user?.name ? getInitials(user.name) : "U"}
+              {user?.displayName ? getInitials(user.displayName) : "U"}
             </div>
           ) : (
             <div className="flex items-center p-2.5 rounded-lg bg-primary/5 dark:bg-primary/10 w-full">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/80 to-primary/60 text-primary-foreground flex items-center justify-center font-medium shadow-sm flex-shrink-0 text-sm">
-                {user?.name ? getInitials(user.name) : "U"}
+                {user?.displayName ? getInitials(user.displayName) : "U"}
               </div>
               <div className="ml-3 overflow-hidden">
-                <p className="font-medium text-sm truncate">{user?.name}</p>
+                <p className="font-medium text-sm truncate">{user?.displayName}</p>
                 <p className="text-xs text-muted-foreground">
                   {user?.role ?
                     user.role.charAt(0).toUpperCase() + user.role.slice(1) :

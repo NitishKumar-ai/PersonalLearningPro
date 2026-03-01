@@ -9,7 +9,7 @@ import {
   Sun
 } from "lucide-react";
 import { useTheme } from "@/contexts/theme-context";
-import { useAuth } from "@/contexts/auth-context";
+import { useFirebaseAuth as useAuth } from "@/contexts/firebase-auth-context";
 import { getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,7 +31,7 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   const { theme, setTheme } = useTheme();
-  const { state: { user }, logout } = useAuth();
+  const { currentUser: { profile: user }, logout } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const handleToggleSidebar = () => {
@@ -105,7 +105,7 @@ export function Header({ title }: HeaderProps) {
               <Avatar className="h-8 w-8">
                 {/* Currently no photo URL in schema, fallback to initials */}
                 <AvatarFallback>
-                  {user?.name ? getInitials(user.name) : "U"}
+                  {user?.displayName ? getInitials(user.displayName) : "U"}
                 </AvatarFallback>
               </Avatar>
             </Button>
