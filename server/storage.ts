@@ -1,5 +1,7 @@
 import {
   type User, type InsertUser,
+  type Session, type InsertSession,
+  type Otp, type InsertOtp,
   type Test, type InsertTest,
   type Question, type InsertQuestion,
   type TestAttempt, type InsertTestAttempt,
@@ -11,7 +13,8 @@ import {
   type Message, type InsertMessage,
 } from "@shared/schema";
 import {
-  MongoUser, MongoTest, MongoQuestion, MongoTestAttempt, MongoAnswer, MongoAnalytics,
+  MongoUser, MongoSession, MongoOtp,
+  MongoTest, MongoQuestion, MongoTestAttempt, MongoAnswer, MongoAnalytics,
   MongoTestAssignment,
   MongoWorkspace, MongoChannel, MongoMessage,
   getNextSequenceValue
@@ -40,6 +43,20 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getUsers(role?: string): Promise<User[]>;
   getUsersByClass(className: string): Promise<User[]>;
+  updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
+
+  // Session operations
+  createSession(session: InsertSession): Promise<Session>;
+  getSession(id: number): Promise<Session | undefined>;
+  getSessionByRefreshToken(tokenHash: string): Promise<Session | undefined>;
+  deleteSession(id: number): Promise<boolean>;
+  deleteAllUserSessions(userId: number): Promise<boolean>;
+
+  // OTP operations
+  createOtp(otp: InsertOtp): Promise<Otp>;
+  getOtp(id: number): Promise<Otp | undefined>;
+  getValidOtp(userId: number, type: string): Promise<Otp | undefined>;
+  markOtpUsed(id: number): Promise<boolean>;
 
   // Test operations
   createTest(test: InsertTest): Promise<Test>;
@@ -155,6 +172,67 @@ export class MongoStorage implements IStorage {
   async getUsersByClass(className: string): Promise<User[]> {
     const users = await MongoUser.find({ role: 'student', class: className });
     return users.map((u: any) => this.mapMongoDoc<User>(u));
+  }
+
+  async updateUser(id: number, userUpdate: Partial<InsertUser>): Promise<User | undefined> {
+    const user = await MongoUser.findOneAndUpdate({ id }, userUpdate, { new: true });
+    return user ? this.mapMongoDoc<User>(user) : undefined;
+  }
+
+  // Session operations
+  async createSession(sessionData: InsertSession): Promise<Session> {
+    const id = await getNextSequenceValue("session_id");
+    const newSession = new MongoSession({ ...sessionData, id });
+    await newSession.save();
+    return this.mapMongoDoc<Session>(newSession);
+  }
+
+  async getSession(id: number): Promise<Session | undefined> {
+    const sessionDoc = await MongoSession.findOne({ id });
+    return sessionDoc ? this.mapMongoDoc<Session>(sessionDoc) : undefined;
+  }
+
+  async getSessionByRefreshToken(refreshTokenHash: string): Promise<Session | undefined> {
+    const sessionDoc = await MongoSession.findOne({ refreshTokenHash });
+    return sessionDoc ? this.mapMongoDoc<Session>(sessionDoc) : undefined;
+  }
+
+  async deleteSession(id: number): Promise<boolean> {
+    const result = await MongoSession.deleteOne({ id });
+    return result.deletedCount > 0;
+  }
+
+  async deleteAllUserSessions(userId: number): Promise<boolean> {
+    const result = await MongoSession.deleteMany({ userId });
+    return result.deletedCount > 0;
+  }
+
+  // OTP operations
+  async createOtp(otpData: InsertOtp): Promise<Otp> {
+    const id = await getNextSequenceValue("otp_id");
+    const newOtp = new MongoOtp({ ...otpData, id });
+    await newOtp.save();
+    return this.mapMongoDoc<Otp>(newOtp);
+  }
+
+  async getOtp(id: number): Promise<Otp | undefined> {
+    const otpDoc = await MongoOtp.findOne({ id });
+    return otpDoc ? this.mapMongoDoc<Otp>(otpDoc) : undefined;
+  }
+
+  async getValidOtp(userId: number, type: string): Promise<Otp | undefined> {
+    const otpDoc = await MongoOtp.findOne({
+      userId,
+      type,
+      used: false,
+      expiresAt: { $gt: new Date() }
+    }).sort({ createdAt: -1 }); // Get latest
+    return otpDoc ? this.mapMongoDoc<Otp>(otpDoc) : undefined;
+  }
+
+  async markOtpUsed(id: number): Promise<boolean> {
+    const result = await MongoOtp.findOneAndUpdate({ id }, { used: true });
+    return !!result;
   }
 
   // Test operations
