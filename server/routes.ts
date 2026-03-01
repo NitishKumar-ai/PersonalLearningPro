@@ -11,6 +11,31 @@ import { MongoUser, MongoWorkspace, MongoChannel } from "@shared/mongo-schema";
 import { getNextSequenceValue } from "@shared/mongo-schema";
 import messageRoutes from "./message/routes";
 
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+
+const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key_learning_pro_123";
+const REFRESH_SECRET = process.env.REFRESH_SECRET || "super_secret_refresh_key_learning_pro_456";
+
+// Auth Middleware
+export const authenticateToken = (req: Request, res: Response, next: express.NextFunction) => {
+  const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
+
+  if (!token) return res.status(401).json({ message: "Authentication required" });
+
+  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
+    if (err) return res.status(403).json({ message: "Invalid or expired token" });
+
+    // Polyfill req.session to minimize refactoring of existing routes
+    req.session = req.session || ({} as any);
+    req.session!.userId = user.userId;
+    req.session!.role = user.role;
+
+    next();
+  });
+};
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Mount MessagePal REST API routes
   app.use("/api/messagepal", messageRoutes);
@@ -31,67 +56,227 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Email already exists" });
       }
 
+      // Hash password
+      const salt = await bcrypt.genSalt(12);
+      const hashedPassword = await bcrypt.hash(userData.password, salt);
+
+      // Override the password with the hash and set status to pending pending OTP
+      const userToCreate = {
+        ...userData,
+        password: hashedPassword,
+        status: "pending" as const
+      };
+
       // Create user
-      const user = await storage.createUser(userData);
+      const user = await storage.createUser(userToCreate);
 
       // Don't return the password
       const { password, ...userWithoutPassword } = user;
 
-      // Set session
-      if (req.session) {
-        req.session.userId = user.id;
-        req.session.role = user.role;
-      }
+      // Generate OTP
+      const otpValue = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
+      const otpHash = await bcrypt.hash(otpValue, 10);
 
-      res.status(201).json(userWithoutPassword);
+      const expiresAt = new Date();
+      expiresAt.setMinutes(expiresAt.getMinutes() + 5); // 5 min expiry
+
+      await storage.createOtp({
+        userId: user.id,
+        otpHash: otpHash,
+        type: "registration",
+        expiresAt,
+        used: false
+      });
+
+      // In a real app we would send this via SMS / Email here.
+      console.log(`[DEV MODE] OTP for user ${user.username} is: ${otpValue}`);
+
+      res.status(201).json({
+        message: "User registered. Please verify OTP.",
+        userId: user.id
+      });
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid input data", errors: error.errors });
       }
-      res.status(500).json({ message: "Failed to register user" });
+      console.error("Register error:", error);
+      return res.status(500).json({ message: "Failed to register user", error: String(error) });
+    }
+  });
+
+  app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
+    try {
+      const { userId, otp } = req.body;
+
+      if (!userId || !otp) {
+        return res.status(400).json({ message: "User ID and OTP are required" });
+      }
+
+      const otpRecord = await storage.getValidOtp(userId, "registration");
+
+      if (!otpRecord) {
+        return res.status(400).json({ message: "Invalid or expired OTP" });
+      }
+
+      const isMatch = await bcrypt.compare(otp.toString(), otpRecord.otpHash);
+
+      if (!isMatch) {
+        return res.status(400).json({ message: "Invalid OTP" });
+      }
+
+      // Mark used
+      await storage.markOtpUsed(otpRecord.id);
+
+      // Activate user
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      await storage.updateUser(userId, { status: "active" } as any);
+
+      res.status(200).json({ message: "OTP Verified successfully. You can now login." });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to verify OTP" });
     }
   });
 
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
-      const { username, password } = req.body;
+      const { username, password, email } = req.body;
 
-      if (!username || !password) {
-        return res.status(400).json({ message: "Username and password are required" });
+      if ((!username && !email) || !password) {
+        return res.status(400).json({ message: "Username/Email and password are required" });
       }
 
-      const user = await storage.getUserByUsername(username);
+      const user = username
+        ? await storage.getUserByUsername(username)
+        : await storage.getUserByEmail(email);
 
-      if (!user || user.password !== password) {
+      if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      // Set session
+      if (user.status === "suspended") {
+        return res.status(403).json({ message: "Account suspended. Please contact support." });
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+
+      // Generate Tokens
+      const accessToken = jwt.sign(
+        { userId: user.id, role: user.role, email: user.email },
+        JWT_SECRET,
+        { expiresIn: "15m" }
+      );
+
+      const refreshTokenString = crypto.randomBytes(40).toString('hex');
+      const refreshTokenHash = await bcrypt.hash(refreshTokenString, 10);
+
+      const refreshExpires = new Date();
+      refreshExpires.setDate(refreshExpires.getDate() + 7); // 7 days
+
+      await storage.createSession({
+        userId: user.id,
+        refreshTokenHash,
+        deviceInfo: req.headers['user-agent'] || null,
+        ipAddress: req.ip || null,
+        expiresAt: refreshExpires
+      });
+
+      // Update last login
+      await storage.updateUser(user.id, { lastLoginAt: new Date() } as any);
+
+      // Set Access Token HTTP-Only Cookie
+      res.cookie("access_token", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 15 * 60 * 1000 // 15 mins
+      });
+
+      // Set Refresh Token HTTP-Only Cookie
+      res.cookie("refresh_token", refreshTokenString, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        path: "/api/auth/refresh-token", // Optional restriction
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      });
+
+      // Don't return the password
+      const { password: _, ...userWithoutPassword } = user;
+
+      // Polyfill session for existing routes until they're all updated
       if (req.session) {
         req.session.userId = user.id;
         req.session.role = user.role;
       }
 
-      // Don't return the password
-      const { password: _, ...userWithoutPassword } = user;
-
-      res.status(200).json(userWithoutPassword);
+      res.status(200).json({
+        user: userWithoutPassword,
+        // Optional: Return tokens in body too for apps that can't use cookies (e.g., React Native)
+        accessToken,
+        refreshToken: refreshTokenString
+      });
     } catch (error) {
+      console.error("Login error:", error);
       res.status(500).json({ message: "Failed to login" });
     }
   });
 
-  app.post("/api/auth/logout", (req: Request, res: Response) => {
-    req.session?.destroy((err) => {
-      if (err) {
-        return res.status(500).json({ message: "Failed to logout" });
+  app.post("/api/auth/refresh-token", async (req: Request, res: Response) => {
+    try {
+      const refreshToken = req.cookies?.refresh_token || req.body.refreshToken;
+
+      if (!refreshToken) {
+        return res.status(401).json({ message: "Refresh token required" });
       }
-      res.status(200).json({ message: "Logged out successfully" });
+
+      // We don't have a direct lookup by raw string, we have to find all sessions 
+      // or implement a smart lookup. For now, since we parse cookies, we extract the token.
+      // We would realistically decode a JWT here if the refresh token was a JWT.
+      // Since it's an opaque string hashed in DB: this might be slow to find.
+      // Better approach: Refresh token is a JWT containing sessionId.
+
+      return res.status(501).json({ message: "Not fully implemented" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to refresh token" });
+    }
+  });
+
+  app.post("/api/auth/logout", (req: Request, res: Response) => {
+    res.clearCookie("access_token");
+    res.clearCookie("refresh_token", { path: "/api/auth/refresh-token" });
+
+    // We would delete the session from the DB here using the session ID provided in the token/cookie
+
+    req.session?.destroy((err) => {
+      // ... ignore errors
     });
+    res.status(200).json({ message: "Logged out successfully" });
+  });
+
+  app.post("/api/auth/logout-all", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const userId = req.session?.userId;
+      if (!userId) return res.status(401).json({ message: "Not authenticated" });
+
+      await storage.deleteAllUserSessions(userId);
+
+      res.clearCookie("access_token");
+      res.clearCookie("refresh_token", { path: "/api/auth/refresh-token" });
+
+      req.session?.destroy(() => { });
+      res.status(200).json({ message: "Logged out of all devices successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to logout of all devices" });
+    }
   });
 
   // User routes
-  app.get("/api/users/me", async (req: Request, res: Response) => {
+  app.get("/api/users/me", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) {
         return res.status(401).json({ message: "Not authenticated" });
@@ -113,7 +298,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test routes
-  app.post("/api/tests", async (req: Request, res: Response) => {
+  app.post("/api/tests", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId || req.session.role !== "teacher") {
         return res.status(401).json({ message: "Unauthorized: Only teachers can create tests" });
@@ -137,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/tests", async (req: Request, res: Response) => {
+  app.get("/api/tests", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) {
         return res.status(401).json({ message: "Not authenticated" });
@@ -178,7 +363,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/tests/:id", async (req: Request, res: Response) => {
+  app.get("/api/tests/:id", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) {
         return res.status(401).json({ message: "Not authenticated" });
@@ -214,7 +399,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/tests/:id", async (req: Request, res: Response) => {
+  app.patch("/api/tests/:id", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId || req.session.role !== "teacher") {
         return res.status(401).json({ message: "Unauthorized: Only teachers can update tests" });
@@ -253,7 +438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Question routes
-  app.post("/api/questions", async (req: Request, res: Response) => {
+  app.post("/api/questions", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId || req.session.role !== "teacher") {
         return res.status(401).json({ message: "Unauthorized: Only teachers can create questions" });
@@ -283,7 +468,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/tests/:testId/questions", async (req: Request, res: Response) => {
+  app.get("/api/tests/:testId/questions", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) {
         return res.status(401).json({ message: "Not authenticated" });
@@ -322,7 +507,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test Attempt routes
-  app.post("/api/test-attempts", async (req: Request, res: Response) => {
+  app.post("/api/test-attempts", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId || req.session.role !== "student") {
         return res.status(401).json({ message: "Unauthorized: Only students can attempt tests" });
@@ -375,7 +560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/test-attempts/:id", async (req: Request, res: Response) => {
+  app.patch("/api/test-attempts/:id", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) {
         return res.status(401).json({ message: "Not authenticated" });
@@ -420,7 +605,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Answer routes
-  app.post("/api/answers", async (req: Request, res: Response) => {
+  app.post("/api/answers", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId || req.session.role !== "student") {
         return res.status(401).json({ message: "Unauthorized: Only students can submit answers" });
@@ -469,7 +654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // OCR routes
-  app.post("/api/ocr", async (req: Request, res: Response) => {
+  app.post("/api/ocr", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) {
         return res.status(401).json({ message: "Not authenticated" });
@@ -491,7 +676,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI evaluation routes
-  app.post("/api/evaluate", async (req: Request, res: Response) => {
+  app.post("/api/evaluate", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId || req.session.role !== "teacher") {
         return res.status(401).json({ message: "Unauthorized: Only teachers can evaluate answers" });
@@ -565,11 +750,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Chat route
-  app.post("/api/ai-chat", async (req: Request, res: Response) => {
+  app.post("/api/ai-chat", authenticateToken, async (req: Request, res: Response) => {
     try {
-      // No longer relying on session auth, Firebase auth is handled client-side
-      // We'll add Firebase verification middleware later if needed
-
       const { messages } = req.body;
 
       if (!messages || !Array.isArray(messages)) {
@@ -588,7 +770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ─── Chat: Workspace routes ───────────────────────────────────────────────────
 
   // POST /api/workspaces — Create a new workspace
-  app.post("/api/workspaces", async (req: Request, res: Response) => {
+  app.post("/api/workspaces", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) {
         return res.status(401).json({ message: "Not authenticated" });
@@ -609,7 +791,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/workspaces — List workspaces the current user belongs to
-  app.get("/api/workspaces", async (req: Request, res: Response) => {
+  app.get("/api/workspaces", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       const workspaces = await storage.getWorkspaces(req.session.userId);
@@ -620,7 +802,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/workspaces/:id — Get a single workspace
-  app.get("/api/workspaces/:id", async (req: Request, res: Response) => {
+  app.get("/api/workspaces/:id", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       const workspace = await storage.getWorkspace(parseInt(req.params.id));
@@ -635,7 +817,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/workspaces/:id/members — Add a member (teacher or owner only)
-  app.post("/api/workspaces/:id/members", async (req: Request, res: Response) => {
+  app.post("/api/workspaces/:id/members", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       const workspaceId = parseInt(req.params.id);
@@ -660,7 +842,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DELETE /api/workspaces/:id/members/:userId — Remove a member (teacher or owner)
-  app.delete("/api/workspaces/:id/members/:userId", async (req: Request, res: Response) => {
+  app.delete("/api/workspaces/:id/members/:userId", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       const workspaceId = parseInt(req.params.id);
@@ -683,7 +865,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ─── Chat: Channel routes ───────────────────────────────────────────────────
 
   // POST /api/workspaces/:id/channels — Create a channel (teachers only)
-  app.post("/api/workspaces/:id/channels", async (req: Request, res: Response) => {
+  app.post("/api/workspaces/:id/channels", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       if (req.session.role !== "teacher") {
@@ -707,7 +889,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/workspaces/:id/channels — List channels in a workspace
-  app.get("/api/workspaces/:id/channels", async (req: Request, res: Response) => {
+  app.get("/api/workspaces/:id/channels", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       const workspaceId = parseInt(req.params.id);
@@ -726,7 +908,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ─── Chat: Message routes ───────────────────────────────────────────────────
 
   // GET /api/channels/:id/messages — Paginated message history
-  app.get("/api/channels/:id/messages", async (req: Request, res: Response) => {
+  app.get("/api/channels/:id/messages", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
@@ -751,7 +933,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/messages/:channelId — Alias for channel messages used by frontend
-  app.get("/api/messages/:channelId", async (req: Request, res: Response) => {
+  app.get("/api/messages/:channelId", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
@@ -783,7 +965,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/messages — Send message via HTTP
-  app.post("/api/messages", async (req: Request, res: Response) => {
+  app.post("/api/messages", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
@@ -810,7 +992,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/channels/dm — Create or get a DM channel
-  app.post("/api/channels/dm", async (req: Request, res: Response) => {
+  app.post("/api/channels/dm", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
@@ -834,7 +1016,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/users/me/dms — Get all DMs for the current user, enriched with partner info
-  app.get("/api/users/me/dms", async (req: Request, res: Response) => {
+  app.get("/api/users/me/dms", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
@@ -872,7 +1054,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DELETE /api/messages/:id — Delete a message (author or teacher)
-  app.delete("/api/messages/:id", async (req: Request, res: Response) => {
+  app.delete("/api/messages/:id", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
@@ -900,7 +1082,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/channels/:id/pin/:messageId — Pin a message (teachers only)
-  app.post("/api/channels/:id/pin/:messageId", async (req: Request, res: Response) => {
+  app.post("/api/channels/:id/pin/:messageId", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       if (req.session.role !== "teacher") {
@@ -920,7 +1102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // DELETE /api/channels/:id/pin/:messageId — Unpin a message (teachers only)
-  app.delete("/api/channels/:id/pin/:messageId", async (req: Request, res: Response) => {
+  app.delete("/api/channels/:id/pin/:messageId", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       if (req.session.role !== "teacher") {
@@ -940,7 +1122,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/channels/:id/pinned — Get pinned messages
-  app.get("/api/channels/:id/pinned", async (req: Request, res: Response) => {
+  app.get("/api/channels/:id/pinned", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
@@ -962,7 +1144,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/channels/query/:classOrUser — Filtered channels
-  app.get("/api/channels/query/:classOrUser", async (req: Request, res: Response) => {
+  app.get("/api/channels/query/:classOrUser", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       const { classOrUser } = req.params;
@@ -986,7 +1168,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/channels/:id/unread — Get unread count for a channel
-  app.get("/api/channels/:id/unread", async (req: Request, res: Response) => {
+  app.get("/api/channels/:id/unread", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       const channelId = parseInt(req.params.id);
@@ -1005,7 +1187,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/messages/:id/grade — Grade homework (teachers only)
-  app.post("/api/messages/:id/grade", async (req: Request, res: Response) => {
+  app.post("/api/messages/:id/grade", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId || req.session.role !== "teacher") {
         return res.status(401).json({ message: "Only teachers can grade homework" });
@@ -1031,7 +1213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/channels — Create a new channel
-  app.post("/api/channels", async (req: Request, res: Response) => {
+  app.post("/api/channels", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
@@ -1053,7 +1235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/messages/:id/read — Mark message as read
-  app.post("/api/messages/:id/read", async (req: Request, res: Response) => {
+  app.post("/api/messages/:id/read", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
       const messageId = parseInt(req.params.id);
@@ -1170,7 +1352,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // GET /api/chat/conversations — Returns all channels accessible to the user.
   // Seeds a default School workspace on first login if the user has none.
 
-  app.get("/api/chat/conversations", async (req: Request, res: Response) => {
+  app.get("/api/chat/conversations", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) {
         return res.status(401).json({ message: "Not authenticated" });
@@ -1257,7 +1439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // POST /api/chat/conversations/:id/read — mark all messages in a conversation as read
-  app.post("/api/chat/conversations/:id/read", async (req: Request, res: Response) => {
+  app.post("/api/chat/conversations/:id/read", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
 
