@@ -6,10 +6,12 @@ export const insertUserSchema = z.object({
   password: z.string().min(1),
   name: z.string().min(1),
   email: z.string().email(),
-  role: z.enum(["student", "teacher"]).default("student"),
+  role: z.enum(["student", "teacher", "parent", "principal", "admin"]).default("student"),
+  status: z.enum(["active", "pending", "suspended"]).default("active"),
   avatar: z.string().optional().nullable(),
   class: z.string().optional().nullable(),
   subject: z.string().optional().nullable(),
+  school_code: z.string().optional().nullable(),
 });
 
 export const insertTestSchema = z.object({
@@ -69,8 +71,31 @@ export const insertAnalyticsSchema = z.object({
 
 
 // Types inferred from Zod schemas
-export type User = z.infer<typeof insertUserSchema> & { id: number };
+export type User = z.infer<typeof insertUserSchema> & { id: number; createdAt?: Date; lastLoginAt?: Date };
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+// ─── Authentication Schemas ──────────────────────────────────────────────────
+export const insertSessionSchema = z.object({
+  userId: z.number(),
+  refreshTokenHash: z.string(),
+  deviceInfo: z.string().optional().nullable(),
+  ipAddress: z.string().optional().nullable(),
+  expiresAt: z.date(),
+});
+
+export type Session = z.infer<typeof insertSessionSchema> & { id: number; createdAt: Date };
+export type InsertSession = z.infer<typeof insertSessionSchema>;
+
+export const insertOtpSchema = z.object({
+  userId: z.number(),
+  otpHash: z.string(),
+  type: z.enum(["registration", "password_reset", "2fa"]),
+  expiresAt: z.date(),
+  used: z.boolean().default(false),
+});
+
+export type Otp = z.infer<typeof insertOtpSchema> & { id: number };
+export type InsertOtp = z.infer<typeof insertOtpSchema>;
 
 export type Test = z.infer<typeof insertTestSchema> & { id: number; createdAt: Date };
 export type InsertTest = z.infer<typeof insertTestSchema>;

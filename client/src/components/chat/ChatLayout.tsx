@@ -123,8 +123,11 @@ const ChatLayoutInner = () => {
   }
 
   // ── Shared WebSocket (connected for the duration of the layout) ───────────
-  const activeChannelId = activeConv ? Number(activeConv.id) : undefined;
-  useChatWs({ channelId: isNaN(activeChannelId!) ? undefined : activeChannelId });
+  const activeChannelIdArg = activeConv ? Number(activeConv.id) : undefined;
+  useChatWs({
+    activeChannelId: isNaN(activeChannelIdArg!) ? undefined : activeChannelIdArg,
+    onEvent: () => { } // Layout only cares about being connected, not receiving messages
+  });
 
   const handleSelect = useCallback((conv: Conversation) => {
     setActiveConv(conv);

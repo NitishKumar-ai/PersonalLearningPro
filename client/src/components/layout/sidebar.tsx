@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { cn, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useFirebaseAuth as useAuth } from "@/contexts/firebase-auth-context";
 import {
   LayoutDashboard,
   FileQuestion,
@@ -29,6 +29,13 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+interface NavItem {
+  title: string;
+  href: string;
+  icon: React.ReactNode;
+  isSoon?: boolean;
+}
+
 interface SidebarProps {
   className?: string;
 }
@@ -47,7 +54,7 @@ interface SidebarProps {
  */
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
-  const { currentUser, logout } = useFirebaseAuth();
+  const { currentUser: { profile: user }, logout } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -74,79 +81,77 @@ export function Sidebar({ className }: SidebarProps) {
   const toggleSidebar = () => setIsCollapsed((prev) => !prev);
 
   // Principal navigation items
-  const principalNavItems = [
+  const principalNavItems: NavItem[] = [
     { title: "Dashboard", href: "/principal-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { title: "Institution", href: "/institution", icon: <School className="h-5 w-5" /> },
-    { title: "Staff", href: "/staff", icon: <Users className="h-5 w-5" /> },
-    { title: "Students", href: "/students", icon: <GraduationCap className="h-5 w-5" /> },
+    { title: "Institution", href: "/institution", icon: <School className="h-5 w-5" />, isSoon: true },
+    { title: "Staff", href: "/staff", icon: <Users className="h-5 w-5" />, isSoon: true },
+    { title: "Students", href: "/students", icon: <GraduationCap className="h-5 w-5" />, isSoon: true },
     { title: "Student Directory", href: "/student-directory", icon: <Award className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "Calendar", href: "/calendar", icon: <CalendarDays className="h-5 w-5" /> },
-    { title: "Infrastructure", href: "/infrastructure", icon: <Building2 className="h-5 w-5" /> },
-
-    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
+    { title: "Calendar", href: "/calendar", icon: <CalendarDays className="h-5 w-5" />, isSoon: true },
+    { title: "Infrastructure", href: "/infrastructure", icon: <Building2 className="h-5 w-5" />, isSoon: true },
+    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
   ];
 
   // Admin navigation items
-  const adminNavItems = [
+  const adminNavItems: NavItem[] = [
     { title: "Dashboard", href: "/admin-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { title: "User Management", href: "/users", icon: <UserCog className="h-5 w-5" /> },
-    { title: "Institution", href: "/institution", icon: <Building2 className="h-5 w-5" /> },
-    { title: "Classes", href: "/classes", icon: <School className="h-5 w-5" /> },
+    { title: "User Management", href: "/users", icon: <UserCog className="h-5 w-5" />, isSoon: true },
+    { title: "Institution", href: "/institution", icon: <Building2 className="h-5 w-5" />, isSoon: true },
+    { title: "Classes", href: "/classes", icon: <School className="h-5 w-5" />, isSoon: true },
     { title: "Student Directory", href: "/student-directory", icon: <GraduationCap className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "Reports", href: "/reports", icon: <FileQuestion className="h-5 w-5" /> },
-    { title: "System Settings", href: "/system-settings", icon: <Settings className="h-5 w-5" /> },
+    { title: "Reports", href: "/reports", icon: <FileQuestion className="h-5 w-5" />, isSoon: true },
+    { title: "System Settings", href: "/system-settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
   ];
 
   // Teacher navigation items
-  const teacherNavItems = [
+  const teacherNavItems: NavItem[] = [
     { title: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
     { title: "Tests", href: "/create-test", icon: <FileQuestion className="h-5 w-5" /> },
     { title: "Scan Tests", href: "/ocr-scan", icon: <ScanBarcode className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
-    { title: "Students", href: "/students", icon: <Users className="h-5 w-5" /> },
+    { title: "Students", href: "/students", icon: <Users className="h-5 w-5" />, isSoon: true },
     { title: "Student Directory", href: "/student-directory", icon: <GraduationCap className="h-5 w-5" /> },
-    { title: "AI Study Plans", href: "/ai-study-plans", icon: <Sparkles className="h-5 w-5" /> },
-    { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
+    { title: "AI Study Plans", href: "/ai-study-plans", icon: <Sparkles className="h-5 w-5" />, isSoon: true },
+    { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" />, isSoon: true },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
+    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
   ];
 
   // Student navigation items
-  const studentNavItems = [
+  const studentNavItems: NavItem[] = [
     { title: "Dashboard", href: "/student-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { title: "Tests", href: "/tests", icon: <FileQuestion className="h-5 w-5" /> },
-    { title: "My Progress", href: "/progress", icon: <BarChart className="h-5 w-5" /> },
-    { title: "Resources", href: "/resources", icon: <BookOpen className="h-5 w-5" /> },
+    { title: "Tests", href: "/tests", icon: <FileQuestion className="h-5 w-5" />, isSoon: true },
+    { title: "My Progress", href: "/progress", icon: <BarChart className="h-5 w-5" />, isSoon: true },
+    { title: "Resources", href: "/resources", icon: <BookOpen className="h-5 w-5" />, isSoon: true },
     { title: "AI Tutor", href: "/ai-tutor", icon: <Brain className="h-5 w-5" /> },
-    { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
-    { title: "Study Groups", href: "/study-groups", icon: <Users className="h-5 w-5" /> },
-    { title: "Achievements", href: "/achievements", icon: <Trophy className="h-5 w-5" /> },
+    { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" />, isSoon: true },
+    { title: "Study Groups", href: "/study-groups", icon: <Users className="h-5 w-5" />, isSoon: true },
+    { title: "Achievements", href: "/achievements", icon: <Trophy className="h-5 w-5" />, isSoon: true },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
+    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
   ];
 
   // Parent navigation items
-  const parentNavItems = [
+  const parentNavItems: NavItem[] = [
     { title: "Dashboard", href: "/parent-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { title: "My Children", href: "/children", icon: <Users className="h-5 w-5" /> },
-    { title: "Academic Progress", href: "/progress", icon: <BarChart className="h-5 w-5" /> },
-    { title: "Tests & Results", href: "/test-results", icon: <FileQuestion className="h-5 w-5" /> },
-    { title: "Teacher Meetings", href: "/meetings", icon: <Video className="h-5 w-5" /> },
+    { title: "My Children", href: "/children", icon: <Users className="h-5 w-5" />, isSoon: true },
+    { title: "Academic Progress", href: "/progress", icon: <BarChart className="h-5 w-5" />, isSoon: true },
+    { title: "Tests & Results", href: "/test-results", icon: <FileQuestion className="h-5 w-5" />, isSoon: true },
+    { title: "Teacher Meetings", href: "/meetings", icon: <Video className="h-5 w-5" />, isSoon: true },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
+    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
   ];
 
-  // Select navigation items based on user role
   let items = teacherNavItems;
-  if (currentUser.profile?.role === "student") items = studentNavItems;
-  else if (currentUser.profile?.role === "teacher") items = teacherNavItems;
-  else if (currentUser.profile?.role === "principal") items = principalNavItems;
-  else if (currentUser.profile?.role === "admin") items = adminNavItems;
-  else if (currentUser.profile?.role === "parent") items = parentNavItems;
+  if (user?.role === "student") items = studentNavItems;
+  else if (user?.role === "teacher") items = teacherNavItems;
+  else if (user?.role === "principal") items = principalNavItems;
+  else if (user?.role === "admin") items = adminNavItems;
+  else if (user?.role === "parent") items = parentNavItems;
 
   const MobileMenuButton = () => (
     <Button
@@ -210,18 +215,18 @@ export function Sidebar({ className }: SidebarProps) {
         <div className={cn("mt-4 px-4 mb-6", isCollapsed && "flex justify-center px-2")}>
           {isCollapsed ? (
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/80 to-primary/60 text-primary-foreground flex items-center justify-center font-medium shadow-sm text-sm">
-              {currentUser.profile?.displayName ? getInitials(currentUser.profile.displayName) : "U"}
+              {user?.displayName ? getInitials(user.displayName) : "U"}
             </div>
           ) : (
             <div className="flex items-center p-2.5 rounded-lg bg-primary/5 dark:bg-primary/10 w-full">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/80 to-primary/60 text-primary-foreground flex items-center justify-center font-medium shadow-sm flex-shrink-0 text-sm">
-                {currentUser.profile?.displayName ? getInitials(currentUser.profile.displayName) : "U"}
+                {user?.displayName ? getInitials(user.displayName) : "U"}
               </div>
               <div className="ml-3 overflow-hidden">
-                <p className="font-medium text-sm truncate">{currentUser.profile?.displayName}</p>
+                <p className="font-medium text-sm truncate">{user?.displayName}</p>
                 <p className="text-xs text-muted-foreground">
-                  {currentUser.profile?.role ?
-                    currentUser.profile.role.charAt(0).toUpperCase() + currentUser.profile.role.slice(1) :
+                  {user?.role ?
+                    user.role.charAt(0).toUpperCase() + user.role.slice(1) :
                     "User"}
                 </p>
               </div>
@@ -265,14 +270,23 @@ export function Sidebar({ className }: SidebarProps) {
                     >
                       {item.icon}
                     </span>
-                    {!isCollapsed && <span className="truncate">{item.title}</span>}
+                    {!isCollapsed && (
+                      <>
+                        <span className="truncate flex-1">{item.title}</span>
+                        {item.isSoon && (
+                          <span className="ml-2 flex-shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                            Soon
+                          </span>
+                        )}
+                      </>
+                    )}
                   </Link>
                 </div>
               );
             })}
           </nav>
 
-          {currentUser.profile?.role === "student" && !isCollapsed && (
+          {user?.role === "student" && !isCollapsed && (
             <>
               <div className="mt-6 mb-2 px-3 text-xs uppercase font-semibold text-muted-foreground tracking-wider">
                 Learning Tools

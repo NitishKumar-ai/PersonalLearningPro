@@ -1,30 +1,86 @@
-# Dependencies (rebuilt in container)
-node_modules
+# ══════════════════════════════════════════════════════════════════
+#  .dockerignore — PersonalLearningPro
+#  Keep build context small and never leak secrets into images.
+# ══════════════════════════════════════════════════════════════════
 
-# Version control
+# ── Dependencies (always rebuilt inside the image) ────────────────
+node_modules
+.npm
+.pnpm-store
+
+# ── Version control ───────────────────────────────────────────────
 .git
 .github
+.gitignore
+.gitattributes
 
-# Environment secrets
+# ── Secrets & environment ─────────────────────────────────────────
 .env
+.env.*
+*.pem
+*.key
+*.cert
+serviceAccountKey.json
 
-# Build artifacts
+# ── Build artifacts ───────────────────────────────────────────────
 dist
+build
+out
 *.tar.gz
+*.tgz
 
-# Logs
+# ── Logs ─────────────────────────────────────────────────────────
+logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# OS files
+# ── Test & coverage ───────────────────────────────────────────────
+coverage
+.nyc_output
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# ── OS generated files ────────────────────────────────────────────
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
 Thumbs.db
+ehthumbs.db
 
-# Editor / IDE
+# ── Editor / IDE ──────────────────────────────────────────────────
 .vscode
 .idea
 *.swp
 *.swo
+*.sublime-project
+*.sublime-workspace
 
-# Database migrations (not needed for dev container)
+# ── Docs & assets (not needed at runtime) ─────────────────────────
+docs
+assets
+signatures
+*.md
+!README.md
+
+# ── Docker files themselves (no need to copy into image) ──────────
+Dockerfile
+Dockerfile.*
+docker-compose*.yml
+.dockerignore
+
+# ── CI / deployment ───────────────────────────────────────────────
+.github
+vercel.json
+.vercel
+
+# ── Misc ─────────────────────────────────────────────────────────
+scripts
 migrations
+config

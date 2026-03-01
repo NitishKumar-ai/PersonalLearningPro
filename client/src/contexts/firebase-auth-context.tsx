@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import {
   auth,
   firebaseEnabled,
@@ -14,8 +14,10 @@ import {
 } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
-// Extended user data type
+// ── Types ──────────────────────────────────────────────────────────────────────
+
 interface AuthUser {
   user: User | null;
   profile: UserProfile | null;
@@ -35,13 +37,28 @@ interface AuthContextType {
 
 const FirebaseAuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+/** Fetch profile but resolve null after 5 s so we never hang. */
+async function getProfileWithTimeout(uid: string): Promise<UserProfile | null> {
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000));
+  return Promise.race([getUserProfile(uid), timeout]);
+}
+
+// ── Provider ──────────────────────────────────────────────────────────────────
+
 export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<AuthUser>({ user: null, profile: null });
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
+  // Ref to prevent onAuthStateChanged from overwriting a profile that login() just set.
+  // When login()/register() sets a profile we raise this flag; onAuthStateChanged skips its
+  // own Firestore call for that one event and clears the flag.
+  const skipNextAuthStateProfile = useRef(false);
+
+  // ── Single source of truth: onAuthStateChanged ────────────────────────────
   useEffect(() => {
-    // If Firebase is not configured, skip auth and mark as loaded
     if (!firebaseEnabled || !auth) {
       setIsLoading(false);
       return;
@@ -49,16 +66,16 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        if (skipNextAuthStateProfile.current) {
+          // login()/register() already fetched and set the profile — skip double fetch.
+          skipNextAuthStateProfile.current = false;
+          setIsLoading(false);
+          return;
+        }
         try {
-          // Add timeout to prevent hanging when Firestore is offline
-          const profilePromise = getUserProfile(user.uid);
-          const timeoutPromise = new Promise<null>((resolve) =>
-            setTimeout(() => resolve(null), 5000)
-          );
-          const profile = await Promise.race([profilePromise, timeoutPromise]);
+          const profile = await getProfileWithTimeout(user.uid);
           setCurrentUser({ user, profile });
-        } catch (error) {
-          console.error("Error getting user profile:", error);
+        } catch {
           setCurrentUser({ user, profile: null });
         }
       } else {
@@ -70,11 +87,15 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     return () => unsubscribe();
   }, []);
 
+  // ── login ─────────────────────────────────────────────────────────────────
   const login = async (email: string, password: string) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const user = await loginWithEmail(email, password);
-      const profile = await getUserProfile(user.uid);
+      // Fetch profile ourselves so the dashboard renders immediately and
+      // onAuthStateChanged doesn't do a double Firestore read.
+      const profile = await getProfileWithTimeout(user.uid);
+      skipNextAuthStateProfile.current = true;
       setCurrentUser({ user, profile });
 
       toast({
@@ -82,18 +103,19 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         description: `Welcome back, ${profile?.displayName || user.displayName || email}!`,
       });
     } catch (error: any) {
-      console.error("Login error:", error);
+      setIsLoading(false);
       toast({
         title: "Login failed",
         description: error.message || "Please check your credentials and try again",
         variant: "destructive",
       });
       throw error;
-    } finally {
-      setIsLoading(false);
     }
+    // NOTE: do NOT call setIsLoading(false) here — onAuthStateChanged will do it
+    // (or the skip branch above already did).
   };
 
+  // ── register ──────────────────────────────────────────────────────────────
   const register = async (
     email: string,
     password: string,
@@ -101,10 +123,19 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     role: UserRole,
     additionalData?: any
   ) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const user = await registerWithEmail(email, password, name, role, additionalData);
-      const profile = await getUserProfile(user.uid);
+
+      // Sync profile to backend so MongoDB user is bridged immediately
+      try {
+        await apiRequest("POST", "/api/auth/sync-profile", { displayName: name, ...additionalData });
+      } catch (err: any) {
+        console.warn("Failed to sync new profile to backend", err.message);
+      }
+
+      const profile = await getProfileWithTimeout(user.uid);
+      skipNextAuthStateProfile.current = true;
       setCurrentUser({ user, profile });
 
       toast({
@@ -112,135 +143,118 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         description: `Welcome, ${name}!`,
       });
     } catch (error: any) {
-      console.error("Registration error:", error);
+      setIsLoading(false);
       toast({
         title: "Registration failed",
         description: error.message || "Please check your information and try again",
         variant: "destructive",
       });
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const googleLogin = async () => {
+  // ── Google login ──────────────────────────────────────────────────────────
+  const googleLogin = async (): Promise<AuthUser> => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const result = await loginWithGoogle();
 
       if (result.isNewUser) {
-        return {
-          user: result.user,
-          profile: null,
-          isNewUser: true
-        };
-      } else {
-        setCurrentUser({
-          user: result.user,
-          profile: result.profile
-        });
-
-        toast({
-          title: "Login successful",
-          description: `Welcome back, ${result.profile?.displayName}!`,
-        });
-
-        return {
-          user: result.user,
-          profile: result.profile,
-          isNewUser: false
-        };
+        // New user — don't update currentUser yet, wait for role selection
+        setIsLoading(false);
+        return { user: result.user, profile: null, isNewUser: true };
       }
+
+      skipNextAuthStateProfile.current = true;
+      setCurrentUser({ user: result.user, profile: result.profile });
+
+      toast({
+        title: "Login successful",
+        description: `Welcome back, ${result.profile?.displayName}!`,
+      });
+
+      return { user: result.user, profile: result.profile, isNewUser: false };
     } catch (error: any) {
-      console.error("Google login error:", error);
+      setIsLoading(false);
       toast({
         title: "Google login failed",
         description: error.message || "An error occurred during Google login",
         variant: "destructive",
       });
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
+  // ── completeGoogleRegistration ─────────────────────────────────────────────
   const completeGoogleRegistration = async (
     user: User,
     role: UserRole,
     additionalData?: any
   ) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const userData = await completeGoogleSignUp(user, role, additionalData);
-      setCurrentUser({
-        user,
-        profile: userData
-      });
+
+      // Sync profile to backend after completing google sign up
+      try {
+        await apiRequest("POST", "/api/auth/sync-profile", { displayName: userData.displayName, ...additionalData });
+      } catch (err: any) {
+        console.warn("Failed to sync google profile to backend", err.message);
+      }
+
+      skipNextAuthStateProfile.current = true;
+      setCurrentUser({ user, profile: userData });
 
       toast({
         title: "Registration successful",
         description: `Welcome, ${userData.displayName}!`,
       });
     } catch (error: any) {
-      console.error("Google registration completion error:", error);
+      setIsLoading(false);
       toast({
         title: "Registration failed",
         description: error.message || "An error occurred completing your registration",
         variant: "destructive",
       });
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
+  // ── logout ────────────────────────────────────────────────────────────────
   const logout = async () => {
     try {
-      setIsLoading(true);
       await logoutUser();
       setCurrentUser({ user: null, profile: null });
-
-      toast({
-        title: "Logged out",
-        description: "You have been successfully logged out",
-      });
+      toast({ title: "Logged out", description: "You have been successfully logged out." });
     } catch (error: any) {
-      console.error("Logout error:", error);
       toast({
         title: "Logout failed",
         description: error.message || "An error occurred during logout",
         variant: "destructive",
       });
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
+  // ── resetUserPassword ─────────────────────────────────────────────────────
   const resetUserPassword = async (email: string) => {
     try {
-      setIsLoading(true);
       await resetPassword(email);
-
       toast({
         title: "Password reset email sent",
         description: "Check your email for password reset instructions",
       });
     } catch (error: any) {
-      console.error("Password reset error:", error);
       toast({
         title: "Password reset failed",
         description: error.message || "An error occurred sending the reset email",
         variant: "destructive",
       });
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const value = {
+  const value: AuthContextType = {
     currentUser,
     isLoading,
     login,

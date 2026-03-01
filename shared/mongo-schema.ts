@@ -17,13 +17,42 @@ const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   role: { type: String, enum: ["student", "teacher", "parent", "principal", "admin"], default: "student" },
+  status: { type: String, enum: ["active", "pending", "suspended"], default: "active" },
+  school_code: { type: String, default: null },
   avatar: String,
   class: String,
   subject: String,
-  // Firebase auth bridge
+  // Firebase auth bridge (to be deprecated once full migration is complete)
   firebaseUid: { type: String, default: null, sparse: true },
   displayName: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now },
+  lastLoginAt: { type: Date, default: null },
 });
+
+// ─── Authentication Schemas ──────────────────────────────────────────────────
+const SessionSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  userId: { type: Number, required: true },
+  refreshTokenHash: { type: String, required: true },
+  deviceInfo: { type: String, default: null },
+  ipAddress: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now },
+  expiresAt: { type: Date, required: true },
+});
+
+const OtpSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  userId: { type: Number, required: true },
+  otpHash: { type: String, required: true },
+  type: { type: String, enum: ["registration", "password_reset", "2fa"], required: true },
+  expiresAt: { type: Date, required: true },
+  used: { type: Boolean, default: false },
+});
+
+// Indexes for Auth lookup
+SessionSchema.index({ userId: 1 });
+SessionSchema.index({ refreshTokenHash: 1 });
+OtpSchema.index({ userId: 1, type: 1, used: 1 });
 
 const TestSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
@@ -167,6 +196,8 @@ const MessageSchema = new mongoose.Schema({
 
 
 export const MongoUser = mongoose.model("User", UserSchema);
+export const MongoSession = mongoose.model("Session", SessionSchema);
+export const MongoOtp = mongoose.model("Otp", OtpSchema);
 export const MongoTest = mongoose.model("Test", TestSchema);
 export const MongoQuestion = mongoose.model("Question", QuestionSchema);
 export const MongoTestAttempt = mongoose.model("TestAttempt", TestAttemptSchema);
