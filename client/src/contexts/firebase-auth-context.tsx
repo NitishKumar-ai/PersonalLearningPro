@@ -14,6 +14,7 @@ import {
 } from "@/lib/firebase";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -125,6 +126,14 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setIsLoading(true);
     try {
       const user = await registerWithEmail(email, password, name, role, additionalData);
+
+      // Sync profile to backend so MongoDB user is bridged immediately
+      try {
+        await apiRequest("POST", "/api/auth/sync-profile", { displayName: name, ...additionalData });
+      } catch (err: any) {
+        console.warn("Failed to sync new profile to backend", err.message);
+      }
+
       const profile = await getProfileWithTimeout(user.uid);
       skipNextAuthStateProfile.current = true;
       setCurrentUser({ user, profile });
@@ -185,6 +194,14 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setIsLoading(true);
     try {
       const userData = await completeGoogleSignUp(user, role, additionalData);
+
+      // Sync profile to backend after completing google sign up
+      try {
+        await apiRequest("POST", "/api/auth/sync-profile", { displayName: userData.displayName, ...additionalData });
+      } catch (err: any) {
+        console.warn("Failed to sync google profile to backend", err.message);
+      }
+
       skipNextAuthStateProfile.current = true;
       setCurrentUser({ user, profile: userData });
 
