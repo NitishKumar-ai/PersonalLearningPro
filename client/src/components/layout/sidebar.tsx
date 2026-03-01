@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { cn, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import {
   LayoutDashboard,
   FileQuestion,
@@ -54,7 +54,7 @@ interface SidebarProps {
  */
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
-  const { currentUser, logout } = useFirebaseAuth();
+  const { state: { user }, logout } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -146,13 +146,12 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
   ];
 
-  // Select navigation items based on user role
   let items = teacherNavItems;
-  if (currentUser.profile?.role === "student") items = studentNavItems;
-  else if (currentUser.profile?.role === "teacher") items = teacherNavItems;
-  else if (currentUser.profile?.role === "principal") items = principalNavItems;
-  else if (currentUser.profile?.role === "admin") items = adminNavItems;
-  else if (currentUser.profile?.role === "parent") items = parentNavItems;
+  if (user?.role === "student") items = studentNavItems;
+  else if (user?.role === "teacher") items = teacherNavItems;
+  else if (user?.role === "principal") items = principalNavItems;
+  else if (user?.role === "admin") items = adminNavItems;
+  else if (user?.role === "parent") items = parentNavItems;
 
   const MobileMenuButton = () => (
     <Button
@@ -216,18 +215,18 @@ export function Sidebar({ className }: SidebarProps) {
         <div className={cn("mt-4 px-4 mb-6", isCollapsed && "flex justify-center px-2")}>
           {isCollapsed ? (
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/80 to-primary/60 text-primary-foreground flex items-center justify-center font-medium shadow-sm text-sm">
-              {currentUser.profile?.displayName ? getInitials(currentUser.profile.displayName) : "U"}
+              {user?.name ? getInitials(user.name) : "U"}
             </div>
           ) : (
             <div className="flex items-center p-2.5 rounded-lg bg-primary/5 dark:bg-primary/10 w-full">
               <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/80 to-primary/60 text-primary-foreground flex items-center justify-center font-medium shadow-sm flex-shrink-0 text-sm">
-                {currentUser.profile?.displayName ? getInitials(currentUser.profile.displayName) : "U"}
+                {user?.name ? getInitials(user.name) : "U"}
               </div>
               <div className="ml-3 overflow-hidden">
-                <p className="font-medium text-sm truncate">{currentUser.profile?.displayName}</p>
+                <p className="font-medium text-sm truncate">{user?.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {currentUser.profile?.role ?
-                    currentUser.profile.role.charAt(0).toUpperCase() + currentUser.profile.role.slice(1) :
+                  {user?.role ?
+                    user.role.charAt(0).toUpperCase() + user.role.slice(1) :
                     "User"}
                 </p>
               </div>
@@ -287,7 +286,7 @@ export function Sidebar({ className }: SidebarProps) {
             })}
           </nav>
 
-          {currentUser.profile?.role === "student" && !isCollapsed && (
+          {user?.role === "student" && !isCollapsed && (
             <>
               <div className="mt-6 mb-2 px-3 text-xs uppercase font-semibold text-muted-foreground tracking-wider">
                 Learning Tools
