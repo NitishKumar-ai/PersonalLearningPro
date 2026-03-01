@@ -16,14 +16,13 @@ import StudentDirectory from "@/pages/student-directory";
 import MessagesPage from "@/pages/messages";
 import MessagePage from "@/pages/messagepal-demo";
 import ComingSoon from "@/pages/coming-soon";
-import { FirebaseAuthProvider, useFirebaseAuth } from "./contexts/firebase-auth-context";
+import { AuthProvider, useAuth } from "./contexts/auth-context";
 import { ThemeProvider } from "./contexts/theme-context";
 import "./blackboard-login.css";
-import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
-import { FirebaseAuthDialog } from "@/components/auth/firebase-auth-dialog";
-import { getUserProfile, UserRole } from "@/lib/firebase";
-import { useEffect, useState } from "react";
+import { AuthDialog } from "@/components/auth/auth-dialog";
+
 import { Button } from "@/components/ui/button";
 
 
@@ -95,117 +94,52 @@ const WrappedComingSoon = withLayout(ComingSoon, { fullWidth: true });
  * - Role-specific dashboard routes
  * - Common feature routes (create-test, ocr-scan, analytics, ai-tutor, student-directory)
  * - A fallback 404 route
- *
- * @returns A React element containing the routing switch that enforces the above loading, auth, and route behaviors.
  */
+
 /**
- * Shown when the user is authenticated but we couldn't load their Firestore
- * profile (Firestore offline / new device / first login race).
- *
- * Retries up to 3 times automatically, then offers a manual role selector so
- * users can enter the correct dashboard without being locked out.
+ * Higher-order component representing a protected route.
+ * Redirects to the dashboard if the user's role is not authorized for the route.
  */
-function ProfileGate({ uid }: { uid: string }) {
-  const { currentUser } = useFirebaseAuth();
-  const [attempts, setAttempts] = useState(0);
-  const [role, setRole] = useState<UserRole | null>(currentUser.profile?.role ?? null);
-  const [retrying, setRetrying] = useState(false);
+function ProtectedRoute({
+  component: Component,
+  allowedRoles,
+  ...props
+}: {
+  component: React.ComponentType<any>,
+  allowedRoles?: string[],
+  [key: string]: any
+}) {
+  const { state: { user } } = useAuth();
 
-  // Auto-retry up to 3 times, 3 s apart
-  useEffect(() => {
-    if (role || attempts >= 3) return;
-    const timer = setTimeout(async () => {
-      setRetrying(true);
-      try {
-        const profile = await getUserProfile(uid);
-        if (profile?.role) setRole(profile.role);
-      } catch { /* ignore */ } finally {
-        setRetrying(false);
-        setAttempts((a) => a + 1);
-      }
-    }, 3000);
-    return () => clearTimeout(timer);
-  }, [uid, attempts, role]);
+  if (!user) return <AuthDialog />;
 
-  // Profile loaded — redirect to the right dashboard
-  useEffect(() => {
-    if (role) window.location.replace("/");
-  }, [role]);
-
-  const roles: { value: UserRole; label: string; emoji: string }[] = [
-    { value: "teacher", label: "Teacher", emoji: "👩‍🏫" },
-    { value: "student", label: "Student", emoji: "🎒" },
-    { value: "principal", label: "Principal", emoji: "🏫" },
-    { value: "admin", label: "Admin", emoji: "⚙️" },
-    { value: "parent", label: "Parent", emoji: "👪" },
-  ];
-
-  if (attempts < 3 || retrying) {
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // Show a forbidden message or redirect
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-4 text-center max-w-sm px-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="font-medium">Loading your profile…</p>
-          <p className="text-sm text-muted-foreground">
-            Attempt {Math.min(attempts + 1, 3)} of 3 — connecting to Firestore
-          </p>
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center p-8 mt-20 text-center space-y-4">
+          <h2 className="text-2xl font-bold text-destructive">Access Denied</h2>
+          <p className="text-muted-foreground">You do not have permission to view this page.</p>
+          <Button onClick={() => window.history.back()}>Go Back</Button>
         </div>
-      </div>
+      </AppLayout>
     );
   }
 
-  // All retries exhausted — show role picker fallback
-  return (
-    <div className="h-screen w-full flex items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-6 text-center max-w-sm px-4">
-        <div className="p-3 rounded-full bg-amber-500/10">
-          <AlertCircle className="h-7 w-7 text-amber-500" />
-        </div>
-        <div>
-          <h2 className="text-lg font-bold mb-1">Couldn't load your profile</h2>
-          <p className="text-sm text-muted-foreground">
-            Firestore is unreachable. Select your role to continue anyway:
-          </p>
-        </div>
-        <div className="grid grid-cols-1 gap-2 w-full">
-          {roles.map((r) => (
-            <Button
-              key={r.value}
-              variant="outline"
-              className="w-full justify-start gap-3 h-11 text-base"
-              onClick={() => {
-                // Store the chosen role locally then navigate
-                sessionStorage.setItem("fallback_role", r.value);
-                window.location.replace(
-                  r.value === "teacher" ? "/dashboard" :
-                    r.value === "student" ? "/student-dashboard" :
-                      r.value === "principal" ? "/principal-dashboard" :
-                        r.value === "admin" ? "/admin-dashboard" :
-                          "/parent-dashboard"
-                );
-              }}
-            >
-              <span className="text-xl">{r.emoji}</span>
-              {r.label}
-            </Button>
-          ))}
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="gap-2 text-muted-foreground"
-          onClick={() => { setAttempts(0); setRetrying(false); }}
-        >
-          <RefreshCw className="h-4 w-4" />
-          Retry connection
-        </Button>
-      </div>
-    </div>
+  return <Component {...props} />;
+}
+
+// Helper to easily create protected routes with Wouter
+const withProtection = (Component: React.ComponentType<any>, allowedRoles?: string[]) => {
+  const ProtectedRouteWrapper = (props: any) => (
+    <ProtectedRoute component={Component} allowedRoles={allowedRoles} {...props} />
   );
+  ProtectedRouteWrapper.displayName = `Protected(${Component.displayName || Component.name || 'Component'})`;
+  return ProtectedRouteWrapper;
 }
 
 function Router() {
-  const { currentUser, isLoading } = useFirebaseAuth();
+  const { state: { user, isLoading } } = useAuth();
 
   // Loading state while checking authentication
   if (isLoading) {
@@ -220,18 +154,15 @@ function Router() {
   }
 
   // Show auth dialog if not authenticated
-  if (!currentUser.user) {
-    return <FirebaseAuthDialog />;
+  if (!user) {
+    return <AuthDialog />;
   }
 
-  // If authenticated but profile not loaded, use ProfileGate to retry or offer fallback
-  if (!currentUser.profile?.role) {
-    return <ProfileGate uid={currentUser.user.uid} />;
-  }
+  const effectiveRole = user.role;
 
   // Get appropriate dashboard component based on user role
   const getDashboardComponent = () => {
-    const role = currentUser.profile?.role;
+    const role = effectiveRole;
     switch (role) {
       case "principal": return WrappedPrincipalDashboard;
       case "admin": return WrappedAdminDashboard;
@@ -248,20 +179,20 @@ function Router() {
       <Route path="/" component={getDashboardComponent()} />
 
       {/* Role-specific dashboards */}
-      <Route path="/dashboard" component={WrappedDashboard} />
-      <Route path="/principal-dashboard" component={WrappedPrincipalDashboard} />
-      <Route path="/admin-dashboard" component={WrappedAdminDashboard} />
-      <Route path="/student-dashboard" component={WrappedStudentDashboard} />
-      <Route path="/parent-dashboard" component={WrappedParentDashboard} />
+      <Route path="/dashboard" component={withProtection(WrappedDashboard, ["teacher"])} />
+      <Route path="/principal-dashboard" component={withProtection(WrappedPrincipalDashboard, ["principal"])} />
+      <Route path="/admin-dashboard" component={withProtection(WrappedAdminDashboard, ["admin"])} />
+      <Route path="/student-dashboard" component={withProtection(WrappedStudentDashboard, ["student"])} />
+      <Route path="/parent-dashboard" component={withProtection(WrappedParentDashboard, ["parent"])} />
 
       {/* Implemented feature routes */}
-      <Route path="/create-test" component={WrappedCreateTest} />
-      <Route path="/ocr-scan" component={WrappedOcrScan} />
-      <Route path="/analytics" component={WrappedAnalytics} />
-      <Route path="/ai-tutor" component={WrappedAiTutor} />
-      <Route path="/student-directory" component={WrappedStudentDirectory} />
-      <Route path="/messages" component={WrappedMessages} />
-      <Route path="/messagepal" component={WrappedMessage} />
+      <Route path="/create-test" component={withProtection(WrappedCreateTest, ["teacher"])} />
+      <Route path="/ocr-scan" component={withProtection(WrappedOcrScan, ["teacher", "student", "parent"])} />
+      <Route path="/analytics" component={withProtection(WrappedAnalytics)} />
+      <Route path="/ai-tutor" component={withProtection(WrappedAiTutor, ["student"])} />
+      <Route path="/student-directory" component={withProtection(WrappedStudentDirectory, ["teacher", "principal", "admin"])} />
+      <Route path="/messages" component={withProtection(WrappedMessages)} />
+      <Route path="/messagepal" component={withProtection(WrappedMessage)} />
 
       {/* Coming Soon — unimplemented sidebar links */}
       <Route path="/institution" component={WrappedComingSoon} />
@@ -298,10 +229,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system">
-        <FirebaseAuthProvider>
+        <AuthProvider>
           <Router />
           <Toaster />
-        </FirebaseAuthProvider>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
