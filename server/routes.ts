@@ -14,264 +14,117 @@ import messageRoutes from "./message/routes";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import "express-session";
+
+declare module "express-session" {
+  interface SessionData {
+    userId: number;
+    role: string;
+    firebaseUid?: string;
+  }
+}
 
 const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key_learning_pro_123";
 const REFRESH_SECRET = process.env.REFRESH_SECRET || "super_secret_refresh_key_learning_pro_456";
 
 // Auth Middleware
-export const authenticateToken = (req: Request, res: Response, next: express.NextFunction) => {
+export const authenticateToken = async (req: Request, res: Response, next: express.NextFunction) => {
   const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
 
   if (!token) return res.status(401).json({ message: "Authentication required" });
 
-  jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-    if (err) return res.status(403).json({ message: "Invalid or expired token" });
+  try {
+    const decodedToken = await verifyFirebaseToken(token);
+
+    if (!decodedToken) {
+      return res.status(403).json({ message: "Invalid or expired token" });
+    }
+
+    // Find MongoDB user by firebaseUid or email to bridge the gap
+    let user = await MongoUser.findOne({ firebaseUid: decodedToken.uid });
+
+    if (!user && decodedToken.email) {
+      user = await MongoUser.findOne({ email: decodedToken.email });
+      if (user) {
+        // Link them up for next time
+        user.firebaseUid = decodedToken.uid;
+        // Sync role from custom claims if they exist, otherwise keep mongo role
+        if (decodedToken.role) {
+          user.role = decodedToken.role as any;
+        }
+        await user.save();
+      }
+    }
+
+    if (!user) {
+      // If the user tries to hit sync-profile, let them through to create their user
+      if (req.path === '/api/auth/sync-profile') {
+        req.session = req.session || ({} as any);
+        req.session!.firebaseUid = decodedToken.uid;
+        (req.session as any).email = decodedToken.email;
+        return next();
+      }
+
+      // In a full implementation, we might auto-create the MongoDB document here, 
+      // but for now we expect the client to have created it during checkout/registration.
+      return res.status(404).json({ message: "User profile not found in database. Please complete registration." });
+    }
 
     // Polyfill req.session to minimize refactoring of existing routes
     req.session = req.session || ({} as any);
-    req.session!.userId = user.userId;
+    req.session!.userId = user.id; // Map to the integer ID
     req.session!.role = user.role;
+    req.session!.firebaseUid = decodedToken.uid;
 
     next();
-  });
+  } catch (error) {
+    console.error("Auth middleware error:", error);
+    return res.status(500).json({ message: "Internal Server Error during authentication" });
+  }
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Mount MessagePal REST API routes
   app.use("/api/messagepal", messageRoutes);
 
-  // Authentication routes
-  app.post("/api/auth/register", async (req: Request, res: Response) => {
+  // Authentication routes (mostly handled by Firebase Client now)
+  // We keep a small route for the client to tell the backend "I just registered in Firebase, create my Mongo document"
+  app.post("/api/auth/sync-profile", authenticateToken, async (req: Request, res: Response) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
+      const { displayName, class: className, subject } = req.body;
+      const firebaseUid = req.session!.firebaseUid;
 
-      // Check if user already exists
-      const existingUser = await storage.getUserByUsername(userData.username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
+      if (!firebaseUid) return res.status(401).json({ message: "Unauthorized" });
+
+      let user = await MongoUser.findOne({ firebaseUid });
+
+      if (user) {
+        // Update existing
+        if (displayName) user.displayName = displayName;
+        if (className) user.class = className;
+        if (subject) user.subject = subject;
+        await user.save();
+      } else {
+        // Create a new mongo user bridge
+        const numericId = await getNextSequenceValue('userId');
+        user = new MongoUser({
+          id: numericId,
+          firebaseUid: firebaseUid,
+          email: (req.session as any).email,
+          username: `user_${Math.random().toString(36).substring(7)}`,
+          name: displayName || (req.session as any).email?.split("@")[0] || "User",
+          displayName: displayName || null,
+          class: className || null,
+          subject: subject || null,
+          role: "student", // default role, custom claims will override on next token validation
+          password: "firebase_managed"
+        });
+        await user.save();
       }
 
-      const existingEmail = await storage.getUserByEmail(userData.email);
-      if (existingEmail) {
-        return res.status(400).json({ message: "Email already exists" });
-      }
-
-      // Hash password
-      const salt = await bcrypt.genSalt(12);
-      const hashedPassword = await bcrypt.hash(userData.password, salt);
-
-      // Override the password with the hash and set status to pending pending OTP
-      const userToCreate = {
-        ...userData,
-        password: hashedPassword,
-        status: "pending" as const
-      };
-
-      // Create user
-      const user = await storage.createUser(userToCreate);
-
-      // Don't return the password
-      const { password, ...userWithoutPassword } = user;
-
-      // Generate OTP
-      const otpValue = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digit OTP
-      const otpHash = await bcrypt.hash(otpValue, 10);
-
-      const expiresAt = new Date();
-      expiresAt.setMinutes(expiresAt.getMinutes() + 5); // 5 min expiry
-
-      await storage.createOtp({
-        userId: user.id,
-        otpHash: otpHash,
-        type: "registration",
-        expiresAt,
-        used: false
-      });
-
-      // In a real app we would send this via SMS / Email here.
-      console.log(`[DEV MODE] OTP for user ${user.username} is: ${otpValue}`);
-
-      res.status(201).json({
-        message: "User registered. Please verify OTP.",
-        userId: user.id
-      });
+      res.json({ message: "Profile synced", user });
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid input data", errors: error.errors });
-      }
-      console.error("Register error:", error);
-      return res.status(500).json({ message: "Failed to register user", error: String(error) });
-    }
-  });
-
-  app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
-    try {
-      const { userId, otp } = req.body;
-
-      if (!userId || !otp) {
-        return res.status(400).json({ message: "User ID and OTP are required" });
-      }
-
-      const otpRecord = await storage.getValidOtp(userId, "registration");
-
-      if (!otpRecord) {
-        return res.status(400).json({ message: "Invalid or expired OTP" });
-      }
-
-      const isMatch = await bcrypt.compare(otp.toString(), otpRecord.otpHash);
-
-      if (!isMatch) {
-        return res.status(400).json({ message: "Invalid OTP" });
-      }
-
-      // Mark used
-      await storage.markOtpUsed(otpRecord.id);
-
-      // Activate user
-      const user = await storage.getUser(userId);
-      if (!user) return res.status(404).json({ message: "User not found" });
-
-      await storage.updateUser(userId, { status: "active" } as any);
-
-      res.status(200).json({ message: "OTP Verified successfully. You can now login." });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to verify OTP" });
-    }
-  });
-
-  app.post("/api/auth/login", async (req: Request, res: Response) => {
-    try {
-      const { username, password, email } = req.body;
-
-      if ((!username && !email) || !password) {
-        return res.status(400).json({ message: "Username/Email and password are required" });
-      }
-
-      const user = username
-        ? await storage.getUserByUsername(username)
-        : await storage.getUserByEmail(email);
-
-      if (!user) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      if (user.status === "suspended") {
-        return res.status(403).json({ message: "Account suspended. Please contact support." });
-      }
-
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(401).json({ message: "Invalid credentials" });
-      }
-
-      // Generate Tokens
-      const accessToken = jwt.sign(
-        { userId: user.id, role: user.role, email: user.email },
-        JWT_SECRET,
-        { expiresIn: "15m" }
-      );
-
-      const refreshTokenString = crypto.randomBytes(40).toString('hex');
-      const refreshTokenHash = await bcrypt.hash(refreshTokenString, 10);
-
-      const refreshExpires = new Date();
-      refreshExpires.setDate(refreshExpires.getDate() + 7); // 7 days
-
-      await storage.createSession({
-        userId: user.id,
-        refreshTokenHash,
-        deviceInfo: req.headers['user-agent'] || null,
-        ipAddress: req.ip || null,
-        expiresAt: refreshExpires
-      });
-
-      // Update last login
-      await storage.updateUser(user.id, { lastLoginAt: new Date() } as any);
-
-      // Set Access Token HTTP-Only Cookie
-      res.cookie("access_token", accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-        maxAge: 15 * 60 * 1000 // 15 mins
-      });
-
-      // Set Refresh Token HTTP-Only Cookie
-      res.cookie("refresh_token", refreshTokenString, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        path: "/api/auth/refresh-token", // Optional restriction
-        sameSite: "lax",
-        maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-      });
-
-      // Don't return the password
-      const { password: _, ...userWithoutPassword } = user;
-
-      // Polyfill session for existing routes until they're all updated
-      if (req.session) {
-        req.session.userId = user.id;
-        req.session.role = user.role;
-      }
-
-      res.status(200).json({
-        user: userWithoutPassword,
-        // Optional: Return tokens in body too for apps that can't use cookies (e.g., React Native)
-        accessToken,
-        refreshToken: refreshTokenString
-      });
-    } catch (error) {
-      console.error("Login error:", error);
-      res.status(500).json({ message: "Failed to login" });
-    }
-  });
-
-  app.post("/api/auth/refresh-token", async (req: Request, res: Response) => {
-    try {
-      const refreshToken = req.cookies?.refresh_token || req.body.refreshToken;
-
-      if (!refreshToken) {
-        return res.status(401).json({ message: "Refresh token required" });
-      }
-
-      // We don't have a direct lookup by raw string, we have to find all sessions 
-      // or implement a smart lookup. For now, since we parse cookies, we extract the token.
-      // We would realistically decode a JWT here if the refresh token was a JWT.
-      // Since it's an opaque string hashed in DB: this might be slow to find.
-      // Better approach: Refresh token is a JWT containing sessionId.
-
-      return res.status(501).json({ message: "Not fully implemented" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to refresh token" });
-    }
-  });
-
-  app.post("/api/auth/logout", (req: Request, res: Response) => {
-    res.clearCookie("access_token");
-    res.clearCookie("refresh_token", { path: "/api/auth/refresh-token" });
-
-    // We would delete the session from the DB here using the session ID provided in the token/cookie
-
-    req.session?.destroy((err) => {
-      // ... ignore errors
-    });
-    res.status(200).json({ message: "Logged out successfully" });
-  });
-
-  app.post("/api/auth/logout-all", authenticateToken, async (req: Request, res: Response) => {
-    try {
-      const userId = req.session?.userId;
-      if (!userId) return res.status(401).json({ message: "Not authenticated" });
-
-      await storage.deleteAllUserSessions(userId);
-
-      res.clearCookie("access_token");
-      res.clearCookie("refresh_token", { path: "/api/auth/refresh-token" });
-
-      req.session?.destroy(() => { });
-      res.status(200).json({ message: "Logged out of all devices successfully" });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to logout of all devices" });
+      res.status(500).json({ message: "Failed to sync profile" });
     }
   });
 
