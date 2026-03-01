@@ -1,26 +1,26 @@
 import { useState } from "react";
-import { 
-  Menu, 
-  Bell, 
-  Search, 
-  MessageSquare, 
-  Settings, 
+import {
+  Menu,
+  Bell,
+  Search,
+  MessageSquare,
+  Settings,
   Moon,
   Sun
 } from "lucide-react";
 import { useTheme } from "@/contexts/theme-context";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useAuth } from "@/contexts/auth-context";
 import { getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuGroup, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +31,7 @@ interface HeaderProps {
 
 export function Header({ title }: HeaderProps) {
   const { theme, setTheme } = useTheme();
-  const { currentUser, logout } = useFirebaseAuth();
+  const { state: { user }, logout } = useAuth();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const handleToggleSidebar = () => {
@@ -51,7 +51,7 @@ export function Header({ title }: HeaderProps) {
           {title}
         </h1>
       )}
-      
+
       <div className={`flex-1 ${isSearchOpen ? 'block' : 'hidden md:block'}`}>
         <form className="relative">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -62,7 +62,7 @@ export function Header({ title }: HeaderProps) {
           />
         </form>
       </div>
-      
+
       <Button
         variant="ghost"
         size="icon"
@@ -82,7 +82,7 @@ export function Header({ title }: HeaderProps) {
           )}
           <span className="sr-only">Toggle theme</span>
         </Button>
-        
+
         <Button variant="ghost" size="icon" className="relative">
           <MessageSquare className="h-5 w-5" />
           <span className="sr-only">Messages</span>
@@ -90,7 +90,7 @@ export function Header({ title }: HeaderProps) {
             3
           </Badge>
         </Button>
-        
+
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
           <span className="sr-only">Notifications</span>
@@ -98,18 +98,15 @@ export function Header({ title }: HeaderProps) {
             5
           </Badge>
         </Button>
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="rounded-full">
               <Avatar className="h-8 w-8">
-                {currentUser?.profile?.photoURL ? (
-                  <AvatarImage src={currentUser.profile.photoURL} alt="Avatar" />
-                ) : (
-                  <AvatarFallback>
-                    {currentUser?.profile?.displayName ? getInitials(currentUser.profile.displayName) : "U"}
-                  </AvatarFallback>
-                )}
+                {/* Currently no photo URL in schema, fallback to initials */}
+                <AvatarFallback>
+                  {user?.name ? getInitials(user.name) : "U"}
+                </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
