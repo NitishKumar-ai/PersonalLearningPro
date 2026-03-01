@@ -16,12 +16,12 @@ import StudentDirectory from "@/pages/student-directory";
 import MessagesPage from "@/pages/messages";
 import MessagePage from "@/pages/messagepal-demo";
 import ComingSoon from "@/pages/coming-soon";
-import { AuthProvider, useAuth } from "./contexts/auth-context";
 import { ThemeProvider } from "./contexts/theme-context";
 import "./blackboard-login.css";
 import { Loader2 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
-import { AuthDialog } from "@/components/auth/auth-dialog";
+import { FirebaseAuthDialog as AuthDialog } from "@/components/auth/firebase-auth-dialog";
+import { FirebaseAuthProvider as AuthProvider, useFirebaseAuth as useAuth } from "./contexts/firebase-auth-context";
 
 import { Button } from "@/components/ui/button";
 
@@ -109,11 +109,11 @@ function ProtectedRoute({
   allowedRoles?: string[],
   [key: string]: any
 }) {
-  const { state: { user } } = useAuth();
+  const { currentUser: { user, profile } } = useAuth();
 
-  if (!user) return <AuthDialog />;
+  if (!user || !profile) return <AuthDialog />;
 
-  if (allowedRoles && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !allowedRoles.includes(profile.role)) {
     // Show a forbidden message or redirect
     return (
       <AppLayout>
@@ -139,7 +139,7 @@ const withProtection = (Component: React.ComponentType<any>, allowedRoles?: stri
 }
 
 function Router() {
-  const { state: { user, isLoading } } = useAuth();
+  const { currentUser: { user, profile }, isLoading } = useAuth();
 
   // Loading state while checking authentication
   if (isLoading) {
@@ -154,11 +154,11 @@ function Router() {
   }
 
   // Show auth dialog if not authenticated
-  if (!user) {
+  if (!user || !profile) {
     return <AuthDialog />;
   }
 
-  const effectiveRole = user.role;
+  const effectiveRole = profile.role;
 
   // Get appropriate dashboard component based on user role
   const getDashboardComponent = () => {
