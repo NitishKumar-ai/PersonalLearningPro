@@ -31,9 +31,8 @@ jobs:
     - name: Build project
       run: npm run build
 
-    # Example test command - adjust based on actual test scripts
-    #- name: Run tests
-    #  run: npm run test
+    - name: Run tests
+      run: npm run test
 
   docker-build-test:
     runs-on: ubuntu-latest
