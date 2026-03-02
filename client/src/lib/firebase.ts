@@ -49,7 +49,7 @@ export const googleProvider = firebaseEnabled
   : null;
 
 // User role types
-export type UserRole = 'principal' | 'admin' | 'teacher' | 'student' | 'parent';
+export type UserRole = 'principal' | 'school_admin' | 'admin' | 'teacher' | 'student' | 'parent';
 
 // User profile interface
 export interface UserProfile {

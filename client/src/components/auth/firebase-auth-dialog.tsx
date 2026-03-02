@@ -123,18 +123,26 @@ export function FirebaseAuthDialog() {
         email: z.string().email({ message: "Please enter a valid email address" }),
         password: z.string().min(6, { message: "Password must be at least 6 characters" }),
         confirmPassword: z.string().min(1, { message: "Please confirm your password" }),
-        role: z.enum(["student", "teacher", "principal", "admin", "parent"], {
+        role: z.enum(["student", "teacher", "principal", "school_admin", "admin", "parent"], {
             required_error: "Please select a role",
         }),
+        class: z.string().optional(),
     }).refine((data) => data.password === data.confirmPassword, {
         message: "Passwords don't match",
         path: ["confirmPassword"],
+    }).refine((data) => data.role !== "student" || !!data.class, {
+        message: "Please select a class",
+        path: ["class"],
     }), []);
 
     const roleSchema = useMemo(() => z.object({
-        role: z.enum(["student", "teacher", "principal", "admin", "parent"], {
+        role: z.enum(["student", "teacher", "principal", "school_admin", "admin", "parent"], {
             required_error: "Please select a role",
         }),
+        class: z.string().optional(),
+    }).refine((data) => data.role !== "student" || !!data.class, {
+        message: "Please select a class",
+        path: ["class"],
     }), []);
 
     const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -144,17 +152,19 @@ export function FirebaseAuthDialog() {
 
     const registerForm = useForm<z.infer<typeof registerSchema>>({
         resolver: zodResolver(registerSchema),
-        defaultValues: { name: "", email: "", password: "", confirmPassword: "", role: "student" },
+        defaultValues: { name: "", email: "", password: "", confirmPassword: "", role: "student", class: "12" },
     });
 
     const roleForm = useForm<z.infer<typeof roleSchema>>({
         resolver: zodResolver(roleSchema),
-        defaultValues: { role: "student" },
+        defaultValues: { role: "student", class: "12" },
     });
 
     // ── Password strength for register form ──
     const regPasswordValue = registerForm.watch("password");
     const regConfirmValue = registerForm.watch("confirmPassword");
+    const selectedRole = registerForm.watch("role");
+    const selectedGoogleRole = roleForm.watch("role");
     const passwordStrength = getPasswordStrength(regPasswordValue);
     const passwordsMatch = regConfirmValue.length > 0 && regPasswordValue === regConfirmValue;
     const passwordsMismatch = regConfirmValue.length > 0 && regPasswordValue !== regConfirmValue;
@@ -172,7 +182,7 @@ export function FirebaseAuthDialog() {
     const onRegisterSubmit = useCallback(async (data: z.infer<typeof registerSchema>) => {
         setRegisterError(null);
         try {
-            const additionalData = getRoleSpecificData(data.role);
+            const additionalData = getRoleSpecificData(data.role, data);
             await register(data.email, data.password, data.name, data.role as UserRole, additionalData);
         } catch (error: any) {
             setRegisterError(error.message || "Registration failed. Please try again.");
@@ -182,7 +192,7 @@ export function FirebaseAuthDialog() {
     const onRoleSubmit = useCallback(async (data: z.infer<typeof roleSchema>) => {
         if (!tempGoogleUser) return;
         try {
-            const additionalData = getRoleSpecificData(data.role);
+            const additionalData = getRoleSpecificData(data.role, data);
             await completeGoogleRegistration(tempGoogleUser, data.role as UserRole, additionalData);
             setIsNewGoogleUser(false);
             setTempGoogleUser(null);
@@ -191,11 +201,12 @@ export function FirebaseAuthDialog() {
         }
     }, [tempGoogleUser, completeGoogleRegistration, roleSchema]);
 
-    function getRoleSpecificData(role: string) {
+    function getRoleSpecificData(role: string, data?: any) {
         switch (role) {
-            case "student": return { classId: "10-A" };
+            case "student": return { classId: data?.class || "12" };
             case "teacher": return { subjects: ["Mathematics", "Physics"] };
             case "principal": return { institutionId: "central-high" };
+            case "school_admin": return { institutionId: "central-high" };
             case "admin": return { institutionId: "central-high" };
             case "parent": return { studentId: "student-123" };
             default: return {};
@@ -320,6 +331,7 @@ export function FirebaseAuthDialog() {
                                                 <SelectItem value="student">Student</SelectItem>
                                                 <SelectItem value="teacher">Teacher</SelectItem>
                                                 <SelectItem value="principal">Principal</SelectItem>
+                                                <SelectItem value="school_admin">School Admin</SelectItem>
                                                 <SelectItem value="admin">Administrator</SelectItem>
                                                 <SelectItem value="parent">Parent</SelectItem>
                                             </SelectContent>
@@ -328,6 +340,31 @@ export function FirebaseAuthDialog() {
                                     </FormItem>
                                 )}
                             />
+                            {selectedGoogleRole === "student" && (
+                                <FormField
+                                    control={roleForm.control}
+                                    name="class"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Class/Grade</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select a class" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="9">9th Grade</SelectItem>
+                                                    <SelectItem value="10">10th Grade</SelectItem>
+                                                    <SelectItem value="11">11th Grade</SelectItem>
+                                                    <SelectItem value="12">12th Grade</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            )}
                             <Button type="submit" className="w-full">Complete Registration</Button>
                         </form>
                     </Form>
@@ -596,6 +633,7 @@ export function FirebaseAuthDialog() {
                                                             <option value="student">Student</option>
                                                             <option value="teacher">Teacher</option>
                                                             <option value="principal">Principal</option>
+                                                            <option value="school_admin">School Admin</option>
                                                             <option value="admin">Administrator</option>
                                                             <option value="parent">Parent</option>
                                                         </select>
@@ -605,6 +643,38 @@ export function FirebaseAuthDialog() {
                                             </FormItem>
                                         )}
                                     />
+
+                                    {/* Grade/Class Selector (Visible only for Students) */}
+                                    {selectedRole === "student" && (
+                                        <FormField
+                                            control={registerForm.control}
+                                            name="class"
+                                            render={({ field }) => (
+                                                <FormItem className="bb-field">
+                                                    <label className="bb-label">Grade / Class</label>
+                                                    <FormControl>
+                                                        <div className="bb-input-wrap">
+                                                            <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+                                                            </svg>
+                                                            <select
+                                                                className="bb-select"
+                                                                value={field.value}
+                                                                onChange={field.onChange}
+                                                                disabled={isRegSubmitting}
+                                                            >
+                                                                <option value="9">9th Grade</option>
+                                                                <option value="10">10th Grade</option>
+                                                                <option value="11">11th Grade</option>
+                                                                <option value="12">12th Grade</option>
+                                                            </select>
+                                                        </div>
+                                                    </FormControl>
+                                                    <FormMessage className="bb-error" />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    )}
 
                                     <button type="submit" className="bb-btn" disabled={isRegSubmitting}>
                                         {isRegSubmitting ? (
