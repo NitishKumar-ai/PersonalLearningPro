@@ -1143,7 +1143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/auth/firebase", async (req: Request, res: Response) => {
     try {
-      const { idToken } = req.body;
+      const { idToken, role } = req.body;
       if (!idToken || typeof idToken !== "string") {
         return res.status(400).json({ message: "idToken is required" });
       }
@@ -1170,13 +1170,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           password: "firebase-" + uid,
           name: name || email.split("@")[0],
           email,
-          role: "student",
+          role: role || "student",
           avatar: picture || null,
           firebaseUid: uid,
           displayName: name || null,
         });
         await mongoUser.save();
-        console.log(`[auth/firebase] Created new user ${email} (id=${id})`);
+        console.log(`[auth/firebase] Created new user ${email} (id=${id}) with role ${mongoUser.role}`);
       } else if (!mongoUser.firebaseUid) {
         mongoUser.firebaseUid = uid;
         if (picture && !mongoUser.avatar) mongoUser.avatar = picture;
