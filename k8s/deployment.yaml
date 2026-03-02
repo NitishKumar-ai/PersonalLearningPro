@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: personallearningpro
+  namespace: personallearningpro
+  labels:
+    app: personallearningpro
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: personallearningpro
+  template:
+    metadata:
+      labels:
+        app: personallearningpro
+    spec:
+      containers:
+        - name: personallearningpro
+          image: ghcr.io/nitishkumar-ai/personallearningpro:latest
+          imagePullPolicy: Always # In a real environment, use specific tags
+          ports:
+            - containerPort: 5001
+          envFrom:
+            - secretRef:
+                name: plp-secrets # Secrets managed externally (e.g., Vault or External Secrets Operator)
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 5001
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 5001
+            initialDelaySeconds: 20
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3

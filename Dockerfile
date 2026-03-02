@@ -1,57 +1,100 @@
-# ── PersonalLearningPro Dockerfile ──
-# Multi-stage build: development + production
+# ══════════════════════════════════════════════════════════════════
+#  PersonalLearningPro — Multi-stage Dockerfile
+#  Stages: deps → development | deps → build → production
+# ══════════════════════════════════════════════════════════════════
 
-# ────────────────────────────────────
-# Stage 1: Development
-# ────────────────────────────────────
-FROM node:20-slim AS development
+# ── Metadata ──────────────────────────────────────────────────────
+ARG NODE_VERSION=20-alpine
+LABEL org.opencontainers.image.title="PersonalLearningPro"
+LABEL org.opencontainers.image.description="AI-powered personal learning platform"
+LABEL org.opencontainers.image.source="https://github.com/NitishKumar-ai/PersonalLearningPro"
+
+# ── Stage 1: Shared dependency layer ──────────────────────────────
+# Both dev and prod build on top of this for maximum cache reuse.
+FROM node:${NODE_VERSION} AS deps
+
+# Install OS-level build tools needed by native addons (e.g. canvas, bcrypt)
+RUN apk add --no-cache libc6-compat python3 make g++
 
 WORKDIR /app
 
-# Copy dependency manifests first for layer caching
+# Copy only manifests first — Docker layer-caches node_modules
+# until package.json or package-lock.json actually changes.
 COPY package.json package-lock.json ./
+RUN npm ci --prefer-offline
 
-# Install all dependencies (including devDependencies for dev mode)
-RUN npm ci
+# ── Stage 2: Development ──────────────────────────────────────────
+FROM node:${NODE_VERSION} AS development
 
-# Copy the rest of the source code
+RUN apk add --no-cache libc6-compat
+
+# Create a non-root user for security
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser  --system --uid 1001 appuser
+
+WORKDIR /app
+
+# Reuse installed modules from deps stage
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Expose the app port (Express serves both API + Vite client)
+# Own the working directory
+RUN chown -R appuser:nodejs /app
+
+USER appuser
+
 EXPOSE 5001
 
-# Start in development mode
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD wget -qO- http://localhost:5001/api/health || exit 1
+
 CMD ["npm", "run", "dev"]
 
-# ────────────────────────────────────
-# Stage 2: Build
-# ────────────────────────────────────
-FROM node:20-slim AS build
+# ── Stage 3: Build ────────────────────────────────────────────────
+FROM node:${NODE_VERSION} AS build
+
+RUN apk add --no-cache libc6-compat python3 make g++
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
-
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Type-check then build (client via Vite + server via esbuild)
 RUN npm run build
 
-# ────────────────────────────────────
-# Stage 3: Production
-# ────────────────────────────────────
-FROM node:20-slim AS production
+# ── Stage 4: Production ───────────────────────────────────────────
+FROM node:${NODE_VERSION} AS production
+
+RUN apk add --no-cache libc6-compat \
+    # wget is needed by HEALTHCHECK
+    && apk add --no-cache wget
+
+# Non-root user
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser  --system --uid 1001 appuser
 
 WORKDIR /app
 
-# Copy dependency manifests and install production deps only
+# Install production-only dependencies (lean image)
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --prefer-offline && npm cache clean --force
 
-# Copy built artifacts from the build stage
+# Copy compiled output from the build stage
 COPY --from=build /app/dist ./dist
+
+# Own files
+RUN chown -R appuser:nodejs /app
+
+USER appuser
+
+# Disable Node.js memory leaks and enable production optimisations
+ENV NODE_ENV=production \
+    NODE_OPTIONS="--max-old-space-size=512"
 
 EXPOSE 5001
 
-ENV NODE_ENV=production
+HEALTHCHECK --interval=30s --timeout=10s --start-period=20s --retries=3 \
+    CMD wget -qO- http://localhost:5001/api/health || exit 1
 
-CMD ["npm", "run", "start"]
+CMD ["node", "dist/index.js"]

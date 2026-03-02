@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: personallearningpro-ingress
+  namespace: personallearningpro
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod" # Assuming cert-manager is used
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - app.personallearningpro.com
+      secretName: plp-tls-secret
+  rules:
+    - host: app.personallearningpro.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: personallearningpro
+                port:
+                  number: 80

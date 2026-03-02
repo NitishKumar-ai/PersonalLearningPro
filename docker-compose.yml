@@ -1,23 +1,103 @@
+# ══════════════════════════════════════════════════════════════════
+#  docker-compose.yml — PersonalLearningPro
+#
+#  Usage:
+#    Development (default):  docker compose up
+#    Production:             docker compose --profile prod up
+# ══════════════════════════════════════════════════════════════════
+
+name: personallearningpro
+
+# ── Shared defaults ───────────────────────────────────────────────
+x-app-base: &app-base
+  build:
+    context: .
+    args:
+      NODE_VERSION: "20-alpine"
+  env_file:
+    - .env
+  restart: unless-stopped
+  networks:
+    - app-net
+
+# ── Services ──────────────────────────────────────────────────────
 services:
+
+  # ── Development ─────────────────────────────────────────────────
   app:
+    <<: *app-base
     build:
       context: .
       target: development
+      args:
+        NODE_VERSION: "20-alpine"
+    container_name: plp-dev
     ports:
-      - "5001:5001"
-    env_file:
-      - .env
+      - "${PORT:-5001}:5001"
+    environment:
+      NODE_ENV: development
     volumes:
-      # Bind-mount source directories for hot reload
+      # Hot-reload: bind-mount only source directories
       - ./client:/app/client
       - ./server:/app/server
       - ./shared:/app/shared
-      # Config files needed at runtime
+      # Config files watched by Vite / TypeScript
       - ./vite.config.ts:/app/vite.config.ts
       - ./tailwind.config.ts:/app/tailwind.config.ts
       - ./postcss.config.js:/app/postcss.config.js
       - ./tsconfig.json:/app/tsconfig.json
       - ./theme.json:/app/theme.json
-      # Preserve container's node_modules (avoid host overwrite)
+      # Preserve the container's node_modules — never overwrite with host's
       - /app/node_modules
-    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:5001/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+        reservations:
+          memory: 256m
+    profiles:
+      - "" # default profile — runs with plain `docker compose up`
+      - dev
+
+  # ── Production ──────────────────────────────────────────────────
+  app-prod:
+    <<: *app-base
+    build:
+      context: .
+      target: production
+      args:
+        NODE_VERSION: "20-alpine"
+    container_name: plp-prod
+    ports:
+      - "${PORT:-5001}:5001"
+    environment:
+      NODE_ENV: production
+    healthcheck:
+      test: [ "CMD", "wget", "-qO-", "http://localhost:5001/api/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+        reservations:
+          memory: 128m
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+    profiles:
+      - prod
+
+# ── Networks ──────────────────────────────────────────────────────
+networks:
+  app-net:
+    driver: bridge

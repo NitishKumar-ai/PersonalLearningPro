@@ -186,6 +186,7 @@ export default function StudentDashboard() {
       topic: "Electromagnetic Waves",
       date: "Tomorrow",
       type: "Quiz",
+      href: "/test/1",
       isUrgent: true,
       isAnnounced: true,
     },
@@ -459,8 +460,8 @@ export default function StudentDashboard() {
               <Link key={i} href={action.href}>
                 <Card
                   className={`group cursor-pointer hover:-translate-y-1.5 hover:shadow-xl transition-all duration-250 h-full border ${action.isPrimary
-                      ? "border-primary/30 bg-primary/5 dark:bg-primary/10 hover:bg-primary/10"
-                      : "hover:border-border/80"
+                    ? "border-primary/30 bg-primary/5 dark:bg-primary/10 hover:bg-primary/10"
+                    : "hover:border-border/80"
                     }`}
                 >
                   <CardContent className="p-4 flex flex-col gap-2">
@@ -505,10 +506,10 @@ export default function StudentDashboard() {
               <div
                 key={i}
                 className={`flex-shrink-0 flex flex-col items-center gap-1 px-4 py-3 rounded-xl border transition-all ${isNow
-                    ? `bg-gradient-to-b ${meta?.lightBg || "from-primary/10 to-primary/5"} border-primary/30 shadow-sm`
-                    : slot.subject === "Lunch"
-                      ? "bg-muted/50 border-border/50 opacity-70"
-                      : "bg-card hover:bg-muted/40 border-border/50"
+                  ? `bg-gradient-to-b ${meta?.lightBg || "from-primary/10 to-primary/5"} border-primary/30 shadow-sm`
+                  : slot.subject === "Lunch"
+                    ? "bg-muted/50 border-border/50 opacity-70"
+                    : "bg-card hover:bg-muted/40 border-border/50"
                   }`}
               >
                 <span className="text-[10px] text-muted-foreground font-medium">{slot.time}</span>
@@ -673,8 +674,8 @@ export default function StudentDashboard() {
                   <div
                     key={i}
                     className={`flex items-center gap-4 p-4 rounded-xl border transition-all hover:shadow-sm ${test.isUrgent
-                        ? "border-red-500/20 bg-red-500/5 dark:bg-red-500/10"
-                        : "border-border/60 bg-card"
+                      ? "border-red-500/20 bg-red-500/5 dark:bg-red-500/10"
+                      : "border-border/60 bg-card"
                       }`}
                   >
                     <div className={`p-2.5 rounded-xl bg-gradient-to-br ${meta?.gradient} text-white flex-shrink-0 shadow-sm`}>
@@ -701,7 +702,7 @@ export default function StudentDashboard() {
                     <div className="text-right flex-shrink-0">
                       <div className="text-xs font-semibold text-foreground">{test.date}</div>
                       <Button variant="outline" size="sm" className="mt-1.5 h-7 text-xs px-2.5" asChild>
-                        <Link href="/tests">Prepare</Link>
+                        <Link href={test.href || "/tests"}>Prepare</Link>
                       </Button>
                     </div>
                   </div>
