@@ -13,7 +13,7 @@ jobs:
         working-directory: ./PersonalLearningPro
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Use Node.js 20.x
       uses: actions/setup-node@v4
@@ -37,7 +37,7 @@ jobs:
   docker-build-test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Test Docker Development Build
       working-directory: ./PersonalLearningPro
