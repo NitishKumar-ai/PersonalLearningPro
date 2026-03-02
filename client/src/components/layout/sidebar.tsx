@@ -94,6 +94,18 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
   ];
 
+  // School Admin navigation items
+  const schoolAdminNavItems: NavItem[] = [
+    { title: "Dashboard", href: "/school-admin-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
+    { title: "Staff", href: "/staff", icon: <Users className="h-5 w-5" />, isSoon: true },
+    { title: "Students", href: "/students", icon: <GraduationCap className="h-5 w-5" />, isSoon: true },
+    { title: "Student Directory", href: "/student-directory", icon: <Award className="h-5 w-5" /> },
+    { title: "Reports", href: "/reports", icon: <FileQuestion className="h-5 w-5" />, isSoon: true },
+    { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
+    { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
+    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
+  ];
+
   // Admin navigation items
   const adminNavItems: NavItem[] = [
     { title: "Dashboard", href: "/admin-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
@@ -125,7 +137,7 @@ export function Sidebar({ className }: SidebarProps) {
   const studentNavItems: NavItem[] = [
     { title: "Dashboard", href: "/student-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
     { title: "Test MVP", href: "/test/1", icon: <FileQuestion className="h-5 w-5" /> },
-    { title: "My Progress", href: "/progress", icon: <BarChart className="h-5 w-5" />, isSoon: true },
+    { title: "My Progress", href: "/progress", icon: <BarChart className="h-5 w-5" /> },
     { title: "Resources", href: "/resources", icon: <BookOpen className="h-5 w-5" />, isSoon: true },
     { title: "AI Tutor", href: "/ai-tutor", icon: <Brain className="h-5 w-5" /> },
     { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" />, isSoon: true },
@@ -139,7 +151,7 @@ export function Sidebar({ className }: SidebarProps) {
   const parentNavItems: NavItem[] = [
     { title: "Dashboard", href: "/parent-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
     { title: "My Children", href: "/children", icon: <Users className="h-5 w-5" />, isSoon: true },
-    { title: "Academic Progress", href: "/progress", icon: <BarChart className="h-5 w-5" />, isSoon: true },
+    { title: "Academic Progress", href: "/progress", icon: <BarChart className="h-5 w-5" /> },
     { title: "Tests & Results", href: "/test-results", icon: <FileQuestion className="h-5 w-5" />, isSoon: true },
     { title: "Teacher Meetings", href: "/meetings", icon: <Video className="h-5 w-5" />, isSoon: true },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
@@ -150,6 +162,7 @@ export function Sidebar({ className }: SidebarProps) {
   if (user?.role === "student") items = studentNavItems;
   else if (user?.role === "teacher") items = teacherNavItems;
   else if (user?.role === "principal") items = principalNavItems;
+  else if (user?.role === "school_admin") items = schoolAdminNavItems;
   else if (user?.role === "admin") items = adminNavItems;
   else if (user?.role === "parent") items = parentNavItems;
 
