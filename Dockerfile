@@ -3,15 +3,16 @@
 #  Stages: deps → development | deps → build → production
 # ══════════════════════════════════════════════════════════════════
 
-# ── Metadata ──────────────────────────────────────────────────────
 ARG NODE_VERSION=20-alpine
-LABEL org.opencontainers.image.title="PersonalLearningPro"
-LABEL org.opencontainers.image.description="AI-powered personal learning platform"
-LABEL org.opencontainers.image.source="https://github.com/NitishKumar-ai/PersonalLearningPro"
 
 # ── Stage 1: Shared dependency layer ──────────────────────────────
 # Both dev and prod build on top of this for maximum cache reuse.
 FROM node:${NODE_VERSION} AS deps
+
+# ── Metadata ──────────────────────────────────────────────────────
+LABEL org.opencontainers.image.title="PersonalLearningPro"
+LABEL org.opencontainers.image.description="AI-powered personal learning platform"
+LABEL org.opencontainers.image.source="https://github.com/NitishKumar-ai/PersonalLearningPro"
 
 # Install OS-level build tools needed by native addons (e.g. canvas, bcrypt)
 RUN apk add --no-cache libc6-compat python3 make g++
