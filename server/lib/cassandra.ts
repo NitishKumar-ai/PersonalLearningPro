@@ -1,4 +1,6 @@
 import { Client } from "cassandra-driver";
+import fs from "fs";
+import os from "os";
 import path from "path";
 
 let client: Client | null = null;
@@ -7,17 +9,27 @@ export function getCassandraClient() {
   if (client) return client;
 
   const bundlePath = process.env.ASTRA_DB_SECURE_BUNDLE_PATH;
+  const bundleB64 = process.env.ASTRA_DB_SECURE_BUNDLE_B64;
   const token = process.env.ASTRA_DB_APPLICATION_TOKEN;
   const keyspace = process.env.ASTRA_DB_KEYSPACE;
 
-  if (!bundlePath || !token || !keyspace) {
+  let resolvedBundlePath = bundlePath ? path.resolve(bundlePath) : null;
+
+  // Support injecting the zip file via a base64 encoded environment variable
+  if (!resolvedBundlePath && bundleB64) {
+    const tempBundlePath = path.join(os.tmpdir(), "astra-secure-connect-temp.zip");
+    fs.writeFileSync(tempBundlePath, Buffer.from(bundleB64, "base64"));
+    resolvedBundlePath = tempBundlePath;
+  }
+
+  if (!resolvedBundlePath || !token || !keyspace) {
     console.warn("Astra DB credentials not fully configured. Cassandra client not initialized.");
     return null;
   }
 
   client = new Client({
     cloud: {
-      secureConnectBundle: path.resolve(bundlePath),
+      secureConnectBundle: resolvedBundlePath,
     },
     credentials: {
       username: "token",
