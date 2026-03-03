@@ -20,6 +20,7 @@ export default defineConfig({
   root: path.resolve(__dirname, "client"),
   envDir: path.resolve(__dirname),
   build: {
+    chunkSizeWarningLimit: 1600,
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
     rollupOptions: {
