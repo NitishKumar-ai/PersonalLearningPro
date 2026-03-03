@@ -79,7 +79,7 @@ app.use((req, res, next) => {
   // Attach WebSocket servers
   setupChatWebSocket(server, storage.sessionStore);
   setupMessagePalWebSocket(server, storage.sessionStore);
-    
+
   // Start Message HTTP server
   startMessagePalServer();
 
@@ -100,10 +100,10 @@ app.use((req, res, next) => {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5001
+  // Use port strictly if provided by Render/environment, otherwise default to 5001
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = 5001;
+  const port = parseInt(process.env.PORT || "5001", 10);
   server.listen({
     port,
     host: "0.0.0.0",
