@@ -1,14 +1,6 @@
 /* ─────────────────────────────────────────────
-   Blackboard Login Theme
+   Premium AI Login Theme - Greenboard style
    ───────────────────────────────────────────── */
-
-/* ── SVG noise texture (reusable) ── */
-.bb-noise {
-    position: fixed;
-    width: 0;
-    height: 0;
-    pointer-events: none;
-}
 
 /* ── Fullscreen wrapper ── */
 .bb-wrapper {
@@ -16,155 +8,144 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    /* chalkboard gradient */
-    background:
-        radial-gradient(ellipse at 30% 40%, #2e4a30 0%, transparent 60%),
-        radial-gradient(ellipse at 70% 60%, #1e3a22 0%, transparent 60%),
-        linear-gradient(145deg, #1a2e1c 0%, #243826 30%, #1a2e1c 60%, #162a18 100%);
-    background-color: #1a2e1c;
+    background-color: #23392a; /* Deep green */
     position: relative;
     overflow: hidden;
     padding: 2rem 1rem;
     font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
 
-/* subtle chalk-dust texture overlay */
+/* Background texture/overlay */
 .bb-wrapper::before {
     content: '';
     position: absolute;
     inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.06'/%3E%3C/svg%3E");
+    /* Subtle noise/texture for that chalkboard feel */
+    background: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E') repeat;
+    opacity: 0.05;
     pointer-events: none;
-    z-index: 0;
+    z-index: 1;
 }
 
-/* ── Board frame (wooden border) ── */
+/* ── Glass panel (form container - Wood Frame + Green Board) ── */
 .bb-board {
     position: relative;
     width: 100%;
     max-width: 440px;
-    border: 12px solid #6b3e1f;
-    border-image: linear-gradient(135deg,
-            #8b5e34 0%, #6b3e1f 25%, #a0713c 50%, #6b3e1f 75%, #8b5e34 100%) 12;
-    border-radius: 6px;
-    z-index: 1;
+    background: #334d3c; /* Lighter green for board */
+    border: 12px solid #8B5A2B; /* Wood frame color */
+    border-radius: 8px; /* Slightly rounded frame */
+    padding: 2.5rem 2rem;
+    z-index: 10;
     box-shadow:
-        0 0 0 2px #4a2a10,
-        0 8px 32px rgba(0, 0, 0, 0.55),
-        inset 0 0 60px rgba(0, 0, 0, 0.15);
+        0 24px 64px rgba(0, 0, 0, 0.5),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+        inset 0 0 30px rgba(0, 0, 0, 0.3); /* Inner shadow for depth */
 }
 
-/* ── Shelf under the board ── */
-.bb-shelf {
-    position: absolute;
-    bottom: -22px;
-    left: -14px;
-    right: -14px;
-    height: 18px;
-    background: linear-gradient(180deg, #7a4b25 0%, #5c3518 100%);
-    border-radius: 0 0 4px 4px;
-    box-shadow:
-        0 4px 8px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    z-index: 2;
-}
-
-/* chalk pieces on the shelf */
-.bb-shelf::before {
+/* Chalk lip / eraser holder */
+.bb-board::after {
     content: '';
     position: absolute;
-    bottom: 6px;
-    left: 24px;
-    width: 28px;
-    height: 7px;
-    background: #e8e4d9;
-    border-radius: 3px;
-    box-shadow:
-        38px -1px 0 0 #f5c542,
-        68px 1px 0 0 #6ec6e6;
-    opacity: 0.85;
+    bottom: -15px; /* Stick out below the frame */
+    left: -15px;
+    right: -15px;
+    height: 15px;
+    background: linear-gradient(to bottom, #754c24, #5c3c1d); /* Darker wood lip */
+    border-radius: 2px 2px 4px 4px;
+    z-index: 5;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
 }
 
-/* ── Glass panel (form container) ── */
-.bb-glass {
-    background: rgba(255, 255, 255, 0.06);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    padding: 2.25rem 2rem 2rem;
+/* Eraser and Chalk decorators */
+.bb-board::before {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 20px;
+    width: 40px;
+    height: 8px;
+    background: #e5e7eb; /* White chalk */
+    border-radius: 2px;
+    z-index: 6;
+    box-shadow: 
+        25px 0 0 -1px #fcd34d, /* Yellow chalk */
+        45px 0 0 -1px #60a5fa, /* Blue chalk */
+        100px -2px 0 2px #4b5563; /* Eraser */
 }
+
 
 /* ── Title ── */
+.bb-title-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
 .bb-title {
-    font-family: 'Kalam', cursive;
     font-size: 2rem;
-    color: #e8e4d9;
-    text-align: center;
-    margin-bottom: 0.25rem;
-    text-shadow:
-        0 0 8px rgba(232, 228, 217, 0.25),
-        1px 1px 0 rgba(0, 0, 0, 0.3);
-    letter-spacing: 0.02em;
+    font-weight: 500;
+    font-family: 'Caveat', 'Comic Sans MS', cursive; /* Handwritten look */
+    letter-spacing: 0.05em;
+    color: #f8fafc;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
 .bb-subtitle {
     text-align: center;
-    color: rgba(232, 228, 217, 0.55);
+    color: #cbd5e1;
     font-size: 0.85rem;
-    margin-bottom: 1.75rem;
+    margin-top: 0.5rem;
+    font-weight: 400;
 }
 
 /* ── Tab row ── */
 .bb-tabs {
     display: flex;
-    gap: 0;
-    margin-bottom: 1.5rem;
-    border-bottom: 1px solid rgba(232, 228, 217, 0.12);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0;
+    margin-bottom: 2rem;
+    gap: 1rem;
 }
 
 .bb-tab {
     flex: 1;
     text-align: center;
-    padding: 0.6rem 0;
-    font-size: 0.9rem;
+    padding: 0.75rem 0;
+    font-size: 0.95rem;
     font-weight: 500;
-    color: rgba(232, 228, 217, 0.45);
-    background: none;
+    color: #94a3b8;
+    background: transparent;
     border: none;
     cursor: pointer;
-    position: relative;
-    transition: color 0.25s;
+    transition: all 0.2s ease;
+    border-bottom: 2px solid transparent; /* Prepare for active border */
 }
 
-.bb-tab:hover {
-    color: rgba(232, 228, 217, 0.7);
+.bb-tab:hover:not(.bb-tab--active) {
+    color: #e2e8f0;
 }
 
 .bb-tab--active {
-    color: #e8e4d9;
-}
-
-.bb-tab--active::after {
-    content: '';
-    position: absolute;
-    bottom: -1px;
-    left: 20%;
-    right: 20%;
-    height: 2px;
-    background: #e8e4d9;
-    border-radius: 1px;
+    color: #fff;
+    border-bottom: 2px solid #fff;
 }
 
 /* ── Input group ── */
 .bb-field {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
 }
 
 .bb-label {
     display: block;
-    font-size: 0.8rem;
-    color: rgba(232, 228, 217, 0.6);
-    margin-bottom: 0.35rem;
-    letter-spacing: 0.03em;
+    font-size: 0.85rem;
+    font-weight: 400;
+    color: #cbd5e1;
+    margin-bottom: 0.5rem;
+    font-family: 'Inter', sans-serif;
 }
 
 .bb-input-wrap {
@@ -173,60 +154,68 @@
 
 .bb-input-icon {
     position: absolute;
-    left: 14px;
+    left: 16px;
     top: 50%;
     transform: translateY(-50%);
-    width: 16px;
-    height: 16px;
-    color: rgba(232, 228, 217, 0.35);
+    width: 18px;
+    height: 18px;
+    color: #94a3b8;
     pointer-events: none;
+    transition: color 0.2s;
 }
 
 .bb-input {
     width: 100%;
-    padding: 0.7rem 0.9rem 0.7rem 2.5rem;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(232, 228, 217, 0.12);
-    border-radius: 999px;
-    color: #e8e4d9;
-    font-size: 0.9rem;
+    padding: 0.85rem 1rem 0.85rem 2.75rem;
+    background: rgba(0, 0, 0, 0.2); /* Darker green/blackish */
+    border: 1px solid transparent;
+    border-radius: 20px;
+    color: #f1f5f9;
+    font-size: 0.95rem;
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: all 0.2s ease;
     box-sizing: border-box;
 }
 
 .bb-input::placeholder {
-    color: rgba(232, 228, 217, 0.28);
+    color: #64748b;
 }
 
 .bb-input:focus {
-    border-color: rgba(232, 228, 217, 0.3);
-    box-shadow: 0 0 0 3px rgba(232, 228, 217, 0.06);
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
 }
+
+.bb-input:focus+.bb-input-icon,
+.bb-input-wrap:focus-within .bb-input-icon {
+    color: #e2e8f0;
+}
+
 
 /* select dropdown override */
 .bb-select {
     width: 100%;
-    padding: 0.7rem 0.9rem 0.7rem 2.5rem;
-    background: rgba(0, 0, 0, 0.25);
-    border: 1px solid rgba(232, 228, 217, 0.12);
-    border-radius: 999px;
-    color: #e8e4d9;
-    font-size: 0.9rem;
+    padding: 0.85rem 1rem 0.85rem 2.75rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid transparent;
+    border-radius: 20px;
+    color: #f1f5f9;
+    font-size: 0.95rem;
     outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
+    transition: all 0.2s ease;
     box-sizing: border-box;
     appearance: none;
     -webkit-appearance: none;
     cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='rgba(232,228,217,0.4)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 14px center;
+    background-position: right 16px center;
 }
 
 .bb-select:focus {
-    border-color: rgba(232, 228, 217, 0.3);
-    box-shadow: 0 0 0 3px rgba(232, 228, 217, 0.06);
+    background: rgba(0, 0, 0, 0.3);
+    border-color: rgba(255, 255, 255, 0.2);
 }
 
 /* ── Remember-me / Forgot row ── */
@@ -234,17 +223,18 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.25rem;
-    margin-top: 0.25rem;
+    margin-bottom: 1.5rem;
+    margin-top: 0.5rem;
 }
 
 .bb-checkbox-label {
     display: flex;
     align-items: center;
-    gap: 0.45rem;
-    font-size: 0.8rem;
-    color: rgba(232, 228, 217, 0.55);
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #cbd5e1;
     cursor: pointer;
+    user-select: none;
 }
 
 .bb-checkbox {
@@ -252,57 +242,59 @@
     -webkit-appearance: none;
     width: 16px;
     height: 16px;
-    border: 1px solid rgba(232, 228, 217, 0.3);
-    border-radius: 3px;
-    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    background: transparent;
     cursor: pointer;
     position: relative;
     flex-shrink: 0;
+    transition: all 0.2s;
 }
 
 .bb-checkbox:checked {
-    background: #3d5c40;
-    border-color: #4d7a50;
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .bb-checkbox:checked::after {
-    content: '✓';
+    content: '';
     position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 11px;
-    color: #e8e4d9;
+    left: 4px;
+    top: 1px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 
 .bb-forgot {
-    font-size: 0.8rem;
-    color: rgba(232, 228, 217, 0.55);
+    font-size: 0.85rem;
+    color: #94a3b8;
     text-decoration: none;
     cursor: pointer;
     background: none;
     border: none;
     padding: 0;
+    font-weight: 400;
     transition: color 0.2s;
 }
 
 .bb-forgot:hover {
-    color: #e8e4d9;
+    color: #e2e8f0;
 }
 
 /* ── Primary button ── */
 .bb-btn {
     width: 100%;
-    padding: 0.75rem;
-    background: #3d5c40;
-    border: none;
-    border-radius: 999px;
-    color: #e8e4d9;
-    font-size: 0.95rem;
+    padding: 0.85rem;
+    background: rgba(255, 255, 255, 0.15); /* Semi-transparent white/chalky */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    color: #fff;
+    font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -310,8 +302,7 @@
 }
 
 .bb-btn:hover {
-    background: #4d7a50;
-    box-shadow: 0 4px 14px rgba(61, 92, 64, 0.4);
+    background: rgba(255, 255, 255, 0.25);
 }
 
 .bb-btn:active {
@@ -319,59 +310,52 @@
 }
 
 .bb-btn:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
-}
-
-.bb-btn:disabled:hover {
-    background: #3d5c40;
-    box-shadow: none;
-    transform: none;
+    background: rgba(255, 255, 255, 0.05);
 }
 
 /* ── Divider ── */
 .bb-divider {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    margin: 1.5rem 0;
+    gap: 1rem;
+    margin: 1.75rem 0;
 }
 
 .bb-divider-line {
     flex: 1;
     height: 1px;
-    background: rgba(232, 228, 217, 0.12);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .bb-divider-text {
     font-size: 0.75rem;
-    color: rgba(232, 228, 217, 0.35);
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    white-space: nowrap;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
 }
 
 /* ── Google button ── */
 .bb-btn-google {
     width: 100%;
-    padding: 0.7rem;
-    background: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(232, 228, 217, 0.12);
-    border-radius: 999px;
-    color: #e8e4d9;
-    font-size: 0.9rem;
+    padding: 0.85rem;
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid transparent;
+    border-radius: 20px;
+    color: #e2e8f0;
+    font-size: 0.95rem;
     font-weight: 500;
     cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
 }
 
 .bb-btn-google:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(232, 228, 217, 0.22);
+    background: rgba(0, 0, 0, 0.3);
 }
 
 .bb-btn-google svg {
@@ -382,76 +366,36 @@
 /* ── Sign-up link row ── */
 .bb-footer {
     text-align: center;
-    margin-top: 1.5rem;
-    font-size: 0.82rem;
-    color: rgba(232, 228, 217, 0.45);
+    margin-top: 2rem;
+    font-size: 0.85rem;
+    color: #94a3b8;
 }
 
 .bb-footer-link {
-    color: #e8e4d9;
+    color: #e2e8f0;
     text-decoration: none;
     cursor: pointer;
     background: none;
     border: none;
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     font-weight: 600;
     padding: 0;
+    margin-left: 0.25rem;
     transition: color 0.2s;
 }
 
 .bb-footer-link:hover {
-    color: #a8d8a8;
+    color: #fff;
+    text-decoration: underline;
 }
 
 /* ── Form error messages ── */
 .bb-error {
-    font-size: 0.75rem;
-    color: #f5a0a0;
-    margin-top: 0.3rem;
-    padding-left: 1rem;
-}
-
-/* ── Chalk doodles (decorative SVGs) ── */
-.bb-doodle {
-    position: absolute;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.bb-doodle--atom {
-    top: 12%;
-    left: 8%;
-    width: 60px;
-    height: 60px;
-    opacity: 0.12;
-}
-
-.bb-doodle--formula {
-    bottom: 18%;
-    right: 6%;
-    opacity: 0.1;
-    font-family: 'Kalam', cursive;
-    font-size: 1.1rem;
-    color: #e8e4d9;
-    transform: rotate(-8deg);
-}
-
-.bb-doodle--star {
-    top: 8%;
-    right: 12%;
-    width: 40px;
-    height: 40px;
-    opacity: 0.1;
-}
-
-.bb-doodle--pi {
-    bottom: 10%;
-    left: 10%;
-    opacity: 0.09;
-    font-family: 'Kalam', cursive;
-    font-size: 2.5rem;
-    color: #e8e4d9;
-    transform: rotate(12deg);
+    font-size: 0.8rem;
+    color: #fecaca; /* Chalky red */
+    margin-top: 0.4rem;
+    padding-left: 0.5rem;
+    font-weight: 400;
 }
 
 /* ── Spinner ── */
@@ -459,8 +403,8 @@
     display: inline-block;
     width: 18px;
     height: 18px;
-    border: 2px solid rgba(232, 228, 217, 0.3);
-    border-top-color: #e8e4d9;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: #fff;
     border-radius: 50%;
     animation: bb-spin 0.6s linear infinite;
 }
@@ -471,63 +415,17 @@
     }
 }
 
-/* ── Responsive ── */
-@media (max-width: 520px) {
-    .bb-board {
-        border-width: 8px;
-        border-radius: 4px;
-    }
-
-    .bb-glass {
-        padding: 1.5rem 1.25rem 1.25rem;
-    }
-
-    .bb-title {
-        font-size: 1.6rem;
-    }
-
-    .bb-shelf {
-        bottom: -18px;
-        height: 14px;
-        left: -10px;
-        right: -10px;
-    }
-
-    .bb-doodle {
-        display: none;
-    }
-}
-
-@media (max-width: 360px) {
-    .bb-glass {
-        padding: 1.25rem 1rem 1rem;
-    }
-
-    .bb-title {
-        font-size: 1.35rem;
-    }
-
-    .bb-input {
-        padding: 0.6rem 0.8rem 0.6rem 2.2rem;
-        font-size: 0.85rem;
-    }
-
-    .bb-select {
-        padding: 0.6rem 0.8rem 0.6rem 2.2rem;
-        font-size: 0.85rem;
-    }
-}
-
 /* ── Entrance animation ── */
 .bb-board {
-    animation: bb-fadeIn 0.5s ease-out;
+    animation: bb-fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes bb-fadeIn {
     from {
         opacity: 0;
-        transform: translateY(16px) scale(0.98);
+        transform: translateY(10px) scale(0.98);
     }
+
     to {
         opacity: 1;
         transform: translateY(0) scale(1);
@@ -541,14 +439,14 @@
 
 .bb-password-toggle {
     position: absolute;
-    right: 14px;
+    right: 16px;
     top: 50%;
     transform: translateY(-50%);
     background: none;
     border: none;
-    padding: 0;
+    padding: 4px;
     cursor: pointer;
-    color: rgba(232, 228, 217, 0.35);
+    color: #94a3b8;
     transition: color 0.2s;
     display: flex;
     align-items: center;
@@ -557,34 +455,32 @@
 }
 
 .bb-password-toggle:hover {
-    color: rgba(232, 228, 217, 0.7);
+    color: #e2e8f0;
 }
 
 .bb-password-toggle svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
 }
 
 .bb-input--password {
-    padding-right: 2.75rem;
+    padding-right: 3rem;
 }
 
 /* ── Password strength indicator ── */
 .bb-strength {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.4rem;
-    padding-left: 0.25rem;
+    gap: 0.75rem;
+    margin-top: 0.6rem;
 }
 
 .bb-strength-bar {
     flex: 1;
-    height: 3px;
-    background: rgba(232, 228, 217, 0.1);
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 2px;
     overflow: hidden;
-    max-width: 180px;
 }
 
 .bb-strength-fill {
@@ -595,183 +491,119 @@
 
 .bb-strength-fill--weak {
     width: 25%;
-    background: #f5a0a0;
+    background: #fca5a5;
 }
 
 .bb-strength-fill--fair {
     width: 50%;
-    background: #f5c542;
+    background: #fde047;
 }
 
 .bb-strength-fill--strong {
     width: 75%;
-    background: #6ec6e6;
+    background: #93c5fd;
 }
 
 .bb-strength-fill--very-strong {
     width: 100%;
-    background: #7cd87c;
+    background: #86efac;
 }
 
 .bb-strength-text {
-    font-size: 0.7rem;
-    color: rgba(232, 228, 217, 0.45);
-    white-space: nowrap;
+    font-size: 0.75rem;
+    color: #cbd5e1;
+    min-width: 70px;
+    text-align: right;
 }
 
-/* ── Form-level error banner ── */
-.bb-error-banner {
-    background: rgba(245, 160, 160, 0.12);
-    border: 1px solid rgba(245, 160, 160, 0.25);
+/* ── Form-level error/success banners ── */
+.bb-error-banner,
+.bb-success-banner {
     border-radius: 8px;
-    padding: 0.6rem 0.85rem;
-    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
     display: flex;
     align-items: flex-start;
-    gap: 0.5rem;
-    animation: bb-shake 0.35s ease-in-out;
+    gap: 0.75rem;
+}
+
+.bb-error-banner {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px dotted rgba(239, 68, 68, 0.3); /* Chalk line feel */
 }
 
 .bb-error-banner svg {
-    width: 16px;
-    height: 16px;
-    color: #f5a0a0;
-    flex-shrink: 0;
-    margin-top: 1px;
+    color: #fca5a5;
 }
 
 .bb-error-banner-text {
-    font-size: 0.8rem;
-    color: #f5a0a0;
+    color: #fca5a5;
+    font-size: 0.85rem;
     line-height: 1.4;
 }
 
-@keyframes bb-shake {
-    0%, 100% { transform: translateX(0); }
-    20% { transform: translateX(-4px); }
-    40% { transform: translateX(4px); }
-    60% { transform: translateX(-3px); }
-    80% { transform: translateX(2px); }
-}
-
-/* ── Success banner ── */
 .bb-success-banner {
-    background: rgba(124, 216, 124, 0.12);
-    border: 1px solid rgba(124, 216, 124, 0.25);
-    border-radius: 8px;
-    padding: 0.6rem 0.85rem;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.5rem;
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px dotted rgba(16, 185, 129, 0.3);
 }
 
 .bb-success-banner svg {
-    width: 16px;
-    height: 16px;
-    color: #7cd87c;
-    flex-shrink: 0;
-    margin-top: 1px;
+    color: #86efac;
 }
 
 .bb-success-banner-text {
-    font-size: 0.8rem;
-    color: #7cd87c;
+    color: #86efac;
+    font-size: 0.85rem;
     line-height: 1.4;
 }
 
-/* ── Forgot password modal ── */
-.bb-modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-    animation: bb-overlayIn 0.2s ease-out;
-    padding: 1rem;
+/* Match Error */
+.bb-match-error {
+    font-size: 0.8rem;
+    color: #fca5a5;
+    margin-top: 0.4rem;
+    padding-left: 0.5rem;
+    font-weight: 400;
 }
 
-@keyframes bb-overlayIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
+.bb-match-success {
+    font-size: 0.8rem;
+    color: #86efac;
+    margin-top: 0.4rem;
+    padding-left: 0.5rem;
+    font-weight: 400;
 }
 
+/* Forgot Modal overrides for green theme */
 .bb-modal {
-    background: #1e3124;
-    border: 2px solid rgba(232, 228, 217, 0.15);
-    border-radius: 12px;
+    background: #2a4031;
+    border: 8px solid #8B5A2B;
+    border-radius: 6px;
     padding: 2rem;
     width: 100%;
     max-width: 380px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
-    animation: bb-modalIn 0.25s ease-out;
-}
-
-@keyframes bb-modalIn {
-    from {
-        opacity: 0;
-        transform: scale(0.92) translateY(12px);
-    }
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
+    animation: bb-modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .bb-modal-title {
-    font-family: 'Kalam', cursive;
-    font-size: 1.4rem;
-    color: #e8e4d9;
-    margin-bottom: 0.35rem;
-    text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.3);
-}
-
-.bb-modal-desc {
-    font-size: 0.82rem;
-    color: rgba(232, 228, 217, 0.55);
-    margin-bottom: 1.25rem;
-    line-height: 1.45;
-}
-
-.bb-modal-actions {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-}
-
-.bb-btn-secondary {
-    flex: 1;
-    padding: 0.65rem;
-    background: rgba(255, 255, 255, 0.07);
-    border: 1px solid rgba(232, 228, 217, 0.12);
-    border-radius: 999px;
-    color: #e8e4d9;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: background 0.2s, border-color 0.2s;
-}
-
-.bb-btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.12);
-    border-color: rgba(232, 228, 217, 0.22);
+    font-size: 1.5rem;
+    font-family: 'Caveat', 'Comic Sans MS', cursive;
+    color: #f8fafc;
+    margin-bottom: 0.5rem;
 }
 
 .bb-btn-primary-sm {
     flex: 1;
-    padding: 0.65rem;
-    background: #3d5c40;
-    border: none;
-    border-radius: 999px;
-    color: #e8e4d9;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    color: #fff;
     font-size: 0.9rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -779,36 +611,48 @@
 }
 
 .bb-btn-primary-sm:hover {
-    background: #4d7a50;
+    background: rgba(255, 255, 255, 0.25);
 }
 
-.bb-btn-primary-sm:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.bb-btn-secondary {
+    flex: 1;
+    padding: 0.75rem;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    color: #cbd5e1;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-/* ── Google button loading state ── */
-.bb-btn-google:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.bb-btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
 }
 
-.bb-btn-google:disabled:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(232, 228, 217, 0.12);
+/* Chalky background scribbles */
+.chalk-bg-icon {
+    position: absolute;
+    color: rgba(255,255,255,0.03);
+    font-family: 'Caveat', cursive;
+    pointer-events: none;
+    z-index: 0;
 }
 
-/* ── Match error for confirm password ── */
-.bb-match-error {
-    font-size: 0.75rem;
-    color: #f5a0a0;
-    margin-top: 0.3rem;
-    padding-left: 1rem;
-}
+.chalk-bg-icon.atom { top: 15%; left: 10%; width: 60px; height: 60px; }
+.chalk-bg-icon.star { top: 10%; right: 15%; width: 40px; height: 40px; }
+.chalk-bg-icon.pi { bottom: 15%; left: 15%; font-size: 2rem; }
+.chalk-bg-icon.emc { bottom: 20%; right: 10%; font-size: 1.5rem; font-style: italic; }
 
-.bb-match-success {
-    font-size: 0.75rem;
-    color: #7cd87c;
-    margin-top: 0.3rem;
-    padding-left: 1rem;
+@media (max-width: 520px) {
+    .bb-wrapper {
+        padding: 1rem;
+    }
+
+    .bb-board {
+        padding: 2rem 1.5rem;
+        border-width: 8px; /* Thinner border on mobile */
+    }
 }
