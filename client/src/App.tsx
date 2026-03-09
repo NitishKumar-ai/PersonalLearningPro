@@ -1,4 +1,5 @@
-import type React from "react";
+import React, { useState } from "react";
+
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -23,6 +24,12 @@ import ResourcesPage from "@/pages/resources-page";
 import MyProgress from "@/pages/my-progress";
 import StudyArenaPage from "@/pages/study-arena";
 import TasksPage from "@/pages/tasks";
+import NotificationsPage from "@/pages/notifications";
+import TestsListPage from "@/pages/tests-list";
+import AcademicCalendarPage from "@/pages/academic-calendar";
+import FocusPage from "@/pages/focus";
+import AchievementsPage from "@/pages/achievements";
+import LandingPage from "@/pages/landing";
 import { ThemeProvider } from "./contexts/theme-context";
 import "./blackboard-login.css";
 import { Loader2 } from "lucide-react";
@@ -96,6 +103,11 @@ const WrappedResourcesPage = withLayout(ResourcesPage, { fullWidth: true });
 const WrappedMyProgress = withLayout(MyProgress, { fullWidth: true });
 const WrappedStudyArena = withLayout(StudyArenaPage, { fullWidth: true });
 const WrappedTasks = withLayout(TasksPage, { fullWidth: true });
+const WrappedNotifications = withLayout(NotificationsPage);
+const WrappedTestsList = withLayout(TestsListPage);
+const WrappedCalendar = withLayout(AcademicCalendarPage);
+const WrappedFocus = withLayout(FocusPage);
+const WrappedAchievements = withLayout(AchievementsPage);
 
 /**
  * Render application routes and handle authentication and loading states.
@@ -153,6 +165,15 @@ const withProtection = (Component: React.ComponentType<any>, allowedRoles?: stri
   return ProtectedRouteWrapper;
 }
 
+function UnauthenticatedRouter() {
+  return (
+    <Switch>
+      <Route path="/login" component={AuthDialog} />
+      <Route component={LandingPage} />
+    </Switch>
+  );
+}
+
 function Router() {
   const { currentUser: { user, profile }, isLoading } = useAuth();
 
@@ -168,9 +189,9 @@ function Router() {
     );
   }
 
-  // Show auth dialog if not authenticated
+  // Show landing page or login page if not authenticated
   if (!user || !profile) {
-    return <AuthDialog />;
+    return <UnauthenticatedRouter />;
   }
 
   const effectiveRole = profile.role;
@@ -199,9 +220,9 @@ function Router() {
   };
 
   // Protected route wrapper
-  const ProtectedRoute = ({ component: Component, requiredRole, ...props }: { 
-    component: React.ComponentType, 
-    requiredRole: string | string[] 
+  const ProtectedRoute = ({ component: Component, requiredRole, ...props }: {
+    component: React.ComponentType,
+    requiredRole: string | string[]
   }) => {
     if (!canAccessRoute(requiredRole)) {
       return <NotFound />;
@@ -222,6 +243,14 @@ function Router() {
 
   return (
     <Switch>
+      <Route path="/login">
+        {() => {
+          // If authenticated but visiting /login, redirect to /
+          window.location.replace("/");
+          return null;
+        }}
+      </Route>
+
       {/* Root — role-aware dashboard */}
       <Route path="/" component={getDashboardComponent()} />
 
@@ -250,22 +279,25 @@ function Router() {
       <Route path="/institution" component={WrappedComingSoon} />
       <Route path="/staff" component={WrappedComingSoon} />
       <Route path="/students" component={WrappedComingSoon} />
-      <Route path="/calendar" component={WrappedComingSoon} />
+      {/* Phase 2 — newly implemented features */}
+      <Route path="/notifications" component={withProtection(WrappedNotifications)} />
+      <Route path="/tests" component={withProtection(WrappedTestsList, ["student"])} />
+      <Route path="/calendar" component={withProtection(WrappedCalendar)} />
+      <Route path="/focus" component={withProtection(WrappedFocus, ["student"])} />
+      <Route path="/achievements" component={withProtection(WrappedAchievements, ["student"])} />
+
+      {/* Coming Soon — still unimplemented */}
       <Route path="/infrastructure" component={WrappedComingSoon} />
       <Route path="/live-classes" component={WrappedComingSoon} />
-      <Route path="/tests" component={WrappedComingSoon} />
       <Route path="/progress" component={withProtection(WrappedMyProgress, ["student", "parent"])} />
       <Route path="/study-groups" component={WrappedComingSoon} />
-      <Route path="/achievements" component={WrappedComingSoon} />
       <Route path="/settings" component={WrappedComingSoon} />
       <Route path="/system-settings" component={WrappedComingSoon} />
       <Route path="/users" component={WrappedComingSoon} />
       <Route path="/classes" component={WrappedComingSoon} />
-      <Route path="/focus" component={WrappedComingSoon} />
       <Route path="/partners" component={WrappedComingSoon} />
       <Route path="/children" component={WrappedComingSoon} />
       <Route path="/meetings" component={WrappedComingSoon} />
-      <Route path="/notifications" component={WrappedComingSoon} />
       <Route path="/reports" component={WrappedComingSoon} />
       <Route path="/ai-study-plans" component={WrappedComingSoon} />
       <Route path="/test-results" component={WrappedComingSoon} />
