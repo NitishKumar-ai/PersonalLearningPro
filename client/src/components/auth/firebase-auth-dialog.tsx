@@ -176,8 +176,9 @@ export function FirebaseAuthDialog() {
             await login(data.email, data.password);
         } catch (error: any) {
             const code = error.code || "";
+            const firebaseNotConfigured = error.message === "Firebase is not configured";
             // Firebase email/password might not be enabled — fall back to backend JWT auth
-            if (code === "auth/operation-not-allowed" || code === "auth/invalid-login-credentials" || code === "auth/too-many-requests") {
+            if (firebaseNotConfigured || code === "auth/operation-not-allowed" || code === "auth/invalid-login-credentials" || code === "auth/too-many-requests") {
                 try {
                     const res = await fetch("/api/auth/login", {
                         method: "POST",
@@ -216,8 +217,9 @@ export function FirebaseAuthDialog() {
             await register(data.email, data.password, data.name, data.role as UserRole, additionalData);
         } catch (error: any) {
             const code = error.code || "";
-            // If Email/Password auth is not enabled in Firebase, register via backend
-            if (code === "auth/operation-not-allowed") {
+            const firebaseNotConfigured = error.message === "Firebase is not configured";
+            // If Email/Password auth is not enabled in Firebase (or Firebase isn't configured), register via backend
+            if (firebaseNotConfigured || code === "auth/operation-not-allowed") {
                 try {
                     const res = await fetch("/api/auth/register", {
                         method: "POST",
@@ -453,250 +455,280 @@ export function FirebaseAuthDialog() {
     return (
         <>
             <div className="bb-wrapper">
-                {/* Decorative chalk doodles */}
-                <div className="bb-doodle bb-doodle--atom">
-                    <svg viewBox="0 0 60 60" fill="none" stroke="#e8e4d9" strokeWidth="1.2">
-                        <ellipse cx="30" cy="30" rx="28" ry="10" />
-                        <ellipse cx="30" cy="30" rx="28" ry="10" transform="rotate(60 30 30)" />
-                        <ellipse cx="30" cy="30" rx="28" ry="10" transform="rotate(120 30 30)" />
-                        <circle cx="30" cy="30" r="3" fill="#e8e4d9" />
-                    </svg>
-                </div>
-                <span className="bb-doodle bb-doodle--formula">E = mc²</span>
-                <div className="bb-doodle bb-doodle--star">
-                    <svg viewBox="0 0 40 40" fill="none" stroke="#e8e4d9" strokeWidth="1.2">
-                        <polygon points="20,2 25,15 38,15 27,24 31,38 20,29 9,38 13,24 2,15 15,15" />
-                    </svg>
-                </div>
-                <span className="bb-doodle bb-doodle--pi">π</span>
+                {/* Background Orbs */}
+                <div className="bb-orb bb-orb-1"></div>
+                <div className="bb-orb bb-orb-2"></div>
+                <div className="bb-orb bb-orb-3"></div>
 
-                {/* Board */}
+                {/* Form Container */}
                 <div className="bb-board">
-                    <div className="bb-glass">
-                        <h1 className="bb-title">Master Plan</h1>
+                    {/* Background decorations */}
+                    <div className="chalk-bg-icon atom">⚛</div>
+                    <div className="chalk-bg-icon star">☆</div>
+                    <div className="chalk-bg-icon pi">π</div>
+                    <div className="chalk-bg-icon emc">E = mc²</div>
+
+                    <div className="bb-title-wrapper">
+                        <h1 className="bb-title">
+                            Master Plan
+                        </h1>
                         <p className="bb-subtitle">AI-powered personalized learning</p>
+                    </div>
 
-                        {/* Tab bar */}
-                        <div className="bb-tabs">
-                            <button
-                                type="button"
-                                className={`bb-tab ${authTab === "login" ? "bb-tab--active" : ""}`}
-                                onClick={() => switchTab("login")}
-                            >
-                                Login
-                            </button>
-                            <button
-                                type="button"
-                                className={`bb-tab ${authTab === "register" ? "bb-tab--active" : ""}`}
-                                onClick={() => switchTab("register")}
-                            >
-                                Register
-                            </button>
-                        </div>
+                    {/* Tab bar */}
+                    <div className="bb-tabs">
+                        <button
+                            type="button"
+                            className={`bb-tab ${authTab === "login" ? "bb-tab--active" : ""}`}
+                            onClick={() => switchTab("login")}
+                        >
+                            Login
+                        </button>
+                        <button
+                            type="button"
+                            className={`bb-tab ${authTab === "register" ? "bb-tab--active" : ""}`}
+                            onClick={() => switchTab("register")}
+                        >
+                            Register
+                        </button>
+                    </div>
 
-                        {/* ── LOGIN TAB ── */}
-                        {authTab === "login" && (
-                            <Form {...loginForm}>
-                                <form onSubmit={loginForm.handleSubmit(onLoginSubmit)}>
-                                    {/* Error Banner */}
-                                    {loginError && (
-                                        <div className="bb-error-banner">
-                                            <AlertIcon />
-                                            <span className="bb-error-banner-text">{loginError}</span>
-                                        </div>
-                                    )}
-
-                                    {/* Email */}
-                                    <FormField
-                                        control={loginForm.control}
-                                        name="email"
-                                        render={({ field }) => (
-                                            <FormItem className="bb-field">
-                                                <label className="bb-label">Email</label>
-                                                <FormControl>
-                                                    <div className="bb-input-wrap">
-                                                        <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                                                            <circle cx="12" cy="7" r="4" />
-                                                        </svg>
-                                                        <input
-                                                            className="bb-input"
-                                                            placeholder="your.email@example.com"
-                                                            disabled={isLoginSubmitting}
-                                                            {...field}
-                                                        />
-                                                    </div>
-                                                </FormControl>
-                                                <FormMessage className="bb-error" />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    {/* Password */}
-                                    <FormField
-                                        control={loginForm.control}
-                                        name="password"
-                                        render={({ field }) => (
-                                            <FormItem className="bb-field">
-                                                <label className="bb-label">Password</label>
-                                                <FormControl>
-                                                    {renderPasswordField(
-                                                        field,
-                                                        showLoginPassword,
-                                                        () => setShowLoginPassword(p => !p),
-                                                        "••••••••",
-                                                        isLoginSubmitting
-                                                    )}
-                                                </FormControl>
-                                                <FormMessage className="bb-error" />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    {/* Remember me / Forgot */}
-                                    <div className="bb-options-row">
-                                        <label className="bb-checkbox-label">
-                                            <input type="checkbox" className="bb-checkbox" />
-                                            Remember me
-                                        </label>
-                                        <button
-                                            type="button"
-                                            className="bb-forgot"
-                                            onClick={openForgotModal}
-                                        >
-                                            Forgot password?
-                                        </button>
+                    {/* ── LOGIN TAB ── */}
+                    {authTab === "login" && (
+                        <Form {...loginForm}>
+                            <form onSubmit={loginForm.handleSubmit(onLoginSubmit)}>
+                                {/* Error Banner */}
+                                {loginError && (
+                                    <div className="bb-error-banner">
+                                        <AlertIcon />
+                                        <span className="bb-error-banner-text">{loginError}</span>
                                     </div>
+                                )}
 
-                                    <button type="submit" className="bb-btn" disabled={isLoginSubmitting}>
-                                        {isLoginSubmitting ? (
-                                            <><span className="bb-spinner" /> Signing in…</>
-                                        ) : (
-                                            "Sign In"
-                                        )}
-                                    </button>
-                                </form>
-                            </Form>
-                        )}
-
-                        {/* ── REGISTER TAB ── */}
-                        {authTab === "register" && (
-                            <Form {...registerForm}>
-                                <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)}>
-                                    {/* Error Banner */}
-                                    {registerError && (
-                                        <div className="bb-error-banner">
-                                            <AlertIcon />
-                                            <span className="bb-error-banner-text">{registerError}</span>
-                                        </div>
+                                {/* Email */}
+                                <FormField
+                                    control={loginForm.control}
+                                    name="email"
+                                    render={({ field }) => (
+                                        <FormItem className="bb-field">
+                                            <label className="bb-label">Email</label>
+                                            <FormControl>
+                                                <div className="bb-input-wrap">
+                                                    <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                                                        <circle cx="12" cy="7" r="4" />
+                                                    </svg>
+                                                    <input
+                                                        className="bb-input"
+                                                        placeholder="your.email@example.com"
+                                                        disabled={isLoginSubmitting}
+                                                        {...field}
+                                                    />
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage className="bb-error" />
+                                        </FormItem>
                                     )}
+                                />
 
-                                    {/* Full Name */}
-                                    <FormField
-                                        control={registerForm.control}
-                                        name="name"
-                                        render={({ field }) => (
-                                            <FormItem className="bb-field">
-                                                <label className="bb-label">Full Name</label>
-                                                <FormControl>
-                                                    <div className="bb-input-wrap">
-                                                        <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-                                                            <circle cx="12" cy="7" r="4" />
-                                                        </svg>
-                                                        <input className="bb-input" placeholder="John Doe" disabled={isRegSubmitting} {...field} />
-                                                    </div>
-                                                </FormControl>
-                                                <FormMessage className="bb-error" />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    {/* Email */}
-                                    <FormField
-                                        control={registerForm.control}
-                                        name="email"
-                                        render={({ field }) => (
-                                            <FormItem className="bb-field">
-                                                <label className="bb-label">Email</label>
-                                                <FormControl>
-                                                    <div className="bb-input-wrap">
-                                                        <MailIcon />
-                                                        <input className="bb-input" placeholder="your.email@example.com" disabled={isRegSubmitting} {...field} />
-                                                    </div>
-                                                </FormControl>
-                                                <FormMessage className="bb-error" />
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    {/* Password */}
-                                    <FormField
-                                        control={registerForm.control}
-                                        name="password"
-                                        render={({ field }) => (
-                                            <FormItem className="bb-field">
-                                                <label className="bb-label">Password</label>
-                                                <FormControl>
-                                                    {renderPasswordField(
-                                                        field,
-                                                        showRegPassword,
-                                                        () => setShowRegPassword(p => !p),
-                                                        "••••••••",
-                                                        isRegSubmitting
-                                                    )}
-                                                </FormControl>
-                                                <FormMessage className="bb-error" />
-                                                {/* Strength indicator */}
-                                                {passwordStrength && (
-                                                    <div className="bb-strength">
-                                                        <div className="bb-strength-bar">
-                                                            <div className={`bb-strength-fill bb-strength-fill--${passwordStrength.level}`} />
-                                                        </div>
-                                                        <span className="bb-strength-text">{passwordStrength.label}</span>
-                                                    </div>
+                                {/* Password */}
+                                <FormField
+                                    control={loginForm.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                        <FormItem className="bb-field">
+                                            <label className="bb-label">Password</label>
+                                            <FormControl>
+                                                {renderPasswordField(
+                                                    field,
+                                                    showLoginPassword,
+                                                    () => setShowLoginPassword(p => !p),
+                                                    "••••••••",
+                                                    isLoginSubmitting
                                                 )}
-                                            </FormItem>
-                                        )}
-                                    />
+                                            </FormControl>
+                                            <FormMessage className="bb-error" />
+                                        </FormItem>
+                                    )}
+                                />
 
-                                    {/* Confirm Password */}
+                                {/* Remember me / Forgot */}
+                                <div className="bb-options-row">
+                                    <label className="bb-checkbox-label">
+                                        <input type="checkbox" className="bb-checkbox" />
+                                        Remember me
+                                    </label>
+                                    <button
+                                        type="button"
+                                        className="bb-forgot"
+                                        onClick={openForgotModal}
+                                    >
+                                        Forgot password?
+                                    </button>
+                                </div>
+
+                                <button type="submit" className="bb-btn" disabled={isLoginSubmitting}>
+                                    {isLoginSubmitting ? (
+                                        <><span className="bb-spinner" /> Signing in…</>
+                                    ) : (
+                                        "Sign In"
+                                    )}
+                                </button>
+                            </form>
+                        </Form>
+                    )}
+
+                    {/* ── REGISTER TAB ── */}
+                    {authTab === "register" && (
+                        <Form {...registerForm}>
+                            <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)}>
+                                {/* Error Banner */}
+                                {registerError && (
+                                    <div className="bb-error-banner">
+                                        <AlertIcon />
+                                        <span className="bb-error-banner-text">{registerError}</span>
+                                    </div>
+                                )}
+
+                                {/* Full Name */}
+                                <FormField
+                                    control={registerForm.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem className="bb-field">
+                                            <label className="bb-label">Full Name</label>
+                                            <FormControl>
+                                                <div className="bb-input-wrap">
+                                                    <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                                                        <circle cx="12" cy="7" r="4" />
+                                                    </svg>
+                                                    <input className="bb-input" placeholder="John Doe" disabled={isRegSubmitting} {...field} />
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage className="bb-error" />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* Email */}
+                                <FormField
+                                    control={registerForm.control}
+                                    name="email"
+                                    render={({ field }) => (
+                                        <FormItem className="bb-field">
+                                            <label className="bb-label">Email</label>
+                                            <FormControl>
+                                                <div className="bb-input-wrap">
+                                                    <MailIcon />
+                                                    <input className="bb-input" placeholder="your.email@example.com" disabled={isRegSubmitting} {...field} />
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage className="bb-error" />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* Password */}
+                                <FormField
+                                    control={registerForm.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                        <FormItem className="bb-field">
+                                            <label className="bb-label">Password</label>
+                                            <FormControl>
+                                                {renderPasswordField(
+                                                    field,
+                                                    showRegPassword,
+                                                    () => setShowRegPassword(p => !p),
+                                                    "••••••••",
+                                                    isRegSubmitting
+                                                )}
+                                            </FormControl>
+                                            <FormMessage className="bb-error" />
+                                            {/* Strength indicator */}
+                                            {passwordStrength && (
+                                                <div className="bb-strength">
+                                                    <div className="bb-strength-bar">
+                                                        <div className={`bb-strength-fill bb-strength-fill--${passwordStrength.level}`} />
+                                                    </div>
+                                                    <span className="bb-strength-text">{passwordStrength.label}</span>
+                                                </div>
+                                            )}
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* Confirm Password */}
+                                <FormField
+                                    control={registerForm.control}
+                                    name="confirmPassword"
+                                    render={({ field }) => (
+                                        <FormItem className="bb-field">
+                                            <label className="bb-label">Confirm Password</label>
+                                            <FormControl>
+                                                {renderPasswordField(
+                                                    field,
+                                                    showConfirmPassword,
+                                                    () => setShowConfirmPassword(p => !p),
+                                                    "Re-enter password",
+                                                    isRegSubmitting
+                                                )}
+                                            </FormControl>
+                                            <FormMessage className="bb-error" />
+                                            {passwordsMatch && <span className="bb-match-success">✓ Passwords match</span>}
+                                            {passwordsMismatch && <span className="bb-match-error">✗ Passwords don't match</span>}
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* Role */}
+                                <FormField
+                                    control={registerForm.control}
+                                    name="role"
+                                    render={({ field }) => (
+                                        <FormItem className="bb-field">
+                                            <label className="bb-label">Role</label>
+                                            <FormControl>
+                                                <div className="bb-input-wrap">
+                                                    <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                                        <circle cx="9" cy="7" r="4" />
+                                                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                                    </svg>
+                                                    <select
+                                                        className="bb-select"
+                                                        value={field.value}
+                                                        onChange={field.onChange}
+                                                        disabled={isRegSubmitting}
+                                                    >
+                                                        <option value="student">Student</option>
+                                                        <option value="teacher">Teacher</option>
+                                                        <option value="principal">Principal</option>
+                                                        <option value="school_admin">School Admin</option>
+                                                        <option value="admin">Administrator</option>
+                                                        <option value="parent">Parent</option>
+                                                    </select>
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage className="bb-error" />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                {/* Grade/Class Selector (Visible only for Students) */}
+                                {selectedRole === "student" && (
                                     <FormField
                                         control={registerForm.control}
-                                        name="confirmPassword"
+                                        name="class"
                                         render={({ field }) => (
                                             <FormItem className="bb-field">
-                                                <label className="bb-label">Confirm Password</label>
-                                                <FormControl>
-                                                    {renderPasswordField(
-                                                        field,
-                                                        showConfirmPassword,
-                                                        () => setShowConfirmPassword(p => !p),
-                                                        "Re-enter password",
-                                                        isRegSubmitting
-                                                    )}
-                                                </FormControl>
-                                                <FormMessage className="bb-error" />
-                                                {passwordsMatch && <span className="bb-match-success">✓ Passwords match</span>}
-                                                {passwordsMismatch && <span className="bb-match-error">✗ Passwords don't match</span>}
-                                            </FormItem>
-                                        )}
-                                    />
-
-                                    {/* Role */}
-                                    <FormField
-                                        control={registerForm.control}
-                                        name="role"
-                                        render={({ field }) => (
-                                            <FormItem className="bb-field">
-                                                <label className="bb-label">Role</label>
+                                                <label className="bb-label">Grade / Class</label>
                                                 <FormControl>
                                                     <div className="bb-input-wrap">
                                                         <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                                                            <circle cx="9" cy="7" r="4" />
-                                                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                                                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
                                                         </svg>
                                                         <select
                                                             className="bb-select"
@@ -704,12 +736,10 @@ export function FirebaseAuthDialog() {
                                                             onChange={field.onChange}
                                                             disabled={isRegSubmitting}
                                                         >
-                                                            <option value="student">Student</option>
-                                                            <option value="teacher">Teacher</option>
-                                                            <option value="principal">Principal</option>
-                                                            <option value="school_admin">School Admin</option>
-                                                            <option value="admin">Administrator</option>
-                                                            <option value="parent">Parent</option>
+                                                            <option value="9">9th Grade</option>
+                                                            <option value="10">10th Grade</option>
+                                                            <option value="11">11th Grade</option>
+                                                            <option value="12">12th Grade</option>
                                                         </select>
                                                     </div>
                                                 </FormControl>
@@ -717,104 +747,71 @@ export function FirebaseAuthDialog() {
                                             </FormItem>
                                         )}
                                     />
+                                )}
 
-                                    {/* Grade/Class Selector (Visible only for Students) */}
-                                    {selectedRole === "student" && (
-                                        <FormField
-                                            control={registerForm.control}
-                                            name="class"
-                                            render={({ field }) => (
-                                                <FormItem className="bb-field">
-                                                    <label className="bb-label">Grade / Class</label>
-                                                    <FormControl>
-                                                        <div className="bb-input-wrap">
-                                                            <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-                                                            </svg>
-                                                            <select
-                                                                className="bb-select"
-                                                                value={field.value}
-                                                                onChange={field.onChange}
-                                                                disabled={isRegSubmitting}
-                                                            >
-                                                                <option value="9">9th Grade</option>
-                                                                <option value="10">10th Grade</option>
-                                                                <option value="11">11th Grade</option>
-                                                                <option value="12">12th Grade</option>
-                                                            </select>
-                                                        </div>
-                                                    </FormControl>
-                                                    <FormMessage className="bb-error" />
-                                                </FormItem>
-                                            )}
-                                        />
+                                <button type="submit" className="bb-btn" disabled={isRegSubmitting}>
+                                    {isRegSubmitting ? (
+                                        <><span className="bb-spinner" /> Creating account…</>
+                                    ) : (
+                                        "Sign Up"
                                     )}
+                                </button>
+                            </form>
+                        </Form>
+                    )}
 
-                                    <button type="submit" className="bb-btn" disabled={isRegSubmitting}>
-                                        {isRegSubmitting ? (
-                                            <><span className="bb-spinner" /> Creating account…</>
-                                        ) : (
-                                            "Create Account"
-                                        )}
-                                    </button>
-                                </form>
-                            </Form>
-                        )}
-
-                        {/* Divider */}
-                        <div className="bb-divider">
-                            <span className="bb-divider-line" />
-                            <span className="bb-divider-text">Or continue with</span>
-                            <span className="bb-divider-line" />
-                        </div>
-
-                        {/* Google */}
-                        <button
-                            type="button"
-                            className="bb-btn-google"
-                            onClick={handleGoogleLogin}
-                            disabled={googleLoading || isLoginSubmitting || isRegSubmitting}
-                        >
-                            {googleLoading ? (
-                                <><span className="bb-spinner" /> Connecting…</>
-                            ) : (
-                                <>
-                                    <svg viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
-                                    </svg>
-                                    Google
-                                </>
-                            )}
-                        </button>
-
-                        {/* Footer link */}
-                        <div className="bb-footer">
-                            {authTab === "login" ? (
-                                <>Don&apos;t have an account?{" "}
-                                    <button type="button" className="bb-footer-link" onClick={() => switchTab("register")}>
-                                        Sign Up
-                                    </button>
-                                </>
-                            ) : (
-                                <>Already have an account?{" "}
-                                    <button type="button" className="bb-footer-link" onClick={() => switchTab("login")}>
-                                        Sign In
-                                    </button>
-                                </>
-                            )}
-                        </div>
+                    {/* Divider */}
+                    <div className="bb-divider">
+                        <span className="bb-divider-line" />
+                        <span className="bb-divider-text">Or continue with</span>
+                        <span className="bb-divider-line" />
                     </div>
-                    <div className="bb-shelf" />
+
+                    {/* Google */}
+                    <button
+                        type="button"
+                        className="bb-btn-google"
+                        onClick={handleGoogleLogin}
+                        disabled={googleLoading || isLoginSubmitting || isRegSubmitting}
+                    >
+                        {googleLoading ? (
+                            <><span className="bb-spinner" /> Connecting…</>
+                        ) : (
+                            <>
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" />
+                                </svg>
+                                Google
+                            </>
+                        )}
+                    </button>
+
+                    {/* Footer link */}
+                    <div className="bb-footer">
+                        {authTab === "login" ? (
+                            <>Don&apos;t have an account?{" "}
+                                <button type="button" className="bb-footer-link" onClick={() => switchTab("register")}>
+                                    Sign Up
+                                </button>
+                            </>
+                        ) : (
+                            <>Already have an account?{" "}
+                                <button type="button" className="bb-footer-link" onClick={() => switchTab("login")}>
+                                    Sign In
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
             </div>
 
-            {/* ── Forgot Password Modal ── */}
+            {/* Forgot Password Modal */}
             {showForgotModal && (
-                <div className="bb-modal-overlay" onClick={(e) => e.target === e.currentTarget && closeForgotModal()}>
-                    <div className="bb-modal">
+                <div className="bb-modal-overlay" onClick={closeForgotModal}>
+                    <div className="bb-modal" onClick={e => e.stopPropagation()}>
                         <h2 className="bb-modal-title">Reset Password</h2>
                         <p className="bb-modal-desc">
-                            Enter your email address and we&apos;ll send you a link to reset your password.
+                            Enter your email address to receive a password reset link.
                         </p>
 
                         {forgotError && (
@@ -823,34 +820,35 @@ export function FirebaseAuthDialog() {
                                 <span className="bb-error-banner-text">{forgotError}</span>
                             </div>
                         )}
-
-                        {forgotSuccess ? (
+                        {forgotSuccess && (
                             <div className="bb-success-banner">
                                 <CheckIcon />
-                                <span className="bb-success-banner-text">
-                                    Password reset email sent! Check your inbox for instructions.
-                                </span>
-                            </div>
-                        ) : (
-                            <div className="bb-field">
-                                <label className="bb-label">Email Address</label>
-                                <div className="bb-input-wrap">
-                                    <MailIcon />
-                                    <input
-                                        className="bb-input"
-                                        type="email"
-                                        placeholder="your.email@example.com"
-                                        value={forgotEmail}
-                                        onChange={(e) => setForgotEmail(e.target.value)}
-                                        disabled={forgotLoading}
-                                        onKeyDown={(e) => e.key === "Enter" && handleForgotPassword()}
-                                    />
-                                </div>
+                                <span className="bb-success-banner-text">Reset link sent! Check your inbox.</span>
                             </div>
                         )}
 
+                        <div className="bb-field" style={{ marginBottom: "1.5rem" }}>
+                            <div className="bb-input-wrap">
+                                <MailIcon />
+                                <input
+                                    type="email"
+                                    className="bb-input"
+                                    placeholder="Enter your email"
+                                    value={forgotEmail}
+                                    onChange={e => setForgotEmail(e.target.value)}
+                                    disabled={forgotLoading || forgotSuccess}
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+
                         <div className="bb-modal-actions">
-                            <button type="button" className="bb-btn-secondary" onClick={closeForgotModal}>
+                            <button
+                                type="button"
+                                className="bb-btn-secondary"
+                                onClick={closeForgotModal}
+                                disabled={forgotLoading}
+                            >
                                 {forgotSuccess ? "Close" : "Cancel"}
                             </button>
                             {!forgotSuccess && (
@@ -863,7 +861,7 @@ export function FirebaseAuthDialog() {
                                     {forgotLoading ? (
                                         <><span className="bb-spinner" /> Sending…</>
                                     ) : (
-                                        "Send Reset Link"
+                                        "Send Link"
                                     )}
                                 </button>
                             )}
