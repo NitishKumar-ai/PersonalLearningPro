@@ -6,6 +6,13 @@ export default {
   darkMode: ["class"],
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
+    container: {
+      center: true,
+      padding: "2rem",
+      screens: {
+        "2xl": "1400px",
+      },
+    },
     extend: {
       fontFamily: {
         sans: [
@@ -67,13 +74,17 @@ export default {
           "4": "hsl(var(--chart-4))",
           "5": "hsl(var(--chart-5))",
         },
-        subject: {
-          math: "hsl(var(--subject-math))",
-          science: "hsl(var(--subject-science))",
-          english: "hsl(var(--subject-english))",
-          history: "hsl(var(--subject-history))",
-          cs: "hsl(var(--subject-cs))",
-          default: "hsl(var(--subject-default))",
+        brand: {
+          violet: "hsl(262 83% 58%)",
+          midnight: "hsl(222 50% 5%)",
+          parchment: "hsl(40 30% 98%)",
+        },
+        blackboard: {
+          DEFAULT: "hsl(var(--blackboard-green))",
+          chalk: "hsl(var(--chalk-white))",
+          gold: "hsl(var(--chalk-gold))",
+          accent: "hsl(var(--accent-blackboard))",
+          "accent-foreground": "hsl(var(--accent-blackboard-foreground))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
@@ -92,31 +103,13 @@ export default {
           other: "hsl(var(--bubble-other))",
           "other-foreground": "hsl(var(--bubble-other-foreground))",
         },
-        status: {
-          sent: "hsl(var(--status-sent))",
-          delivered: "hsl(var(--status-delivered))",
-          read: "hsl(var(--status-read))",
-        },
         online: "hsl(var(--online))",
         typing: "hsl(var(--typing))",
-        role: {
-          student: "hsl(var(--role-student))",
-          teacher: "hsl(var(--role-teacher))",
-          parent: "hsl(var(--role-parent))",
-        },
-        announcement: {
-          DEFAULT: "hsl(var(--announcement))",
-          bg: "hsl(var(--announcement-bg))",
-        },
-        doubt: {
-          DEFAULT: "hsl(var(--doubt))",
-          bg: "hsl(var(--doubt-bg))",
-        },
-        assignment: {
-          DEFAULT: "hsl(var(--assignment))",
-          bg: "hsl(var(--assignment-bg))",
-        },
-        pinned: "hsl(var(--pinned))",
+      },
+      backgroundImage: {
+        "brand-gradient": "linear-gradient(135deg, #7c3aed, #4f46e5)",
+        "vibrant-gradient": "linear-gradient(135deg, #8b5cf6, #ec4899, #f97316)",
+        "blackboard-gradient": "radial-gradient(ellipse at 30% 40%, #2e4a30 0%, transparent 60%), linear-gradient(145deg, #1a2e1c 0%, #243826 30%, #1a2e1c 60%, #162a18 100%)",
       },
       keyframes: {
         "accordion-down": {
@@ -138,6 +131,13 @@ export default {
         "slide-in-right": {
           from: { opacity: "0", transform: "translateX(12px)" },
           to: { opacity: "1", transform: "translateX(0)" },
+        },
+        "float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        "shimmer": {
+          "100%": { transform: "translateX(100%)" },
         },
         "typing-dot": {
           "0%, 60%, 100%": { opacity: "0.3", transform: "scale(0.8)" },
