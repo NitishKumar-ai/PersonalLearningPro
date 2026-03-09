@@ -1,77 +1,68 @@
 /* ─────────────────────────────────────────────
-   Premium AI Login Theme - Greenboard style
+   Premium AI Login Theme - Master Plan Classroom
    ───────────────────────────────────────────── */
 
 /* ── Fullscreen wrapper ── */
-.bb-wrapper {
+.bb-hero-wrapper {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: #23392a; /* Deep green */
+    background-color: #F6EFE3;
+    /* Match illustration background */
     position: relative;
     overflow: hidden;
-    padding: 2rem 1rem;
     font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
 
-/* Background texture/overlay */
-.bb-wrapper::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    /* Subtle noise/texture for that chalkboard feel */
-    background: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E') repeat;
-    opacity: 0.05;
-    pointer-events: none;
-    z-index: 1;
-}
-
-/* ── Glass panel (form container - Wood Frame + Green Board) ── */
-.bb-board {
+/* 16:9 Illustration Container */
+.bb-hero-illustration {
     position: relative;
     width: 100%;
-    max-width: 440px;
-    background: #334d3c; /* Lighter green for board */
-    border: 12px solid #8B5A2B; /* Wood frame color */
-    border-radius: 8px; /* Slightly rounded frame */
-    padding: 2.5rem 2rem;
+    height: 100%;
+    /* Keep 16:9 aspect ratio at all times */
+    aspect-ratio: 16 / 9;
+    max-width: calc(100vh * 16 / 9);
+    max-height: calc(100vw * 9 / 16);
+    background: url('/illustrations/master_classroom_hero.webp') center/contain no-repeat;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ── Login Form Container (Placed over the chalkboard) ── */
+.bb-board {
+    position: absolute;
+    /* Coordinates from meta.json relative to 1920x1080 */
+    left: 33.854%;
+    top: 27.777%;
+    width: 33.854%;
+    height: 41.666%;
+    padding: 1% 3%;
     z-index: 10;
-    box-shadow:
-        0 24px 64px rgba(0, 0, 0, 0.5),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-        inset 0 0 30px rgba(0, 0, 0, 0.3); /* Inner shadow for depth */
+
+    /* Make perfectly transparent as illustration has textures */
+    background: transparent;
+    border: none;
+    box-shadow: none;
+
+    /* Scaled typography */
+    font-size: clamp(0.7rem, 1vw, 1rem);
+
+    /* Allow scrolling if content is too tall */
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
-/* Chalk lip / eraser holder */
-.bb-board::after {
-    content: '';
-    position: absolute;
-    bottom: -15px; /* Stick out below the frame */
-    left: -15px;
-    right: -15px;
-    height: 15px;
-    background: linear-gradient(to bottom, #754c24, #5c3c1d); /* Darker wood lip */
-    border-radius: 2px 2px 4px 4px;
-    z-index: 5;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+/* Scrollbar styles for the tiny form */
+.bb-board::-webkit-scrollbar {
+    width: 4px;
 }
 
-/* Eraser and Chalk decorators */
-.bb-board::before {
-    content: '';
-    position: absolute;
-    bottom: -10px;
-    left: 20px;
-    width: 40px;
-    height: 8px;
-    background: #e5e7eb; /* White chalk */
-    border-radius: 2px;
-    z-index: 6;
-    box-shadow: 
-        25px 0 0 -1px #fcd34d, /* Yellow chalk */
-        45px 0 0 -1px #60a5fa, /* Blue chalk */
-        100px -2px 0 2px #4b5563; /* Eraser */
+.bb-board::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 4px;
 }
 
 
@@ -87,11 +78,12 @@
 .bb-title {
     font-size: 2rem;
     font-weight: 500;
-    font-family: 'Caveat', 'Comic Sans MS', cursive; /* Handwritten look */
+    font-family: 'Caveat', 'Comic Sans MS', cursive;
+    /* Handwritten look */
     letter-spacing: 0.05em;
     color: #f8fafc;
     margin: 0;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
 .bb-subtitle {
@@ -122,7 +114,8 @@
     border: none;
     cursor: pointer;
     transition: all 0.2s ease;
-    border-bottom: 2px solid transparent; /* Prepare for active border */
+    border-bottom: 2px solid transparent;
+    /* Prepare for active border */
 }
 
 .bb-tab:hover:not(.bb-tab--active) {
@@ -167,7 +160,8 @@
 .bb-input {
     width: 100%;
     padding: 0.85rem 1rem 0.85rem 2.75rem;
-    background: rgba(0, 0, 0, 0.2); /* Darker green/blackish */
+    background: rgba(0, 0, 0, 0.2);
+    /* Darker green/blackish */
     border: 1px solid transparent;
     border-radius: 20px;
     color: #f1f5f9;
@@ -287,7 +281,8 @@
 .bb-btn {
     width: 100%;
     padding: 0.85rem;
-    background: rgba(255, 255, 255, 0.15); /* Semi-transparent white/chalky */
+    background: rgba(255, 255, 255, 0.15);
+    /* Semi-transparent white/chalky */
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 20px;
     color: #fff;
@@ -392,7 +387,8 @@
 /* ── Form error messages ── */
 .bb-error {
     font-size: 0.8rem;
-    color: #fecaca; /* Chalky red */
+    color: #fecaca;
+    /* Chalky red */
     margin-top: 0.4rem;
     padding-left: 0.5rem;
     font-weight: 400;
@@ -529,7 +525,8 @@
 
 .bb-error-banner {
     background: rgba(239, 68, 68, 0.15);
-    border: 1px dotted rgba(239, 68, 68, 0.3); /* Chalk line feel */
+    border: 1px dotted rgba(239, 68, 68, 0.3);
+    /* Chalk line feel */
 }
 
 .bb-error-banner svg {
@@ -618,7 +615,7 @@
     flex: 1;
     padding: 0.75rem;
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 20px;
     color: #cbd5e1;
     font-size: 0.9rem;
@@ -632,27 +629,30 @@
     color: #fff;
 }
 
-/* Chalky background scribbles */
+/* Chalky background scribbles (removed, baked into illustration) */
 .chalk-bg-icon {
-    position: absolute;
-    color: rgba(255,255,255,0.03);
-    font-family: 'Caveat', cursive;
-    pointer-events: none;
-    z-index: 0;
+    display: none;
 }
 
-.chalk-bg-icon.atom { top: 15%; left: 10%; width: 60px; height: 60px; }
-.chalk-bg-icon.star { top: 10%; right: 15%; width: 40px; height: 40px; }
-.chalk-bg-icon.pi { bottom: 15%; left: 15%; font-size: 2rem; }
-.chalk-bg-icon.emc { bottom: 20%; right: 10%; font-size: 1.5rem; font-style: italic; }
-
-@media (max-width: 520px) {
-    .bb-wrapper {
-        padding: 1rem;
+@media (max-width: 768px) {
+    .bb-hero-illustration {
+        max-width: 100%;
+        max-height: 100%;
+        aspect-ratio: auto;
+        /* Fallback */
+        background-size: cover;
     }
 
     .bb-board {
-        padding: 2rem 1.5rem;
-        border-width: 8px; /* Thinner border on mobile */
+        position: relative;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: auto;
+        padding: 2rem;
+        background: #2E6E3A;
+        /* Solid green fallback for board */
+        border: 4px solid #8B5A2B;
+        border-radius: 8px;
     }
 }
