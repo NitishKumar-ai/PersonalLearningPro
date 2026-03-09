@@ -16,12 +16,12 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    /* chalkboard gradient */
+    /* dark charcoal/black board gradient */
     background:
-        radial-gradient(ellipse at 30% 40%, #2e4a30 0%, transparent 60%),
-        radial-gradient(ellipse at 70% 60%, #1e3a22 0%, transparent 60%),
-        linear-gradient(145deg, #1a2e1c 0%, #243826 30%, #1a2e1c 60%, #162a18 100%);
-    background-color: #1a2e1c;
+        radial-gradient(ellipse at 30% 40%, #1a1a1a 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 60%, #121212 0%, transparent 60%),
+        linear-gradient(145deg, #050505 0%, #0f0f0f 30%, #050505 60%, #0a0a0a 100%);
+    background-color: #050505;
     position: relative;
     overflow: hidden;
     padding: 2rem 1rem;
@@ -701,8 +701,8 @@
 }
 
 .bb-modal {
-    background: #1e3124;
-    border: 2px solid rgba(232, 228, 217, 0.15);
+    background: #111111;
+    border: 2px solid rgba(232, 228, 217, 0.1);
     border-radius: 12px;
     padding: 2rem;
     width: 100%;
@@ -793,9 +793,44 @@
     cursor: not-allowed;
 }
 
-.bb-btn-google:disabled:hover {
-    background: rgba(255, 255, 255, 0.07);
-    border-color: rgba(232, 228, 217, 0.12);
+/* ── Teacher Animations ── */
+.bb-teacher {
+    position: absolute;
+    width: 140px;
+    height: auto;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0.8;
+}
+
+.bb-teacher--left {
+    bottom: -10px;
+    left: -40px;
+    transform: rotate(5deg);
+    animation: teacher-float-left 6s ease-in-out infinite;
+}
+
+.bb-teacher--right {
+    top: 20%;
+    right: -30px;
+    transform: rotate(-10deg);
+    animation: teacher-float-right 8s ease-in-out infinite;
+}
+
+@keyframes teacher-float-left {
+    0%, 100% { transform: translate(0, 0) rotate(5deg); }
+    50% { transform: translate(10px, -15px) rotate(8deg); }
+}
+
+@keyframes teacher-float-right {
+    0%, 100% { transform: translate(0, 0) rotate(-10deg); }
+    50% { transform: translate(-15px, 20px) rotate(-14deg); }
+}
+
+@media (max-width: 1024px) {
+    .bb-teacher {
+        display: none;
+    }
 }
 
 /* ── Match error for confirm password ── */

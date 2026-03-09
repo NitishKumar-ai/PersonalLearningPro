@@ -30,6 +30,33 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
+// ── Teacher Characters ──
+const PhysicsTeacher = () => (
+    <svg className="bb-teacher bb-teacher--left" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M60 180 Q100 150 140 180" stroke="#e8e4d9" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="100" cy="70" r="30" stroke="#e8e4d9" strokeWidth="2" />
+        <path d="M100 100 V160" stroke="#e8e4d9" strokeWidth="2" />
+        <path d="M70 120 Q100 110 130 120" stroke="#e8e4d9" strokeWidth="2" />
+        <path d="M115 65 Q120 60 125 65" stroke="#e8e4d9" strokeWidth="2" />
+        <path d="M75 65 Q80 60 85 65" stroke="#e8e4d9" strokeWidth="2" />
+        <path d="M90 85 Q100 95 110 85" stroke="#e8e4d9" strokeWidth="2" />
+        <path d="M130 120 L160 100" stroke="#e8e4d9" strokeWidth="2" strokeDasharray="4 2" />
+        <text x="145" y="90" fill="#e8e4d9" fontSize="12" fontFamily="Kalam">f=ma</text>
+    </svg>
+);
+
+const MathTeacher = () => (
+    <svg className="bb-teacher bb-teacher--right" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M70 180 Q100 160 130 180" stroke="#e8e4d9" strokeWidth="2" strokeLinecap="round" />
+        <circle cx="100" cy="50" r="25" stroke="#e8e4d9" strokeWidth="2" />
+        <path d="M100 75 V140" stroke="#e8e4d9" strokeWidth="2" />
+        <path d="M80 100 Q100 90 120 100" stroke="#e8e4d9" strokeWidth="2" />
+        <path d="M90 45 Q100 45 110 45" stroke="#e8e4d9" strokeWidth="2" strokeDasharray="2 2" />
+        <path d="M80 100 L50 80" stroke="#e8e4d9" strokeWidth="2" strokeDasharray="4 2" />
+        <text x="20" y="70" fill="#e8e4d9" fontSize="16" fontFamily="Kalam">√x</text>
+    </svg>
+);
+
 // ── SVG Icons ──
 const EyeIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -398,6 +425,8 @@ export function FirebaseAuthDialog() {
 
                 {/* Board */}
                 <div className="bb-board">
+                    <PhysicsTeacher />
+                    <MathTeacher />
                     <div className="bb-glass">
                         <h1 className="bb-title">Master Plan</h1>
                         <p className="bb-subtitle">AI-powered personalized learning</p>
