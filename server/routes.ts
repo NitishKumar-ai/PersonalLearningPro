@@ -109,6 +109,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount MessagePal REST API routes
   app.use("/api/messagepal", messageRoutes);
 
+  // Health check endpoint
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // Authentication routes (mostly handled by Firebase Client now)
   // We keep a small route for the client to tell the backend "I just registered in Firebase, create my Mongo document"
   app.post("/api/auth/sync-profile", authenticateToken, async (req: Request, res: Response) => {
