@@ -213,13 +213,13 @@ export function Sidebar({ className }: SidebarProps) {
 
         {/* Logo and title */}
         <div className="py-5 px-4 flex items-center border-b border-border">
-          <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground font-bold shadow-sm flex-shrink-0">
-            MP
+          <div className="h-9 w-9 rounded-lg bg-brand-gradient flex items-center justify-center text-primary-foreground font-bold shadow-sm flex-shrink-0 text-lg">
+            🎓
           </div>
           {!isCollapsed && (
             <h1 className="ml-3 font-bold text-lg whitespace-nowrap overflow-hidden transition-opacity duration-300">
-              <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Master Plan
+              <span className="bg-vibrant-gradient bg-clip-text text-transparent italic">
+                PersonalLearningPro
               </span>
             </h1>
           )}
