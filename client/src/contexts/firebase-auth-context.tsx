@@ -62,6 +62,24 @@ function buildFallbackProfile(user: import("firebase/auth").User): UserProfile |
   };
 }
 
+/**
+ * After a successful Firebase login, post the ID token to the backend so the
+ * Express session is established for subsequent API calls.
+ */
+async function syncFirebaseSession(user: import("firebase/auth").User) {
+  try {
+    const idToken = await user.getIdToken();
+    await fetch("/api/auth/firebase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ idToken }),
+    });
+  } catch (e) {
+    console.warn("[auth] Failed to sync Firebase session to backend:", e);
+  }
+}
+
 
 // ── Provider ──────────────────────────────────────────────────────────────────
 
@@ -156,6 +174,9 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       skipNextAuthStateProfile.current = true;
       setCurrentUser({ user, profile: resolvedProfile });
 
+      // Bridge Firebase session to backend for protected API calls
+      syncFirebaseSession(user).catch(() => { });
+
       toast({
         title: "Login successful",
         description: `Welcome back, ${resolvedProfile?.displayName || user.displayName || email}!`,
@@ -226,6 +247,9 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       skipNextAuthStateProfile.current = true;
       setCurrentUser({ user: result.user, profile: result.profile });
 
+      // Bridge Firebase session to backend for protected API calls
+      syncFirebaseSession(result.user).catch(() => { });
+
       toast({
         title: "Login successful",
         description: `Welcome back, ${result.profile?.displayName}!`,
@@ -262,6 +286,9 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       skipNextAuthStateProfile.current = true;
       setCurrentUser({ user, profile: userData });
+
+      // Bridge Firebase session to backend for protected API calls
+      syncFirebaseSession(user).catch(() => { });
 
       toast({
         title: "Registration successful",
