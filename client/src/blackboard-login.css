@@ -1,412 +1,623 @@
-/* ─────────────────────────────────────────────
-   Premium AI Login Theme - Greenboard style
-   ───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════
+   Master Plan – Classroom Login Theme
+   Full-page teacher.png background + floating chalkboard panel
+   ═══════════════════════════════════════════════════════════ */
 
-/* ── Fullscreen wrapper ── */
-.bb-wrapper {
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background-color: #23392a; /* Deep green */
-    position: relative;
-    overflow: hidden;
-    padding: 2rem 1rem;
-    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+/* ── CSS Variables ── */
+:root {
+    --board-green: #2E6E3A;
+    --board-dark: #1e4d28;
+    --board-frame: #8B5A2B;
+    --chalk-white: #f5f0e8;
+    --chalk-cream: #ede8d8;
+    --chalk-font: 'Caveat', cursive;
+    --ui-font: 'Inter', sans-serif;
 }
 
-/* Background texture/overlay */
-.bb-wrapper::before {
-    content: '';
-    position: absolute;
+/* ════════════════════════════════════════════════
+   MAIN LAYOUT flex container
+   ════════════════════════════════════════════════ */
+.bb-page-wrapper {
+    position: fixed;
     inset: 0;
-    /* Subtle noise/texture for that chalkboard feel */
-    background: url('data:image/svg+xml,%3Csvg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"%3E%3Cfilter id="noiseFilter"%3E%3CfeTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3" stitchTiles="stitch"/%3E%3C/filter%3E%3Crect width="100%25" height="100%25" filter="url(%23noiseFilter)"/%3E%3C/svg%3E') repeat;
-    opacity: 0.05;
-    pointer-events: none;
-    z-index: 1;
-}
-
-/* ── Glass panel (form container - Wood Frame + Green Board) ── */
-.bb-board {
-    position: relative;
-    width: 100%;
-    max-width: 440px;
-    background: #334d3c; /* Lighter green for board */
-    border: 12px solid #8B5A2B; /* Wood frame color */
-    border-radius: 8px; /* Slightly rounded frame */
-    padding: 2.5rem 2rem;
-    z-index: 10;
-    box-shadow:
-        0 24px 64px rgba(0, 0, 0, 0.5),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-        inset 0 0 30px rgba(0, 0, 0, 0.3); /* Inner shadow for depth */
-}
-
-/* Chalk lip / eraser holder */
-.bb-board::after {
-    content: '';
-    position: absolute;
-    bottom: -15px; /* Stick out below the frame */
-    left: -15px;
-    right: -15px;
-    height: 15px;
-    background: linear-gradient(to bottom, #754c24, #5c3c1d); /* Darker wood lip */
-    border-radius: 2px 2px 4px 4px;
-    z-index: 5;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
-}
-
-/* Eraser and Chalk decorators */
-.bb-board::before {
-    content: '';
-    position: absolute;
-    bottom: -10px;
-    left: 20px;
-    width: 40px;
-    height: 8px;
-    background: #e5e7eb; /* White chalk */
-    border-radius: 2px;
-    z-index: 6;
-    box-shadow: 
-        25px 0 0 -1px #fcd34d, /* Yellow chalk */
-        45px 0 0 -1px #60a5fa, /* Blue chalk */
-        100px -2px 0 2px #4b5563; /* Eraser */
-}
-
-
-/* ── Title ── */
-.bb-title-wrapper {
+    overflow: hidden;
+    font-family: var(--ui-font);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    margin-bottom: 2rem;
+    background-color: #0d1117;
+    /* Dark background behind the boards */
+}
+
+/* ── LEFT COLUMN: Teacher ── */
+.bb-teacher-col {
+    display: none;
+    /* Hidden on mobile by default */
+    position: relative;
+    z-index: 20;
+}
+
+.bb-board-container {
+    position: relative;
+    width: 100%;
+    max-width: 1250px;
+    height: min(92vh, 850px);
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.4));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bb-board-panel {
+    position: relative;
+    z-index: 10;
+    width: min(400px, 80%);
+    /* SLIGHTLY NARROWER to fit comfortably inside the board */
+    max-height: 85vh;
+    /* constrain height to fit within board */
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+
+
+.bb-board-panel::-webkit-scrollbar {
+    width: 4px;
+}
+
+.bb-board-panel::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+/* ── The green chalkboard card ── */
+.bb-board {
+    background: transparent;
+    border: none;
+    padding: 0 20px;
+    box-shadow: none;
+    width: 100%;
+    max-width: 500px;
+    /* Constrain the form width */
+}
+
+/* ════════════════════════════════════════════════
+   TITLE  (chalk-style heading)
+   ════════════════════════════════════════════════ */
+.bb-title-wrapper {
+    text-align: center;
+    margin-bottom: 4px;
 }
 
 .bb-title {
-    font-size: 2rem;
-    font-weight: 500;
-    font-family: 'Caveat', 'Comic Sans MS', cursive; /* Handwritten look */
-    letter-spacing: 0.05em;
-    color: #f8fafc;
+    font-family: var(--chalk-font);
+    font-size: 2.5rem;
+    /* slightly larger */
+    font-weight: 800;
+    /* BOLDER */
+    color: var(--chalk-white);
+    letter-spacing: 0.04em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.6), 0 0 2px rgba(255, 255, 255, 0.3);
+    /* enhanced chalk stroke thickness via shadow */
     margin: 0;
-    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    line-height: 1.1;
 }
 
 .bb-subtitle {
-    text-align: center;
-    color: #cbd5e1;
-    font-size: 0.85rem;
-    margin-top: 0.5rem;
-    font-weight: 400;
+    font-family: var(--chalk-font);
+    font-size: 1rem;
+    color: rgba(245, 240, 232, 0.75);
+    margin: 4px 0 0;
+    letter-spacing: 0.02em;
 }
 
-/* ── Tab row ── */
+/* chalk divider rule */
+.bb-chalk-line {
+    border: none;
+    border-top: 2px dashed rgba(245, 240, 232, 0.45);
+    margin: 6px 0 10px;
+}
+
+/* ════════════════════════════════════════════════
+   TABS
+   ════════════════════════════════════════════════ */
 .bb-tabs {
     display: flex;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding: 0;
-    margin-bottom: 2rem;
-    gap: 1rem;
+    gap: 15px;
+    margin-bottom: 15px;
 }
 
 .bb-tab {
     flex: 1;
-    text-align: center;
-    padding: 0.75rem 0;
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: #94a3b8;
     background: transparent;
     border: none;
+    border-bottom: 2px solid rgba(245, 240, 232, 0.2);
+    color: rgba(245, 240, 232, 0.65);
+    padding: 8px 0;
+    font-family: var(--chalk-font);
+    font-size: 1.5rem;
+    /* larger */
+    font-weight: 700;
+    /* BOLDER */
     cursor: pointer;
-    transition: all 0.2s ease;
-    border-bottom: 2px solid transparent; /* Prepare for active border */
+    transition: all 0.2s;
 }
 
-.bb-tab:hover:not(.bb-tab--active) {
-    color: #e2e8f0;
+.bb-tab:hover {
+    color: rgba(245, 240, 232, 0.9);
+    border-bottom-color: rgba(245, 240, 232, 0.5);
 }
 
 .bb-tab--active {
-    color: #fff;
-    border-bottom: 2px solid #fff;
+    color: var(--chalk-white);
+    border-bottom-color: var(--chalk-white);
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.4);
+    -webkit-text-stroke: 1px var(--chalk-white);
 }
 
-/* ── Input group ── */
+/* ════════════════════════════════════════════════
+   FORM FIELDS
+   ════════════════════════════════════════════════ */
 .bb-field {
-    margin-bottom: 1.25rem;
+    margin-bottom: 8px;
 }
 
 .bb-label {
     display: block;
-    font-size: 0.85rem;
-    font-weight: 400;
-    color: #cbd5e1;
-    margin-bottom: 0.5rem;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--chalk-font);
+    font-size: 1.5rem;
+    /* larger */
+    font-weight: 700;
+    /* BOLDER */
+    color: var(--chalk-cream);
+    margin-bottom: 2px;
+    letter-spacing: 0.05em;
+    text-shadow: 0px 0px 1px rgba(245, 240, 232, 0.2);
 }
 
 .bb-input-wrap {
-    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid rgba(245, 240, 232, 0.4);
+    border-radius: 0;
+    padding: 4px 10px;
+    transition: border-color 0.18s;
+}
+
+.bb-input-wrap:focus-within {
+    border-color: rgba(245, 240, 232, 0.9);
+    background: rgba(255, 255, 255, 0.05);
+    /* very subtle highlight */
 }
 
 .bb-input-icon {
-    position: absolute;
-    left: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
-    color: #94a3b8;
-    pointer-events: none;
-    transition: color 0.2s;
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: rgba(245, 240, 232, 0.7);
 }
 
 .bb-input {
-    width: 100%;
-    padding: 0.85rem 1rem 0.85rem 2.75rem;
-    background: rgba(0, 0, 0, 0.2); /* Darker green/blackish */
-    border: 1px solid transparent;
-    border-radius: 20px;
-    color: #f1f5f9;
-    font-size: 0.95rem;
+    flex: 1;
+    background: transparent;
+    border: none;
     outline: none;
-    transition: all 0.2s ease;
-    box-sizing: border-box;
+    font-family: var(--chalk-font);
+    font-size: 1.5rem;
+    /* larger */
+    font-weight: 700;
+    /* BOLDER */
+    color: var(--chalk-white);
+    padding: 6px 0;
+    letter-spacing: 0.05em;
+    -webkit-text-stroke: 0.5px var(--chalk-white);
+    text-shadow: 0px 0px 1px rgba(255, 255, 255, 0.2);
 }
 
 .bb-input::placeholder {
-    color: #64748b;
+    color: rgba(245, 240, 232, 0.5);
+    font-family: var(--chalk-font);
+    -webkit-text-stroke: 0px;
 }
 
-.bb-input:focus {
-    background: rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.2);
-    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+.bb-input--password {
+    letter-spacing: 0.1em;
 }
 
-.bb-input:focus+.bb-input-icon,
-.bb-input-wrap:focus-within .bb-input-icon {
-    color: #e2e8f0;
+/* ── Password toggle ── */
+.bb-password-wrap {
+    position: relative;
 }
 
-
-/* select dropdown override */
-.bb-select {
-    width: 100%;
-    padding: 0.85rem 1rem 0.85rem 2.75rem;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid transparent;
-    border-radius: 20px;
-    color: #f1f5f9;
-    font-size: 0.95rem;
-    outline: none;
-    transition: all 0.2s ease;
-    box-sizing: border-box;
-    appearance: none;
-    -webkit-appearance: none;
+.bb-password-toggle {
+    flex-shrink: 0;
+    background: none;
+    border: none;
     cursor: pointer;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 16px center;
+    padding: 4px;
+    color: rgba(245, 240, 232, 0.7);
+    display: flex;
+    align-items: center;
+    transition: color 0.15s;
 }
 
-.bb-select:focus {
-    background: rgba(0, 0, 0, 0.3);
-    border-color: rgba(255, 255, 255, 0.2);
+.bb-password-toggle:hover {
+    color: var(--chalk-white);
 }
 
-/* ── Remember-me / Forgot row ── */
+.bb-password-toggle svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* select */
+.bb-select {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-family: var(--chalk-font);
+    font-size: 1.4rem;
+    /* larger */
+    font-weight: 600;
+    /* BOLDER */
+    color: var(--chalk-white);
+    padding: 6px 0;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    text-shadow: 0px 0px 1px rgba(255, 255, 255, 0.2);
+}
+
+.bb-select option {
+    background: var(--board-dark);
+    color: var(--chalk-white);
+    font-family: var(--ui-font);
+    /* System font for options is usually better for OS select menus */
+}
+
+/* ════════════════════════════════════════════════
+   OPTIONS ROW  (remember me / forgot)
+   ════════════════════════════════════════════════ */
 .bb-options-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 1.5rem;
-    margin-top: 0.5rem;
+    margin-bottom: 8px;
+    margin-top: 4px;
 }
 
 .bb-checkbox-label {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    color: #cbd5e1;
+    gap: 6px;
+    font-family: var(--chalk-font);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: rgba(245, 240, 232, 0.9);
     cursor: pointer;
-    user-select: none;
+    -webkit-text-stroke: 0.5px rgba(245, 240, 232, 0.9);
 }
 
 .bb-checkbox {
-    appearance: none;
-    -webkit-appearance: none;
-    width: 16px;
-    height: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 4px;
-    background: transparent;
+    accent-color: var(--chalk-white);
+    width: 14px;
+    height: 14px;
     cursor: pointer;
-    position: relative;
-    flex-shrink: 0;
-    transition: all 0.2s;
-}
-
-.bb-checkbox:checked {
-    background: rgba(255, 255, 255, 0.2);
-}
-
-.bb-checkbox:checked::after {
-    content: '';
-    position: absolute;
-    left: 4px;
-    top: 1px;
-    width: 4px;
-    height: 8px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
 }
 
 .bb-forgot {
-    font-size: 0.85rem;
-    color: #94a3b8;
-    text-decoration: none;
-    cursor: pointer;
     background: none;
     border: none;
+    font-family: var(--chalk-font);
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: rgba(245, 240, 232, 0.9);
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    transition: color 0.15s;
     padding: 0;
-    font-weight: 400;
-    transition: color 0.2s;
+    -webkit-text-stroke: 0.5px rgba(245, 240, 232, 0.9);
 }
 
 .bb-forgot:hover {
-    color: #e2e8f0;
+    color: var(--chalk-white);
 }
 
-/* ── Primary button ── */
+/* ════════════════════════════════════════════════
+   BUTTONS
+   ════════════════════════════════════════════════ */
 .bb-btn {
     width: 100%;
-    padding: 0.85rem;
-    background: rgba(255, 255, 255, 0.15); /* Semi-transparent white/chalky */
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    color: #fff;
-    font-size: 1rem;
-    font-weight: 600;
+    padding: 6px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 3px solid rgba(245, 240, 232, 0.7);
+    border-radius: 5px;
+    font-family: var(--chalk-font);
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--chalk-white);
+    letter-spacing: 0.06em;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.18s, border-color 0.18s, transform 0.1s;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
+    gap: 8px;
+    -webkit-text-stroke: 1.2px var(--chalk-white);
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4), 0 0 2px rgba(255, 255, 255, 0.3);
+    margin-top: 4px;
 }
 
-.bb-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
+.bb-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: rgba(245, 240, 232, 0.85);
+    transform: translateY(-1px);
 }
 
-.bb-btn:active {
-    transform: scale(0.98);
+.bb-btn:active:not(:disabled) {
+    transform: translateY(0);
 }
 
 .bb-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.55;
     cursor: not-allowed;
-    background: rgba(255, 255, 255, 0.05);
 }
 
-/* ── Divider ── */
+/* Google button */
+.bb-btn-google {
+    width: 100%;
+    padding: 6px;
+    background: transparent;
+    border: 3px dashed rgba(245, 240, 232, 0.75);
+    border-radius: 5px;
+    font-family: var(--chalk-font);
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: var(--chalk-white);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: background 0.18s, border-color 0.18s, transform 0.1s;
+    -webkit-text-stroke: 1px var(--chalk-white);
+    text-shadow: 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+.bb-btn-google:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(245, 240, 232, 0.85);
+    transform: translateY(-1px);
+}
+
+.bb-btn-google:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.bb-btn-google svg {
+    width: 22px;
+    height: 22px;
+    fill: currentColor;
+}
+
+/* ════════════════════════════════════════════════
+   DIVIDER
+   ════════════════════════════════════════════════ */
 .bb-divider {
     display: flex;
     align-items: center;
-    gap: 1rem;
-    margin: 1.75rem 0;
+    gap: 10px;
+    margin: 6px 0 4px;
 }
 
 .bb-divider-line {
     flex: 1;
     height: 1px;
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(245, 240, 232, 0.25);
 }
 
 .bb-divider-text {
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: #94a3b8;
+    font-family: var(--chalk-font);
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: rgba(245, 240, 232, 0.7);
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+    -webkit-text-stroke: 0.3px rgba(245, 240, 232, 0.7);
 }
 
-/* ── Google button ── */
-.bb-btn-google {
-    width: 100%;
-    padding: 0.85rem;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid transparent;
-    border-radius: 20px;
-    color: #e2e8f0;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-}
-
-.bb-btn-google:hover {
-    background: rgba(0, 0, 0, 0.3);
-}
-
-.bb-btn-google svg {
-    width: 18px;
-    height: 18px;
-}
-
-/* ── Sign-up link row ── */
+/* ════════════════════════════════════════════════
+   FOOTER  (switch-tab link)
+   ════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════════
+   FOOTER  (switch-tab link)
+   ════════════════════════════════════════════════ */
 .bb-footer {
     text-align: center;
-    margin-top: 2rem;
-    font-size: 0.85rem;
-    color: #94a3b8;
+    margin-top: 8px;
+    font-family: var(--chalk-font);
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: rgba(245, 240, 232, 0.85);
+    -webkit-text-stroke: 0.5px rgba(245, 240, 232, 0.85);
 }
 
 .bb-footer-link {
-    color: #e2e8f0;
-    text-decoration: none;
-    cursor: pointer;
     background: none;
     border: none;
-    font-size: 0.85rem;
-    font-weight: 600;
+    cursor: pointer;
+    color: var(--chalk-white);
+    font-weight: 800;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    font-size: 1.45rem;
     padding: 0;
-    margin-left: 0.25rem;
-    transition: color 0.2s;
+    transition: opacity 0.15s;
+    font-family: var(--chalk-font);
+    -webkit-text-stroke: 1px var(--chalk-white);
 }
 
 .bb-footer-link:hover {
-    color: #fff;
-    text-decoration: underline;
+    opacity: 0.8;
 }
 
-/* ── Form error messages ── */
+/* ════════════════════════════════════════════════
+   ERROR / SUCCESS banners
+   ════════════════════════════════════════════════ */
+.bb-error-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: rgba(200, 50, 50, 0.25);
+    border: 1px solid rgba(220, 80, 80, 0.45);
+    border-radius: 5px;
+    padding: 9px 11px;
+    margin-bottom: 12px;
+}
+
+.bb-error-banner svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: #ff8080;
+    margin-top: 1px;
+}
+
+.bb-error-banner-text {
+    font-family: var(--chalk-font);
+    font-size: 1.15rem;
+    color: #ffbbbb;
+    line-height: 1.4;
+}
+
+.bb-success-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    background: rgba(30, 130, 50, 0.3);
+    border: 1px solid rgba(50, 180, 80, 0.45);
+    border-radius: 5px;
+    padding: 9px 11px;
+    margin-bottom: 12px;
+}
+
+.bb-success-banner svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    color: #80ff90;
+    margin-top: 1px;
+}
+
+.bb-success-banner-text {
+    font-family: var(--chalk-font);
+    font-size: 1.15rem;
+    color: #aaffb8;
+    line-height: 1.4;
+}
+
 .bb-error {
-    font-size: 0.8rem;
-    color: #fecaca; /* Chalky red */
-    margin-top: 0.4rem;
-    padding-left: 0.5rem;
-    font-weight: 400;
+    font-family: var(--chalk-font);
+    font-size: 1.05rem;
+    color: #ffaaaa;
+    margin-top: 3px;
+    display: block;
 }
 
-/* ── Spinner ── */
+/* ════════════════════════════════════════════════
+   PASSWORD STRENGTH
+   ════════════════════════════════════════════════ */
+.bb-strength {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+}
+
+.bb-strength-bar {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.bb-strength-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+}
+
+.bb-strength-fill--weak {
+    width: 25%;
+    background: #e74c3c;
+}
+
+.bb-strength-fill--fair {
+    width: 50%;
+    background: #e67e22;
+}
+
+.bb-strength-fill--strong {
+    width: 75%;
+    background: #2ecc71;
+}
+
+.bb-strength-fill--very-strong {
+    width: 100%;
+    background: #27ae60;
+}
+
+.bb-strength-text {
+    font-family: var(--ui-font);
+    font-size: 0.7rem;
+    color: rgba(245, 240, 232, 0.7);
+    min-width: 55px;
+    text-align: right;
+}
+
+.bb-match-success {
+    font-family: var(--ui-font);
+    font-size: 0.7rem;
+    color: #80ff88;
+    margin-top: 3px;
+    display: block;
+}
+
+.bb-match-error {
+    font-family: var(--ui-font);
+    font-size: 0.7rem;
+    color: #ffaaaa;
+    margin-top: 3px;
+    display: block;
+}
+
+/* ════════════════════════════════════════════════
+   LOADING SPINNER
+   ════════════════════════════════════════════════ */
 .bb-spinner {
     display: inline-block;
-    width: 18px;
-    height: 18px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-top-color: #fff;
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(245, 240, 232, 0.3);
+    border-top-color: var(--chalk-white);
     border-radius: 50%;
-    animation: bb-spin 0.6s linear infinite;
+    animation: bb-spin 0.7s linear infinite;
+    vertical-align: middle;
 }
 
 @keyframes bb-spin {
@@ -415,244 +626,189 @@
     }
 }
 
-/* ── Entrance animation ── */
-.bb-board {
-    animation: bb-fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-@keyframes bb-fadeIn {
-    from {
-        opacity: 0;
-        transform: translateY(10px) scale(0.98);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-    }
-}
-
-/* ── Password visibility toggle ── */
-.bb-password-wrap {
-    position: relative;
-}
-
-.bb-password-toggle {
-    position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    padding: 4px;
-    cursor: pointer;
-    color: #94a3b8;
-    transition: color 0.2s;
+/* ════════════════════════════════════════════════
+   FORGOT PASSWORD MODAL
+   ════════════════════════════════════════════════ */
+.bb-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0, 0, 0, 0.65);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 2;
+    backdrop-filter: blur(3px);
+    padding: 16px;
 }
 
-.bb-password-toggle:hover {
-    color: #e2e8f0;
-}
-
-.bb-password-toggle svg {
-    width: 18px;
-    height: 18px;
-}
-
-.bb-input--password {
-    padding-right: 3rem;
-}
-
-/* ── Password strength indicator ── */
-.bb-strength {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-top: 0.6rem;
-}
-
-.bb-strength-bar {
-    flex: 1;
-    height: 4px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 2px;
-    overflow: hidden;
-}
-
-.bb-strength-fill {
-    height: 100%;
-    border-radius: 2px;
-    transition: width 0.3s ease, background 0.3s ease;
-}
-
-.bb-strength-fill--weak {
-    width: 25%;
-    background: #fca5a5;
-}
-
-.bb-strength-fill--fair {
-    width: 50%;
-    background: #fde047;
-}
-
-.bb-strength-fill--strong {
-    width: 75%;
-    background: #93c5fd;
-}
-
-.bb-strength-fill--very-strong {
-    width: 100%;
-    background: #86efac;
-}
-
-.bb-strength-text {
-    font-size: 0.75rem;
-    color: #cbd5e1;
-    min-width: 70px;
-    text-align: right;
-}
-
-/* ── Form-level error/success banners ── */
-.bb-error-banner,
-.bb-success-banner {
-    border-radius: 8px;
-    padding: 0.75rem 1rem;
-    margin-bottom: 1.5rem;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.75rem;
-}
-
-.bb-error-banner {
-    background: rgba(239, 68, 68, 0.15);
-    border: 1px dotted rgba(239, 68, 68, 0.3); /* Chalk line feel */
-}
-
-.bb-error-banner svg {
-    color: #fca5a5;
-}
-
-.bb-error-banner-text {
-    color: #fca5a5;
-    font-size: 0.85rem;
-    line-height: 1.4;
-}
-
-.bb-success-banner {
-    background: rgba(16, 185, 129, 0.15);
-    border: 1px dotted rgba(16, 185, 129, 0.3);
-}
-
-.bb-success-banner svg {
-    color: #86efac;
-}
-
-.bb-success-banner-text {
-    color: #86efac;
-    font-size: 0.85rem;
-    line-height: 1.4;
-}
-
-/* Match Error */
-.bb-match-error {
-    font-size: 0.8rem;
-    color: #fca5a5;
-    margin-top: 0.4rem;
-    padding-left: 0.5rem;
-    font-weight: 400;
-}
-
-.bb-match-success {
-    font-size: 0.8rem;
-    color: #86efac;
-    margin-top: 0.4rem;
-    padding-left: 0.5rem;
-    font-weight: 400;
-}
-
-/* Forgot Modal overrides for green theme */
 .bb-modal {
-    background: #2a4031;
-    border: 8px solid #8B5A2B;
-    border-radius: 6px;
-    padding: 2rem;
+    background: var(--board-green);
+    border: 5px solid var(--board-frame);
+    border-radius: 8px;
+    padding: 28px 32px;
     width: 100%;
-    max-width: 380px;
-    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.5);
-    animation: bb-modalIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    max-width: 420px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
 }
 
 .bb-modal-title {
-    font-size: 1.5rem;
-    font-family: 'Caveat', 'Comic Sans MS', cursive;
-    color: #f8fafc;
-    margin-bottom: 0.5rem;
+    font-family: var(--chalk-font);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--chalk-white);
+    margin: 0 0 6px;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
 }
 
-.bb-btn-primary-sm {
-    flex: 1;
-    padding: 0.75rem;
-    background: rgba(255, 255, 255, 0.15);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 20px;
-    color: #fff;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
+.bb-modal-subtitle {
+    font-family: var(--ui-font);
+    font-size: 0.82rem;
+    color: rgba(245, 240, 232, 0.7);
+    margin: 0 0 18px;
+    line-height: 1.5;
+}
+
+.bb-actions-row {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-}
-
-.bb-btn-primary-sm:hover {
-    background: rgba(255, 255, 255, 0.25);
+    gap: 10px;
+    margin-top: 16px;
 }
 
 .bb-btn-secondary {
     flex: 1;
-    padding: 0.75rem;
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 20px;
-    color: #cbd5e1;
-    font-size: 0.9rem;
-    font-weight: 600;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.18);
+    border: 1.5px solid rgba(245, 240, 232, 0.35);
+    border-radius: 5px;
+    font-family: var(--chalk-font);
+    font-size: 1.1rem;
+    color: rgba(245, 240, 232, 0.75);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: background 0.18s, color 0.18s;
 }
 
-.bb-btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+.bb-btn-secondary:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.28);
+    color: var(--chalk-white);
 }
 
-/* Chalky background scribbles */
-.chalk-bg-icon {
-    position: absolute;
-    color: rgba(255,255,255,0.03);
-    font-family: 'Caveat', cursive;
-    pointer-events: none;
-    z-index: 0;
+.bb-btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }
 
-.chalk-bg-icon.atom { top: 15%; left: 10%; width: 60px; height: 60px; }
-.chalk-bg-icon.star { top: 10%; right: 15%; width: 40px; height: 40px; }
-.chalk-bg-icon.pi { bottom: 15%; left: 15%; font-size: 2rem; }
-.chalk-bg-icon.emc { bottom: 20%; right: 10%; font-size: 1.5rem; font-style: italic; }
+.bb-btn-primary-sm {
+    flex: 1;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.15);
+    border: 1.5px solid rgba(245, 240, 232, 0.6);
+    border-radius: 5px;
+    font-family: var(--chalk-font);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--chalk-white);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: background 0.18s, border-color 0.18s;
+}
 
-@media (max-width: 520px) {
-    .bb-wrapper {
-        padding: 1rem;
+.bb-btn-primary-sm:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.22);
+    border-color: var(--chalk-white);
+}
+
+.bb-btn-primary-sm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ════════════════════════════════════════════════
+   RESPONSIVE TWEAKS (Mobile First approach logic above)
+   ════════════════════════════════════════════════ */
+
+/* Table & Desktop View */
+@media (min-width: 850px) {
+    .bb-page-wrapper {
+        flex-direction: row;
+        padding: 40px;
+        gap: 20px;
+    }
+
+    .bb-teacher-col {
+        display: flex;
+        align-items: flex-end;
+        /* Align teacher to bottom */
+        justify-content: flex-start;
+        flex: 0 0 40%;
+        height: 100%;
+        max-width: 500px;
+        overflow: hidden;
+        /* Hide the empty right side of the teacher image */
+    }
+
+    .bb-teacher-img {
+        height: 90vh;
+        width: auto;
+        max-width: none;
+        /* Allow image to be wider than the column, so right side overflows */
+        object-fit: contain;
+        object-position: left bottom;
+        /* Anchor to the bottom-left */
+    }
+
+    .bb-board-col {
+        flex: 1;
+        justify-content: flex-start;
+        padding: 0;
+    }
+
+    .bb-board-container {
+        /* Align more towards the left so it sits closer to teacher */
+        margin-left: -5%;
+    }
+}
+
+@media (max-width: 849px) {
+    .bb-page-wrapper {
+        padding: 10px;
+    }
+
+    .bb-board-col {
+        padding: 0;
+    }
+
+    .bb-board-container {
+        aspect-ratio: auto;
+        background-size: cover;
+        background-color: var(--board-green);
+        border: 12px solid var(--board-frame);
+        border-radius: 8px;
+        filter: none;
+        padding: 30px 10px;
+        background-image: none !important;
+        height: auto;
+        min-height: 80vh;
+        /* On very small screens, drop the container image entirely if it gets in the way, or keep it if it fits. */
+    }
+
+    /* Simulate chalkboard look on mobile without the image constraints */
+    .bb-board-container {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4' viewBox='0 0 4 4'%3E%3Cpath fill='%23ffffff' fill-opacity='0.04' d='M1 3h1v1H1V3zm2-2h1v1H3V1z'%3E%3C/path%3E%3C/svg%3E") !important;
+    }
+
+    .bb-board-panel {
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .bb-title {
+        font-size: 1.8rem;
     }
 
     .bb-board {
-        padding: 2rem 1.5rem;
-        border-width: 8px; /* Thinner border on mobile */
+        padding: 18px 16px 16px;
     }
 }

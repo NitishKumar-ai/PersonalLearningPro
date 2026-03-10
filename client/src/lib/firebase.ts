@@ -60,6 +60,7 @@ export interface UserProfile {
   photoURL?: string;
   institutionId?: string;
   classId?: string;
+  school_code?: string;
   studentId?: string; // For parents
   subjects?: string[]; // For teachers
   createdAt?: any;
