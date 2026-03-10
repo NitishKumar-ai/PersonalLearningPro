@@ -691,29 +691,13 @@ const Testimonials = () => (
 // --- Pricing.tsx ---
 const plans = [
   {
-    name: "Explorer",
-    price: "Free",
-    desc: "Get started with basic AI features",
-    features: ["5 AI study plans/month", "Basic flashcards", "Community support"],
-    cta: "Start Free",
-    highlighted: false,
-  },
-  {
-    name: "Pilot",
-    price: "₹499/mo",
-    desc: "Full power for serious learners",
-    features: ["Unlimited AI plans", "Smart tutor bot", "Performance analytics", "Priority support"],
-    cta: "Get Onboard",
+    name: "All Access Pass",
+    price: "Coming Soon",
+    desc: "We're preparing our premium learning features for takeoff.",
+    features: ["Unlimited AI study plans", "Smart tutor bot", "Performance analytics", "Priority support"],
+    cta: "Join Waitlist",
     highlighted: true,
-  },
-  {
-    name: "Academy",
-    price: "Custom",
-    desc: "For schools & institutions",
-    features: ["Bulk student accounts", "Teacher dashboard", "Custom branding", "Dedicated support"],
-    cta: "Contact Sales",
-    highlighted: false,
-  },
+  }
 ];
 
 const Pricing = () => {
@@ -731,11 +715,11 @@ const Pricing = () => {
             Choose Your Ticket 🎫
           </h2>
           <p className="text-muted-foreground text-lg">
-            Simple pricing for every kind of learner.
+            Simple pricing for every kind of learner. Tickets launching soon.
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+        <div className="flex justify-center max-w-4xl mx-auto">
           {plans.map((plan, i) => (
             <motion.div
               key={plan.name}
@@ -743,29 +727,29 @@ const Pricing = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className={`p-6 rounded-2xl sketch-border transition-all flex flex-col hover-tilt ${plan.highlighted
+              className={`p-6 w-full max-w-sm rounded-2xl sketch-border transition-all flex flex-col hover-tilt ${plan.highlighted
                 ? "bg-card sketch-shadow-yellow ring-2 ring-primary"
                 : "bg-card sketch-shadow"
                 }`}
             >
               {plan.highlighted && (
-                <span className="text-xs font-bold bg-primary px-3 py-1 rounded-full self-start mb-4">
-                  Most Popular
+                <span className="text-xs font-bold bg-primary px-3 py-1 rounded-full self-start mb-4 text-primary-foreground">
+                  Preparing for Takeoff
                 </span>
               )}
               <h3 className="font-heading font-bold text-xl">{plan.name}</h3>
-              <p className="text-2xl font-extrabold font-heading mt-2">{plan.price}</p>
-              <p className="text-sm text-muted-foreground mt-1 mb-6">{plan.desc}</p>
-              <ul className="space-y-3 flex-1">
+              <p className="text-3xl font-extrabold font-heading mt-2">{plan.price}</p>
+              <p className="text-sm text-muted-foreground mt-2 mb-6">{plan.desc}</p>
+              <ul className="space-y-4 flex-1">
                 {plan.features.map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-sm">
-                    <Check size={15} className="text-secondary shrink-0" />
+                  <li key={f} className="flex items-center gap-3 text-sm font-medium">
+                    <Check size={18} className="text-primary shrink-0" strokeWidth={3} />
                     {f}
                   </li>
                 ))}
               </ul>
               <Button
-                className={`mt-6 rounded-full font-heading sketch-border hover-tilt ${plan.highlighted ? "bg-primary text-primary-foreground hover:bg-primary/90 sketch-shadow-yellow" : "bg-card sketch-shadow"
+                className={`mt-8 h-12 rounded-full font-heading text-base sketch-border hover-tilt ${plan.highlighted ? "bg-primary text-primary-foreground hover:bg-primary/90 sketch-shadow-yellow" : "bg-card sketch-shadow"
                   }`}
                 variant={plan.highlighted ? "default" : "outline"}
                 onClick={() => setLocation('/login')}
