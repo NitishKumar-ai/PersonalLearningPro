@@ -27,7 +27,7 @@ const Navbar = () => {
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
       <div className="container flex items-center justify-between h-16">
         <a href="#" className="font-heading text-xl font-bold tracking-tight">
-          Edu<span className="text-primary">AI</span> ✈
+          Edu<span className="text-primary">AI</span> ✨
         </a>
 
         {/* Desktop */}
@@ -67,7 +67,7 @@ const Navbar = () => {
             </a>
           ))}
           <Button className="w-full rounded-full font-heading text-sm bg-primary text-primary-foreground hover:bg-primary/90 sketch-border sketch-shadow-yellow" size="sm" onClick={() => { setOpen(false); setLocation('/login'); }}>
-            Get Onboard
+            Get Started
           </Button>
         </div>
       )}
@@ -98,7 +98,7 @@ const Hero = () => {
           className="space-y-6"
         >
           <span className="inline-block bg-card sketch-border sketch-shadow px-4 py-1.5 text-sm font-medium text-foreground">
-            ✈ Ready for a smooth learning flight?
+            ✨ Ready for a smooth learning journey?
           </span>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold leading-[1.08] tracking-tight">
             Stop studying <br />
@@ -111,7 +111,7 @@ const Hero = () => {
           </p>
           <div className="flex flex-wrap gap-4 pt-2">
             <Button size="lg" className="rounded-full font-heading text-base px-8 bg-primary text-primary-foreground hover:bg-primary/90 sketch-border sketch-shadow-yellow hover-tilt" onClick={() => setLocation('/login')}>
-              Start My Flight Plan
+              Start My Learning Plan
             </Button>
             <Button
               size="lg"
@@ -179,7 +179,7 @@ const Turbulence = () => {
             Studying in the <span className="text-red-500">Clouds?</span>
           </h2>
           <p className="text-neutral-400 text-lg md:text-xl leading-relaxed">
-            Most students are flying blind. No plan, no feedback, just pure turbulence.
+            Most students are studying blind. No plan, no feedback, just pure chaos.
             It's not that you're not working hard—it's that your navigation system is broken.
           </p>
         </motion.div>
@@ -243,7 +243,7 @@ const Journey = () => (
           Your Strategic Navigator 🧭
         </h2>
         <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-          We strip away the chaos. Here's your automated flight path from confusion to complete mastery.
+          We strip away the chaos. Here's your automated path from confusion to complete mastery.
         </p>
       </motion.div>
 
@@ -417,7 +417,7 @@ const FeatureCard = ({ feature, index }: { feature: any; index: number }) => {
   );
 };
 
-// --- BoardingPasses.tsx ---
+// --- OnboardingFeatures.tsx ---
 const cards = [
   {
     icon: Brain,
@@ -441,7 +441,7 @@ const cards = [
   },
 ];
 
-const BoardingPasses = () => (
+const OnboardingFeatures = () => (
   <section id="features" className="py-24">
     <div className="container">
       <motion.div
@@ -451,10 +451,10 @@ const BoardingPasses = () => (
         className="text-center mb-16"
       >
         <h2 className="text-3xl md:text-4xl font-extrabold mb-3">
-          Boarding Passes 🎫
+          Onboarding Features ✨
         </h2>
         <p className="text-muted-foreground text-lg max-w-xl mx-auto">
-          Everything you need for a smooth learning flight.
+          Everything you need for a smooth learning journey.
         </p>
       </motion.div>
 
@@ -619,7 +619,7 @@ const plans = [
   {
     name: "All Access Pass",
     price: "Coming Soon",
-    desc: "We're preparing our premium learning features for takeoff.",
+    desc: "We're preparing our premium learning features for launch.",
     features: ["Unlimited AI study plans", "Smart tutor bot", "Performance analytics", "Priority support"],
     cta: "Join Waitlist",
     highlighted: true,
@@ -660,7 +660,7 @@ const Pricing = () => {
             >
               {plan.highlighted && (
                 <span className="text-xs font-bold bg-primary px-3 py-1 rounded-full self-start mb-4 text-primary-foreground">
-                  Preparing for Takeoff
+                  Launching Soon
                 </span>
               )}
               <h3 className="font-heading font-bold text-xl">{plan.name}</h3>
@@ -700,7 +700,7 @@ const ContactForm = () => {
       toast.error("Please fill in your name and email.");
       return;
     }
-    toast.success("Thank you! We'll be in touch shortly. ✈");
+    toast.success("Thank you! We'll be in touch shortly. ✨");
     setForm({ name: "", email: "", phone: "", role: "", message: "" });
   };
 
@@ -726,13 +726,13 @@ const ContactForm = () => {
         <div className="w-full max-w-lg">
           <div className="text-left mb-10">
             <span className="inline-block bg-card sketch-border sketch-shadow px-4 py-1.5 text-sm font-medium text-foreground mb-4">
-              ✈ Get in touch
+              ✨ Get in touch
             </span>
             <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight">
               Book Your Digital Journey
             </h2>
             <p className="text-lg md:text-xl text-muted-foreground leading-relaxed mt-4">
-              Whether you're a student, teacher, or school — we'd love to help you take off. Fill out the form and our team will reach out within 24 hours.
+              Whether you're a student, teacher, or school — we'd love to help you succeed. Fill out the form and our team will reach out within 24 hours.
             </p>
           </div>
 
@@ -804,7 +804,7 @@ const ContactForm = () => {
 const Footer = () => (
   <footer className="border-t border-border py-12 bg-card/30">
     <div className="container">
-      {/* Runway dashes */}
+      {/* Footer Divider */}
       <div className="flex justify-center mb-8">
         <div className="flex gap-2">
           {[...Array(12)].map((_, i) => (
@@ -816,7 +816,7 @@ const Footer = () => (
       <div className="grid sm:grid-cols-3 gap-8 text-sm">
         <div>
           <p className="font-heading font-bold text-lg mb-2">
-            Edu<span className="text-primary">AI</span> ✈
+            Edu<span className="text-primary">AI</span> ✨
           </p>
           <p className="text-muted-foreground">
             AI-powered personalised learning for every student.
@@ -858,7 +858,7 @@ const LandingPage = () => (
       <Turbulence />
       <Journey />
       <NotebookFeature />
-      <BoardingPasses />
+      <OnboardingFeatures />
       <DemoWidget />
       <Pricing />
       <ContactForm />
