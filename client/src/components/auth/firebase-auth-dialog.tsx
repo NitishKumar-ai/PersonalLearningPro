@@ -5,6 +5,8 @@ import { User } from "firebase/auth";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { motion } from "framer-motion";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 import {
     Dialog,
@@ -30,89 +32,98 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 
-// ── SVG Icons ──
-const EyeIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-        <circle cx="12" cy="12" r="3" />
-    </svg>
-);
+import teacherImg from "@/assets/teacher-illustration.png";
+import laptopImg from "@/assets/laptop.png";
+import coffeeImg from "@/assets/coffee-mug.png";
+import avatar1 from "@/assets/avatar-1.png";
+import avatar2 from "@/assets/avatar-2.png";
 
-const EyeOffIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-        <line x1="1" y1="1" x2="23" y2="23" />
-    </svg>
-);
+const StudentBubble = ({ color, size = 48, className = "", delay = 0, initials, avatarSrc }: any) => {
+    return (
+        <motion.div
+            className={`z-20 flex items-center justify-center rounded-full border-2 border-card shadow-md overflow-hidden ${className}`}
+            style={{ width: size, height: size, backgroundColor: color }}
+            animate={{ y: [0, -5, 0] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay }}
+        >
+            {avatarSrc ? (
+                <img src={avatarSrc} alt={initials} className="h-full w-full object-cover" />
+            ) : (
+                <span className="text-xs font-semibold text-secondary-foreground">{initials}</span>
+            )}
+        </motion.div>
+    );
+};
 
-const AlertIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <circle cx="12" cy="12" r="10" />
-        <line x1="12" y1="8" x2="12" y2="12" />
-        <line x1="12" y1="16" x2="12.01" y2="16" />
-    </svg>
-);
+const FloatingCard = ({ title, subtitle, progress, tag, className = "", delay = 0 }: any) => {
+    return (
+        <motion.div
+            className={`rounded-2xl bg-card px-5 py-4 shadow-lg shadow-foreground/5 min-w-[160px] z-20 ${className}`}
+            animate={{ y: [0, -6, 0] }}
+            transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay }}
+        >
+            <p className="text-sm font-bold text-card-foreground">{title}</p>
+            {subtitle && <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
+            {(progress !== undefined || tag) && (
+                <div className="mt-2 flex items-center gap-3">
+                    {progress !== undefined && (
+                        <div className="relative flex items-center justify-center">
+                            <svg width="32" height="32" viewBox="0 0 36 36">
+                                <circle cx="18" cy="18" r="14" fill="none" stroke="hsl(var(--muted))" strokeWidth="3" />
+                                <circle cx="18" cy="18" r="14" fill="none" stroke="hsl(var(--primary))" strokeWidth="3" strokeDasharray={`${progress * 0.88} 88`} strokeLinecap="round" transform="rotate(-90 18 18)" />
+                            </svg>
+                            <span className="absolute text-[8px] font-bold text-primary">{progress}%</span>
+                        </div>
+                    )}
+                    {tag && <span className="rounded-md border border-input px-2.5 py-1 text-[11px] font-medium text-card-foreground">{tag}</span>}
+                </div>
+            )}
+        </motion.div>
+    );
+};
 
-const CheckIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polyline points="20 6 9 17 4 12" />
-    </svg>
-);
+const IllustrationPanel = () => {
+    return (
+        <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-illustration">
+            <svg className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-auto opacity-40" viewBox="0 0 500 120" fill="none">
+                <path d="M80 110 Q150 10 250 50 Q350 90 420 20" stroke="hsl(var(--primary))" strokeWidth="2.5" fill="none" strokeLinecap="round" />
+                <path d="M100 100 Q170 30 250 60 Q330 90 400 30" stroke="hsl(var(--primary))" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5" />
+            </svg>
+            <StudentBubble color="hsl(var(--bubble-1))" initials="AS" avatarSrc={avatar1} className="absolute top-[12%] left-[12%]" delay={0} size={56} />
+            <StudentBubble color="hsl(var(--bubble-2))" initials="MK" avatarSrc={avatar2} className="absolute top-[40%] right-[6%]" delay={1} size={52} />
+            <div className="relative z-10 flex items-end justify-center">
+                <motion.img src={laptopImg} alt="Laptop" className="w-[100px] lg:w-[120px] xl:w-[140px] -mr-4 mb-4 drop-shadow-sm" animate={{ y: [0, -5, 0], rotate: [-1, 1, -1] }} transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut", delay: 0.5 }} />
+                <motion.img src={teacherImg} alt="AI Teacher" className="w-[240px] lg:w-[300px] xl:w-[340px] drop-shadow-sm" animate={{ scale: [1, 1.015, 1] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }} />
+                <motion.img src={coffeeImg} alt="Coffee mug" className="w-[60px] lg:w-[70px] xl:w-[80px] -ml-6 mb-2 drop-shadow-sm" animate={{ y: [0, -4, 0], rotate: [1, -1, 1] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut", delay: 0.8 }} />
+            </div>
+            <FloatingCard title="AI Flashcards" subtitle="12 created today" progress={84} tag="Study" className="absolute bottom-[28%] left-[8%] lg:left-[10%]" delay={0.3} />
+            <div className="flex items-center gap-2 mt-6 relative z-10">
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/30" />
+                <span className="h-4 w-4 rounded-full bg-foreground" />
+            </div>
+            <p className="mt-5 text-center text-base text-foreground relative z-10 px-6">
+                Make your learning easier and organized<br />with <span className="font-bold">EduAI</span>
+            </p>
+        </div>
+    );
+};
 
-const MailIcon = () => (
-    <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect width="20" height="16" x="2" y="4" rx="2" />
-        <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-    </svg>
-);
-
-// ── Password Strength Utility ──
-type StrengthLevel = "weak" | "fair" | "strong" | "very-strong";
-
-function getPasswordStrength(password: string): { level: StrengthLevel; label: string } | null {
-    if (!password || password.length === 0) return null;
-    let score = 0;
-    if (password.length >= 6) score++;
-    if (password.length >= 10) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-
-    if (score <= 1) return { level: "weak", label: "Weak" };
-    if (score === 2) return { level: "fair", label: "Fair" };
-    if (score === 3) return { level: "strong", label: "Strong" };
-    return { level: "very-strong", label: "Very Strong" };
-}
-
-
-/**
- * Production-ready authentication dialog with login, registration,
- * forgot-password, and Google sign-in flows.
- */
 export function FirebaseAuthDialog() {
     const { login, register, googleLogin, completeGoogleRegistration, resetUserPassword } = useFirebaseAuth();
     const [isNewGoogleUser, setIsNewGoogleUser] = useState(false);
     const [tempGoogleUser, setTempGoogleUser] = useState<User | null>(null);
     const [authTab, setAuthTab] = useState<"login" | "register">("login");
 
-    // ── Visibility toggles ──
-    const [showLoginPassword, setShowLoginPassword] = useState(false);
-    const [showRegPassword, setShowRegPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-    // ── Error / loading states ──
     const [loginError, setLoginError] = useState<string | null>(null);
     const [registerError, setRegisterError] = useState<string | null>(null);
     const [googleLoading, setGoogleLoading] = useState(false);
+    const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
+    const [isRegSubmitting, setIsRegSubmitting] = useState(false);
+    
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-    // ── Forgot password ──
-    const [showForgotModal, setShowForgotModal] = useState(false);
-    const [forgotEmail, setForgotEmail] = useState("");
-    const [forgotLoading, setForgotLoading] = useState(false);
-    const [forgotSuccess, setForgotSuccess] = useState(false);
-    const [forgotError, setForgotError] = useState<string | null>(null);
-
-    // ── Form schemas ──
     const loginSchema = useMemo(() => z.object({
         email: z.string().email({ message: "Please enter a valid email address" }),
         password: z.string().min(6, { message: "Password must be at least 6 characters" }),
@@ -160,18 +171,11 @@ export function FirebaseAuthDialog() {
         defaultValues: { role: "student", class: "12" },
     });
 
-    // ── Password strength for register form ──
-    const regPasswordValue = registerForm.watch("password");
-    const regConfirmValue = registerForm.watch("confirmPassword");
-    const selectedRole = registerForm.watch("role");
     const selectedGoogleRole = roleForm.watch("role");
-    const passwordStrength = getPasswordStrength(regPasswordValue);
-    const passwordsMatch = regConfirmValue.length > 0 && regPasswordValue === regConfirmValue;
-    const passwordsMismatch = regConfirmValue.length > 0 && regPasswordValue !== regConfirmValue;
 
-    // ── Handlers ──
     const onLoginSubmit = useCallback(async (data: z.infer<typeof loginSchema>) => {
         setLoginError(null);
+        setIsLoginSubmitting(true);
         try {
             await login(data.email, data.password);
         } catch (error: any) {
@@ -204,11 +208,26 @@ export function FirebaseAuthDialog() {
                 }
             }
             setLoginError(error.message || "Login failed. Please try again.");
+        } finally {
+            setIsLoginSubmitting(false);
         }
     }, [login, loginSchema]);
 
+    const getRoleSpecificData = (role: string, data?: any) => {
+        switch (role) {
+            case "student": return { classId: data?.class || "12" };
+            case "teacher": return { subjects: ["Mathematics", "Physics"] };
+            case "principal": return { institutionId: "central-high" };
+            case "school_admin": return { institutionId: "central-high" };
+            case "admin": return { institutionId: "central-high" };
+            case "parent": return { studentId: "student-123" };
+            default: return {};
+        }
+    };
+
     const onRegisterSubmit = useCallback(async (data: z.infer<typeof registerSchema>) => {
         setRegisterError(null);
+        setIsRegSubmitting(true);
         try {
             const additionalData = getRoleSpecificData(data.role, data);
             await register(data.email, data.password, data.name, data.role as UserRole, additionalData);
@@ -256,6 +275,8 @@ export function FirebaseAuthDialog() {
                 }
             }
             setRegisterError(error.message || "Registration failed. Please try again.");
+        } finally {
+            setIsRegSubmitting(false);
         }
     }, [register, registerSchema]);
 
@@ -270,18 +291,6 @@ export function FirebaseAuthDialog() {
             console.error("Google registration completion failed:", error);
         }
     }, [tempGoogleUser, completeGoogleRegistration, roleSchema]);
-
-    function getRoleSpecificData(role: string, data?: any) {
-        switch (role) {
-            case "student": return { classId: data?.class || "12" };
-            case "teacher": return { subjects: ["Mathematics", "Physics"] };
-            case "principal": return { institutionId: "central-high" };
-            case "school_admin": return { institutionId: "central-high" };
-            case "admin": return { institutionId: "central-high" };
-            case "parent": return { studentId: "student-123" };
-            default: return {};
-        }
-    }
 
     const handleGoogleLogin = useCallback(async () => {
         setGoogleLoading(true);
@@ -302,76 +311,6 @@ export function FirebaseAuthDialog() {
         }
     }, [googleLogin, authTab]);
 
-    const handleForgotPassword = useCallback(async () => {
-        if (!forgotEmail.trim()) {
-            setForgotError("Please enter your email address.");
-            return;
-        }
-        setForgotLoading(true);
-        setForgotError(null);
-        try {
-            await resetUserPassword(forgotEmail.trim());
-            setForgotSuccess(true);
-        } catch (error: any) {
-            setForgotError(error.message || "Failed to send reset email.");
-        } finally {
-            setForgotLoading(false);
-        }
-    }, [forgotEmail, resetUserPassword]);
-
-    const openForgotModal = useCallback(() => {
-        setForgotEmail(loginForm.getValues("email") || "");
-        setForgotError(null);
-        setForgotSuccess(false);
-        setShowForgotModal(true);
-    }, [loginForm]);
-
-    const closeForgotModal = useCallback(() => {
-        setShowForgotModal(false);
-        setForgotEmail("");
-        setForgotError(null);
-        setForgotSuccess(false);
-    }, []);
-
-    const switchTab = useCallback((tab: "login" | "register") => {
-        setAuthTab(tab);
-        setLoginError(null);
-        setRegisterError(null);
-    }, []);
-
-    // ── Password input helper ──
-    const renderPasswordField = (
-        fieldProps: any,
-        showPw: boolean,
-        togglePw: () => void,
-        placeholder = "••••••••",
-        disabled = false,
-    ) => (
-        <div className="bb-input-wrap bb-password-wrap">
-            <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-            </svg>
-            <input
-                className="bb-input bb-input--password"
-                type={showPw ? "text" : "password"}
-                placeholder={placeholder}
-                disabled={disabled}
-                {...fieldProps}
-            />
-            <button
-                type="button"
-                className="bb-password-toggle"
-                onClick={togglePw}
-                tabIndex={-1}
-                aria-label={showPw ? "Hide password" : "Show password"}
-            >
-                {showPw ? <EyeOffIcon /> : <EyeIcon />}
-            </button>
-        </div>
-    );
-
-    // ── Google role selection dialog (new Google user) ──
     if (isNewGoogleUser) {
         return (
             <Dialog open={isNewGoogleUser} onOpenChange={(open) => !open && setIsNewGoogleUser(false)}>
@@ -434,7 +373,7 @@ export function FirebaseAuthDialog() {
                                     )}
                                 />
                             )}
-                            <Button type="submit" className="w-full">Complete Registration</Button>
+                            <Button type="submit" className="w-full bg-eduai-primary hover:bg-eduai-accent">Complete Registration</Button>
                         </form>
                     </Form>
                 </DialogContent>
@@ -442,233 +381,290 @@ export function FirebaseAuthDialog() {
         );
     }
 
-    const isLoginSubmitting = loginForm.formState.isSubmitting;
-    const isRegSubmitting = registerForm.formState.isSubmitting;
+    const inputClasses = "w-full rounded-full border border-input bg-card px-5 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none transition-all focus:ring-2 focus:ring-ring/20 focus:border-primary";
 
     return (
-        <>
-            <div className="bb-page-wrapper">
+        <div className="flex min-h-screen w-full flex-col lg:flex-row bg-card font-sans">
+            {/* Mobile: illustration on top */}
+            <div className="block lg:hidden h-[300px]">
+                <IllustrationPanel />
+            </div>
 
-                {/* ── LEFT COLUMN: Teacher ── */}
-                <div className="bb-teacher-col">
-                    <img
-                        src="/illustrations/teacher-new.png"
-                        alt="Classroom Teacher"
-                        className="bb-teacher-img"
-                        draggable={false}
-                    />
-                </div>
+            {/* Left: Login Form */}
+            <div className="flex w-full lg:w-[45%] min-h-[calc(100vh-300px)] lg:min-h-screen">
+                <motion.div
+                    className="flex h-full w-full flex-col justify-center px-8 sm:px-12 lg:px-16 xl:px-20 max-w-lg mx-auto py-12"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <h1 className="font-display text-4xl font-bold text-foreground">
+                        {authTab === "login" ? "Welcome back!" : <span className="text-3xl">Create an account</span>}
+                    </h1>
+                    <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
+                        Simplify your workflow and boost your productivity with{" "}
+                        <span className="font-semibold text-foreground">EduAI</span>. {authTab === 'login' ? 'Get started for free.' : 'Join us for free.'}
+                    </p>
 
-                {/* ── RIGHT COLUMN: Greenboard Login Panel ── */}
-                <div className="bb-board-col">
-                    <div className="bb-board-container" style={{ backgroundImage: "url('/illustrations/greenboard.png')" }}>
-                        <div className="bb-board-panel">
-                            {/* Login form fits inside this relative container */}
-                            <div className="bb-board">
-                                <div className="bb-title-wrapper">
-                                    <h1 className="bb-title">Master Plan</h1>
-                                    <p className="bb-subtitle">AI-powered personalized learning</p>
-                                </div>
-                                <hr className="bb-chalk-line" />
-
-                                <div className="bb-tabs">
-                                    <button type="button" className={`bb-tab ${authTab === "login" ? "bb-tab--active" : ""}`} onClick={() => switchTab("login")}>Login</button>
-                                    <button type="button" className={`bb-tab ${authTab === "register" ? "bb-tab--active" : ""}`} onClick={() => switchTab("register")}>Register</button>
-                                </div>
-
-                                {/* ── LOGIN TAB ── */}
-                                {authTab === "login" && (
-                                    <Form {...loginForm}>
-                                        <form onSubmit={loginForm.handleSubmit(onLoginSubmit)}>
-                                            {loginError && (
-                                                <div className="bb-error-banner"><AlertIcon /><span className="bb-error-banner-text">{loginError}</span></div>
-                                            )}
-                                            <FormField control={loginForm.control} name="email" render={({ field }) => (
-                                                <FormItem className="bb-field">
-                                                    <label className="bb-label">Email</label>
-                                                    <FormControl>
-                                                        <div className="bb-input-wrap">
-                                                            <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                                                            </svg>
-                                                            <input className="bb-input" placeholder="your.email@example.com" disabled={isLoginSubmitting} {...field} />
-                                                        </div>
-                                                    </FormControl>
-                                                    <FormMessage className="bb-error" />
-                                                </FormItem>
-                                            )} />
-                                            <FormField control={loginForm.control} name="password" render={({ field }) => (
-                                                <FormItem className="bb-field">
-                                                    <label className="bb-label">Password</label>
-                                                    <FormControl>{renderPasswordField(field, showLoginPassword, () => setShowLoginPassword(p => !p), "••••••••", isLoginSubmitting)}</FormControl>
-                                                    <FormMessage className="bb-error" />
-                                                </FormItem>
-                                            )} />
-                                            <div className="bb-options-row">
-                                                <label className="bb-checkbox-label">
-                                                    <input type="checkbox" className="bb-checkbox" />Remember me
-                                                </label>
-                                                <button type="button" className="bb-forgot" onClick={openForgotModal}>Forgot password?</button>
-                                            </div>
-                                            <button type="submit" className="bb-btn" disabled={isLoginSubmitting}>
-                                                {isLoginSubmitting ? <><span className="bb-spinner" /> Signing in…</> : "Sign In"}
-                                            </button>
-                                        </form>
-                                    </Form>
+                    {authTab === "login" ? (
+                        <Form {...loginForm}>
+                            <form className="mt-8 space-y-4" onSubmit={loginForm.handleSubmit(onLoginSubmit)}>
+                                {loginError && (
+                                    <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm font-medium">
+                                        {loginError}
+                                    </div>
                                 )}
-
-                                {/* ── REGISTER TAB ── */}
-                                {authTab === "register" && (
-                                    <Form {...registerForm}>
-                                        <form onSubmit={registerForm.handleSubmit(onRegisterSubmit)}>
-                                            {registerError && (
-                                                <div className="bb-error-banner"><AlertIcon /><span className="bb-error-banner-text">{registerError}</span></div>
-                                            )}
-                                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 15px" }}>
-                                                <FormField control={registerForm.control} name="name" render={({ field }) => (
-                                                    <FormItem className="bb-field">
-                                                        <label className="bb-label">Full Name</label>
-                                                        <FormControl>
-                                                            <div className="bb-input-wrap">
-                                                                <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />
-                                                                </svg>
-                                                                <input className="bb-input" placeholder="John Doe" disabled={isRegSubmitting} {...field} />
-                                                            </div>
-                                                        </FormControl>
-                                                        <FormMessage className="bb-error" />
-                                                    </FormItem>
-                                                )} />
-                                                <FormField control={registerForm.control} name="email" render={({ field }) => (
-                                                    <FormItem className="bb-field">
-                                                        <label className="bb-label">Email</label>
-                                                        <FormControl>
-                                                            <div className="bb-input-wrap"><MailIcon /><input className="bb-input" placeholder="your.email@example.com" disabled={isRegSubmitting} {...field} /></div>
-                                                        </FormControl>
-                                                        <FormMessage className="bb-error" />
-                                                    </FormItem>
-                                                )} />
-                                                <FormField control={registerForm.control} name="password" render={({ field }) => (
-                                                    <FormItem className="bb-field">
-                                                        <label className="bb-label">Password</label>
-                                                        <FormControl>{renderPasswordField(field, showRegPassword, () => setShowRegPassword(p => !p), "••••••••", isRegSubmitting)}</FormControl>
-                                                        <FormMessage className="bb-error" />
-                                                        {passwordStrength && (
-                                                            <div className="bb-strength">
-                                                                <div className="bb-strength-bar"><div className={`bb-strength-fill bb-strength-fill--${passwordStrength.level}`} /></div>
-                                                                <span className="bb-strength-text">{passwordStrength.label}</span>
-                                                            </div>
-                                                        )}
-                                                    </FormItem>
-                                                )} />
-                                                <FormField control={registerForm.control} name="confirmPassword" render={({ field }) => (
-                                                    <FormItem className="bb-field">
-                                                        <label className="bb-label">Confirm Password</label>
-                                                        <FormControl>{renderPasswordField(field, showConfirmPassword, () => setShowConfirmPassword(p => !p), "Re-enter password", isRegSubmitting)}</FormControl>
-                                                        <FormMessage className="bb-error" />
-                                                        {passwordsMatch && <span className="bb-match-success">✓ Passwords match</span>}
-                                                        {passwordsMismatch && <span className="bb-match-error">✗ Passwords don&apos;t match</span>}
-                                                    </FormItem>
-                                                )} />
-                                                <FormField control={registerForm.control} name="role" render={({ field }) => (
-                                                    <FormItem className="bb-field">
-                                                        <label className="bb-label">Role</label>
-                                                        <FormControl>
-                                                            <div className="bb-input-wrap">
-                                                                <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
-                                                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                                                                </svg>
-                                                                <select className="bb-select" value={field.value} onChange={field.onChange} disabled={isRegSubmitting}>
-                                                                    <option value="student">Student</option>
-                                                                    <option value="teacher">Teacher</option>
-                                                                    <option value="principal">Principal</option>
-                                                                    <option value="school_admin">School Admin</option>
-                                                                    <option value="admin">Administrator</option>
-                                                                    <option value="parent">Parent</option>
-                                                                </select>
-                                                            </div>
-                                                        </FormControl>
-                                                        <FormMessage className="bb-error" />
-                                                    </FormItem>
-                                                )} />
-                                                {selectedRole === "student" ? (
-                                                    <FormField control={registerForm.control} name="class" render={({ field }) => (
-                                                        <FormItem className="bb-field">
-                                                            <label className="bb-label">Grade / Class</label>
-                                                            <FormControl>
-                                                                <div className="bb-input-wrap">
-                                                                    <svg className="bb-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                                                        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-                                                                    </svg>
-                                                                    <select className="bb-select" value={field.value} onChange={field.onChange} disabled={isRegSubmitting}>
-                                                                        <option value="9">9th Grade</option>
-                                                                        <option value="10">10th Grade</option>
-                                                                        <option value="11">11th Grade</option>
-                                                                        <option value="12">12th Grade</option>
-                                                                    </select>
-                                                                </div>
-                                                            </FormControl>
-                                                            <FormMessage className="bb-error" />
-                                                        </FormItem>
-                                                    )} />
-                                                ) : <div />}
-                                            </div>
-                                            <button type="submit" className="bb-btn" disabled={isRegSubmitting}>
-                                                {isRegSubmitting ? <><span className="bb-spinner" /> Creating account…</> : "Sign Up"}
-                                            </button>
-                                        </form>
-                                    </Form>
-                                )}
-
-                                <div className="bb-divider">
-                                    <span className="bb-divider-line" /><span className="bb-divider-text">Or continue with</span><span className="bb-divider-line" />
-                                </div>
-
-                                <button type="button" className="bb-btn-google" onClick={handleGoogleLogin} disabled={googleLoading || isLoginSubmitting || isRegSubmitting}>
-                                    {googleLoading ? <><span className="bb-spinner" /> Connecting…</> : (
-                                        <><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z" /></svg>Google</>
+                                <FormField
+                                    control={loginForm.control}
+                                    name="email"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <input
+                                                    type="email"
+                                                    placeholder="Username/Email"
+                                                    disabled={isLoginSubmitting}
+                                                    className={inputClasses}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage className="text-red-500 text-xs px-2" />
+                                        </FormItem>
                                     )}
+                                />
+                                <FormField
+                                    control={loginForm.control}
+                                    name="password"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <div className="relative">
+                                                    <input
+                                                        type={showPassword ? "text" : "password"}
+                                                        placeholder="Password"
+                                                        disabled={isLoginSubmitting}
+                                                        className={inputClasses}
+                                                        {...field}
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                                                    >
+                                                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                                    </button>
+                                                </div>
+                                            </FormControl>
+                                            <FormMessage className="text-red-500 text-xs px-2" />
+                                        </FormItem>
+                                    )}
+                                />
+                                <div className="flex justify-end pr-2">
+                                    <button
+                                        type="button"
+                                        className="text-sm font-medium text-foreground hover:text-primary transition-colors cursor-pointer bg-transparent border-0 p-0"
+                                        onClick={() => {
+                                            // Handle forgot password implicitly or mock
+                                        }}
+                                    >
+                                        Forgot Password?
+                                    </button>
+                                </div>
+                                <button
+                                    type="submit"
+                                    disabled={isLoginSubmitting}
+                                    className="w-full rounded-full bg-foreground py-3.5 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
+                                >
+                                    {isLoginSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Login
                                 </button>
-
-                                <div className="bb-footer">
-                                    {authTab === "login" ? (
-                                        <>Don&apos;t have an account?{" "}<button type="button" className="bb-footer-link" onClick={() => switchTab("register")}>Sign Up</button></>
-                                    ) : (
-                                        <>Already have an account?{" "}<button type="button" className="bb-footer-link" onClick={() => switchTab("login")}>Sign In</button></>
+                            </form>
+                        </Form>
+                    ) : (
+                        <Form {...registerForm}>
+                            <form className="mt-6 space-y-3" onSubmit={registerForm.handleSubmit(onRegisterSubmit)}>
+                                {registerError && (
+                                    <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm font-medium">
+                                        {registerError}
+                                    </div>
+                                )}
+                                <FormField
+                                    control={registerForm.control}
+                                    name="name"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <input
+                                                    placeholder="Full Name"
+                                                    disabled={isRegSubmitting}
+                                                    className={inputClasses + " py-2.5"}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage className="text-red-500 text-xs px-2" />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={registerForm.control}
+                                    name="email"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormControl>
+                                                <input
+                                                    type="email"
+                                                    placeholder="Email"
+                                                    disabled={isRegSubmitting}
+                                                    className={inputClasses + " py-2.5"}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage className="text-red-500 text-xs px-2" />
+                                        </FormItem>
+                                    )}
+                                />
+                                <div className="grid grid-cols-2 gap-3">
+                                    <FormField
+                                        control={registerForm.control}
+                                        name="password"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <input
+                                                            type={showPassword ? "text" : "password"}
+                                                            placeholder="Password"
+                                                            disabled={isRegSubmitting}
+                                                            className={inputClasses + " py-2.5"}
+                                                            {...field}
+                                                        />
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage className="text-red-500 text-[10px] px-2" />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={registerForm.control}
+                                        name="confirmPassword"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <div className="relative">
+                                                        <input
+                                                            type={showConfirmPassword ? "text" : "password"}
+                                                            placeholder="Confirm"
+                                                            disabled={isRegSubmitting}
+                                                            className={inputClasses + " py-2.5"}
+                                                            {...field}
+                                                        />
+                                                    </div>
+                                                </FormControl>
+                                                <FormMessage className="text-red-500 text-[10px] px-2" />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <FormField
+                                        control={registerForm.control}
+                                        name="role"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormControl>
+                                                    <select
+                                                        disabled={isRegSubmitting}
+                                                        className={inputClasses + " py-2.5 appearance-none"}
+                                                        {...field}
+                                                    >
+                                                        <option value="student">Student</option>
+                                                        <option value="teacher">Teacher</option>
+                                                        <option value="principal">Principal</option>
+                                                        <option value="parent">Parent</option>
+                                                    </select>
+                                                </FormControl>
+                                                <FormMessage className="text-red-500 text-[10px] px-2" />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    {registerForm.watch("role") === "student" && (
+                                        <FormField
+                                            control={registerForm.control}
+                                            name="class"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormControl>
+                                                        <select
+                                                            disabled={isRegSubmitting}
+                                                            className={inputClasses + " py-2.5 appearance-none"}
+                                                            {...field}
+                                                        >
+                                                            <option value="9">9th Grade</option>
+                                                            <option value="10">10th Grade</option>
+                                                            <option value="11">11th Grade</option>
+                                                            <option value="12">12th Grade</option>
+                                                        </select>
+                                                    </FormControl>
+                                                    <FormMessage className="text-red-500 text-[10px] px-2" />
+                                                </FormItem>
+                                            )}
+                                        />
                                     )}
                                 </div>
-                            </div>
-                        </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isRegSubmitting}
+                                    className="w-full rounded-full bg-foreground py-3 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
+                                >
+                                    {isRegSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Create Account
+                                </button>
+                            </form>
+                        </Form>
+                    )}
+
+                    <div className="flex items-center gap-4 pt-4 mb-2">
+                        <div className="h-px flex-1 bg-border" />
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">or continue with</span>
+                        <div className="h-px flex-1 bg-border" />
                     </div>
 
-                    {/* Forgot Password Modal */}
-                    {showForgotModal && (
-                        <div className="bb-modal-overlay" onClick={closeForgotModal}>
-                            <div className="bb-modal" onClick={e => e.stopPropagation()}>
-                                <h2 className="bb-modal-title">Reset Password</h2>
-                                <p className="bb-modal-subtitle">Enter your email address to receive a password reset link.</p>
-                                {forgotError && <div className="bb-error-banner"><AlertIcon /><span className="bb-error-banner-text">{forgotError}</span></div>}
-                                {forgotSuccess && <div className="bb-success-banner"><CheckIcon /><span className="bb-success-banner-text">Reset link sent! Check your inbox.</span></div>}
-                                <div className="bb-field">
-                                    <div className="bb-input-wrap">
-                                        <MailIcon />
-                                        <input type="email" className="bb-input" placeholder="Enter your email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} disabled={forgotLoading || forgotSuccess} autoFocus />
-                                    </div>
-                                </div>
-                                <div className="bb-actions-row">
-                                    <button type="button" className="bb-btn-secondary" onClick={closeForgotModal} disabled={forgotLoading}>{forgotSuccess ? "Close" : "Cancel"}</button>
-                                    {!forgotSuccess && (
-                                        <button type="button" className="bb-btn-primary-sm" onClick={handleForgotPassword} disabled={forgotLoading}>
-                                            {forgotLoading ? <><span className="bb-spinner" /> Sending…</> : "Send Link"}
-                                        </button>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                    <div className="flex items-center justify-center gap-5 pt-2">
+                        <button
+                            type="button"
+                            onClick={handleGoogleLogin}
+                            disabled={googleLoading || isLoginSubmitting || isRegSubmitting}
+                            className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground text-background text-lg font-semibold transition-all hover:opacity-80 active:scale-95"
+                        >
+                           {googleLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "G"}
+                        </button>
+                        <button
+                            type="button"
+                            disabled
+                            className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground text-background text-lg font-semibold transition-all hover:opacity-80 active:scale-95 opacity-50 cursor-not-allowed"
+                        >
+                           A
+                        </button>
+                    </div>
+
+                    <p className="mt-8 text-center text-sm text-muted-foreground">
+                        {authTab === "login" ? "Not a member? " : "Already have an account? "}
+                        <button
+                            type="button"
+                            className="font-semibold text-primary hover:text-accent transition-colors bg-transparent border-none cursor-pointer"
+                            onClick={() => setAuthTab(authTab === "login" ? "register" : "login")}
+                        >
+                            {authTab === "login" ? "Register now" : "Login"}
+                        </button>
+                    </p>
+                </motion.div>
             </div>
-        </>
+
+            {/* Right: Illustration (desktop) */}
+            <div className="hidden lg:flex w-[55%] min-h-screen rounded-l-[2.5rem] overflow-hidden drop-shadow-2xl">
+                <IllustrationPanel />
+            </div>
+        </div>
     );
 }
