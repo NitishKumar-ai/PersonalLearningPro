@@ -31,7 +31,7 @@ import FocusPage from "@/pages/focus";
 import AchievementsPage from "@/pages/achievements";
 import LandingPage from "@/pages/landing";
 import { ThemeProvider } from "./contexts/theme-context";
-import "./blackboard-login.css";
+
 import { Loader2 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { FirebaseAuthDialog as AuthDialog } from "@/components/auth/firebase-auth-dialog";
