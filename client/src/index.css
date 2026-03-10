@@ -41,6 +41,13 @@
 
     --radius: 0.75rem;
 
+    --illustration-bg: 138 80% 95%;
+    --ticker-bg: 141 79% 85%;
+    --ticker-text: 143 64% 15%;
+    --bubble-1: 141 69% 85%;
+    --bubble-2: 141 79% 92%;
+    --bubble-3: 138 76% 74%;
+
     /* ─── Sidebar (Light) ─── */
     --sidebar-background: 40 20% 96%;
     --sidebar-foreground: 224 40% 15%;
