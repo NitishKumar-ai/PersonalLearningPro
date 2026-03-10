@@ -51,7 +51,7 @@ export default function SchoolAdminDashboard() {
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">School Admin Dashboard</h1>
                 <p className="text-muted-foreground mt-2">
-                    Welcome back, {profile?.displayName || "Administrator"}. Your school code is <span className="font-mono font-bold text-primary">{profile?.school_code || "N/A"}</span>.
+                    Welcome back, {profile?.displayName || "Administrator"}. Your school code is <span className="font-mono font-bold text-primary">{(profile as any)?.school_code || "N/A"}</span>.
                 </p>
             </div>
 
@@ -146,9 +146,9 @@ export default function SchoolAdminDashboard() {
                                             </td>
                                             <td className="p-3 text-right">
                                                 {teacher.status === "pending" && (
-                                                    <Button 
-                                                        size="sm" 
-                                                        variant="outline" 
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
                                                         className="h-8 text-green-600 hover:text-green-700 hover:bg-green-50"
                                                         onClick={() => approveMutation.mutate(teacher.id)}
                                                         disabled={approveMutation.isPending}
