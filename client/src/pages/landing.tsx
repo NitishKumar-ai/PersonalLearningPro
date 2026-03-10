@@ -19,7 +19,6 @@ const Navbar = () => {
   const links = [
     { label: "How it Works", href: "#journey" },
     { label: "Features", href: "#features" },
-    { label: "Testimonials", href: "#testimonials" },
     { label: "Pricing", href: "#pricing" },
     { label: "Contact", href: "#contact" },
   ];
@@ -615,80 +614,7 @@ const DemoWidget = () => {
   );
 };
 
-// --- Testimonials.tsx ---
-const testimonials = [
-  {
-    name: "Priya S.",
-    role: "12th Grade Student",
-    quote: "EduAI turned my weak subjects into my strongest. My board exam score jumped 34% in 3 months!",
-    stat: "+34% score",
-  },
-  {
-    name: "Mr. Arvind K.",
-    role: "Physics Teacher",
-    quote: "I can finally personalise homework for 40 students without burning out. Game changer for teachers.",
-    stat: "6hrs saved/week",
-  },
-  {
-    name: "Ananya R.",
-    role: "Parent",
-    quote: "My daughter actually looks forward to studying now. The AI flashcards make revision fun and effective.",
-    stat: "2x revision speed",
-  },
-];
 
-const Testimonials = () => (
-  <section id="testimonials" className="py-24">
-    <div className="container">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="text-center mb-16"
-      >
-        <h2 className="text-3xl md:text-4xl font-extrabold mb-3">
-          Passengers Love Us 💛
-        </h2>
-        <p className="text-muted-foreground text-lg">
-          Real stories from students, teachers, and parents.
-        </p>
-      </motion.div>
-
-      <div className="grid md:grid-cols-3 gap-8">
-        {testimonials.map((t, i) => (
-          <motion.div
-            key={t.name}
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: i * 0.12 }}
-            className="bg-card sketch-border sketch-shadow hover-tilt transition-all p-6 rounded-2xl relative"
-          >
-            <div className="flex gap-1 mb-4">
-              {[...Array(5)].map((_, j) => (
-                <Star key={j} size={14} className="fill-primary text-primary" />
-              ))}
-            </div>
-            <p className="text-sm leading-relaxed mb-6 text-foreground/90">
-              "{t.quote}"
-            </p>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-heading font-bold text-sm">{t.name}</p>
-                <p className="text-xs text-muted-foreground">{t.role}</p>
-              </div>
-              <span className="bg-primary/15 text-foreground text-xs font-bold px-3 py-1 rounded-full">
-                {t.stat}
-              </span>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
-  </section>
-);
-
-// --- Pricing.tsx ---
 const plans = [
   {
     name: "All Access Pass",
@@ -934,7 +860,6 @@ const LandingPage = () => (
       <NotebookFeature />
       <BoardingPasses />
       <DemoWidget />
-      <Testimonials />
       <Pricing />
       <ContactForm />
     </main>
