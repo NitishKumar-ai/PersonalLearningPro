@@ -30,6 +30,7 @@ import AcademicCalendarPage from "@/pages/academic-calendar";
 import FocusPage from "@/pages/focus";
 import AchievementsPage from "@/pages/achievements";
 import LandingPage from "@/pages/landing";
+import SettingsPage from "@/pages/settings";
 import { ThemeProvider } from "./contexts/theme-context";
 
 import { Loader2 } from "lucide-react";
@@ -108,6 +109,7 @@ const WrappedTestsList = withLayout(TestsListPage);
 const WrappedCalendar = withLayout(AcademicCalendarPage);
 const WrappedFocus = withLayout(FocusPage);
 const WrappedAchievements = withLayout(AchievementsPage);
+const WrappedSettings = withLayout(SettingsPage);
 
 /**
  * Render application routes and handle authentication and loading states.
@@ -291,7 +293,7 @@ function Router() {
       <Route path="/live-classes" component={WrappedComingSoon} />
       <Route path="/progress" component={withProtection(WrappedMyProgress, ["student", "parent"])} />
       <Route path="/study-groups" component={WrappedComingSoon} />
-      <Route path="/settings" component={WrappedComingSoon} />
+      <Route path="/settings" component={withProtection(WrappedSettings)} />
       <Route path="/system-settings" component={WrappedComingSoon} />
       <Route path="/users" component={WrappedComingSoon} />
       <Route path="/classes" component={WrappedComingSoon} />
