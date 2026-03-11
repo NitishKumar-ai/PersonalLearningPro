@@ -120,7 +120,7 @@ export function FirebaseAuthDialog() {
     const [googleLoading, setGoogleLoading] = useState(false);
     const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
     const [isRegSubmitting, setIsRegSubmitting] = useState(false);
-    
+
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -473,7 +473,7 @@ export function FirebaseAuthDialog() {
                                 <button
                                     type="submit"
                                     disabled={isLoginSubmitting}
-                                    className="w-full rounded-full bg-foreground py-3.5 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
+                                    className="w-full rounded-full bg-brand-500 py-3.5 text-sm font-semibold text-white transition-all hover:bg-brand-600 active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
                                 >
                                     {isLoginSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                                     Login
@@ -615,7 +615,7 @@ export function FirebaseAuthDialog() {
                                 <button
                                     type="submit"
                                     disabled={isRegSubmitting}
-                                    className="w-full rounded-full bg-foreground py-3 text-sm font-semibold text-background transition-all hover:opacity-90 active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
+                                    className="w-full rounded-full bg-brand-500 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-600 active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
                                 >
                                     {isRegSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                                     Create Account
@@ -635,16 +635,16 @@ export function FirebaseAuthDialog() {
                             type="button"
                             onClick={handleGoogleLogin}
                             disabled={googleLoading || isLoginSubmitting || isRegSubmitting}
-                            className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground text-background text-lg font-semibold transition-all hover:opacity-80 active:scale-95"
+                            className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-foreground text-lg font-semibold transition-all hover:bg-muted/80 active:scale-95 border border-border"
                         >
-                           {googleLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "G"}
+                            {googleLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "G"}
                         </button>
                         <button
                             type="button"
                             disabled
-                            className="flex h-12 w-12 items-center justify-center rounded-full bg-foreground text-background text-lg font-semibold transition-all hover:opacity-80 active:scale-95 opacity-50 cursor-not-allowed"
+                            className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-foreground text-lg font-semibold transition-all opacity-50 cursor-not-allowed border border-border"
                         >
-                           A
+                            A
                         </button>
                     </div>
 

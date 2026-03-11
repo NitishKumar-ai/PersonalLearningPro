@@ -18,6 +18,18 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
+        brand: {
+          50: "#E8F2FF",
+          100: "#CFE3FF",
+          200: "#A7C8FF",
+          300: "#7FAEFF",
+          400: "#4F8CFF",
+          500: "#2563EB",
+          600: "#1D4ED8",
+          700: "#1E40AF",
+          800: "#1E3A8A",
+          900: "#172554",
+        },
         eduai: {
           primary: "#22C55E",
           secondary: "#86EFAC",
