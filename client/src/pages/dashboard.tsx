@@ -52,139 +52,144 @@ export default function Dashboard() {
 
   const quickActions = [
     {
-      title: "Create New Test",
-      description: "Design customized assessments",
+      title: "Create Test",
+      description: "Design assessments",
       icon: <PlusCircle className="h-5 w-5" />,
       href: "/create-test",
-      gradient: "from-blue-500 to-indigo-600",
+      bgColor: "bg-accent-soft",
+      iconColor: "text-accent",
     },
     {
-      title: "Scan Paper Test",
-      description: "Upload handwritten answers",
+      title: "Scan Papers",
+      description: "AI-assisted grading",
       icon: <ScanBarcode className="h-5 w-5" />,
       href: "/ocr-scan",
-      gradient: "from-emerald-500 to-teal-600",
+      bgColor: "bg-muted",
+      iconColor: "text-emerald-700",
     },
     {
-      title: "View Analytics",
-      description: "Class performance insights",
+      title: "Analytics",
+      description: "Class insights",
       icon: <BarChart3 className="h-5 w-5" />,
       href: "/analytics",
-      gradient: "from-amber-500 to-orange-600",
+      bgColor: "bg-muted",
+      iconColor: "text-amber-700",
     },
     {
-      title: "AI Study Plans",
-      description: "Generate personalized plans",
+      title: "Study Plans",
+      description: "AI Generation",
       icon: <Sparkles className="h-5 w-5" />,
       href: "/ai-study-plans",
-      gradient: "from-purple-500 to-violet-600",
+      bgColor: "bg-muted",
+      iconColor: "text-purple-700",
     },
     {
       title: "Live Class",
-      description: "Host live sessions",
+      description: "Host sessions",
       icon: <Video className="h-5 w-5" />,
       href: "/live-classes",
-      gradient: "from-rose-500 to-pink-600",
+      bgColor: "bg-muted",
+      iconColor: "text-rose-700",
     },
     {
       title: "Messages",
-      description: "Chat with students",
+      description: "Chat & Support",
       icon: <MessageSquare className="h-5 w-5" />,
       href: "/messages",
-      gradient: "from-cyan-500 to-blue-600",
+      bgColor: "bg-muted",
+      iconColor: "text-blue-700",
     },
   ];
 
   const stats = [
-    { label: "Active Tests", value: "12", icon: <ClipboardCheck className="h-5 w-5" />, trend: "+3 this week", color: "text-blue-600 dark:text-blue-400" },
-    { label: "Total Students", value: "86", icon: <Users className="h-5 w-5" />, trend: "+5 enrolled", color: "text-emerald-600 dark:text-emerald-400" },
-    { label: "Avg. Score", value: "78%", icon: <TrendingUp className="h-5 w-5" />, trend: "+4% vs last month", color: "text-amber-600 dark:text-amber-400" },
-    { label: "Classes", value: "5", icon: <BookOpen className="h-5 w-5" />, trend: "2 today", color: "text-purple-600 dark:text-purple-400" },
+    { label: "Active Tests", value: "12", icon: <ClipboardCheck className="h-5 w-5" />, trend: "+3 this week", color: "text-accent" },
+    { label: "Total Students", value: "86", icon: <Users className="h-5 w-5" />, trend: "+5 enrolled", color: "text-emerald-700" },
+    { label: "Avg. Score", value: "78%", icon: <TrendingUp className="h-5 w-5" />, trend: "+4% vs lm", color: "text-amber-700" },
+    { label: "Classes", value: "5", icon: <BookOpen className="h-5 w-5" />, trend: "2 today", color: "text-purple-700" },
   ];
 
   const mockAiInsights = [
     {
       title: "Class 10A - Physics",
-      description: "Many students are struggling with Momentum & Collisions. Consider additional practice.",
-      action: "Generate Practice Set",
-      href: "/ai-study-plans/generate?topic=momentum-collisions&class=10A",
-      color: "border-l-blue-500",
+      description: "Students are struggling with Momentum. Consider additional practice.",
+      action: "Generate Test",
+      href: "/ai-study-plans/generate?topic=momentum&class=10A",
+      color: "border-l-accent",
     },
     {
       title: "Upcoming Test Analysis",
-      description: "Based on past performance, students may need extra help with Algebraic Expressions.",
+      description: "Students may need help with Algebraic Expressions.",
       action: "Schedule Review",
-      href: "/schedule-review?topic=algebraic-expressions",
-      color: "border-l-amber-500",
+      href: "/schedule-review?topic=algebra",
+      color: "border-l-amber-600",
     },
     {
       title: "Teaching Approach",
-      description: "Visual learning methods are most effective for your Chemistry classes based on test results.",
-      action: "View Resources",
+      description: "Visual learning methods are most effective for Chemistry.",
+      action: "View Labs",
       href: "/resources?type=visual&subject=chemistry",
-      color: "border-l-emerald-500",
+      color: "border-l-emerald-600",
     }
   ];
 
   return (
     <>
       <PageHeader
-        title={`Welcome, ${currentUser?.profile?.displayName || "Teacher"} 👋`}
-        subtitle="Here's your teaching dashboard with insights and activities."
+        title={`Welcome, ${currentUser?.profile?.displayName || "Professor"} 👋`}
+        subtitle="Your teaching hub is updated with today's student insights and class goals."
         className="animate-fade-in-up"
-        breadcrumbs={[
-          { label: "Dashboard", href: "/" },
-          { label: "Teacher Dashboard" }
-        ]}
       >
-        <Button asChild>
-          <Link href="/create-test">
-            <PlusCircle className="h-4 w-4 mr-2" />
-            Create Test
-          </Link>
-        </Button>
-        <Button variant="outline" asChild>
-          <Link href="/analytics">
-            <BarChart3 className="h-4 w-4 mr-2" />
-            Analytics
-          </Link>
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" className="h-10 text-xs font-bold uppercase tracking-widest" asChild>
+            <Link href="/analytics">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Overview
+            </Link>
+          </Button>
+          <Button className="h-10 text-xs font-bold uppercase tracking-widest shadow-soft" asChild>
+            <Link href="/create-test">
+              <PlusCircle className="h-4 w-4 mr-2" />
+              New Test
+            </Link>
+          </Button>
+        </div>
       </PageHeader>
 
       {/* Stats Row */}
-      <section className="mb-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <section className="mb-10 grid grid-cols-2 lg:grid-cols-4 gap-5">
         {stats.map((stat, index) => (
-          <Card key={stat.label} className="animate-fade-in-up hover:shadow-md transition-shadow" style={{ animationDelay: `${index * 75}ms` }}>
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className={`p-2 rounded-lg bg-muted ${stat.color}`}>
+          <Card key={stat.label} className="animate-fade-in-up hover:shadow-card transition-all duration-300 border-border bg-card" style={{ animationDelay: `${index * 75}ms` }}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-2.5 rounded-xl bg-muted ${stat.color} shadow-soft`}>
                   {stat.icon}
-                </span>
+                </div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground bg-muted px-2 py-1 rounded-md">{stat.trend}</div>
               </div>
-              <div className="text-2xl font-bold tracking-tight">{stat.value}</div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
-              <div className="text-xs text-primary/70 mt-1 font-medium">{stat.trend}</div>
+              <div className="text-3xl font-display text-foreground leading-none">{stat.value}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mt-2">{stat.label}</div>
             </CardContent>
           </Card>
         ))}
       </section>
 
       {/* Quick Actions */}
-      <section className="mb-8 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-        <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      <section className="mb-10 animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-5 flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-accent" />
+          Teaching Toolkit
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
           {quickActions.map((action) => (
-            <Link key={action.href} href={action.href}>
-              <Card className="group cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 h-full border-transparent hover:border-primary/20">
-                <CardContent className="p-4 flex flex-col items-center text-center">
-                  <div className={`p-3 rounded-xl bg-gradient-to-br ${action.gradient} text-white mb-3 shadow-sm group-hover:shadow-md transition-shadow`}>
-                    {action.icon}
-                  </div>
-                  <div className="text-sm font-medium leading-tight">{action.title}</div>
-                  <div className="text-xs text-muted-foreground mt-1 hidden sm:block">{action.description}</div>
-                </CardContent>
-              </Card>
-            </Link>
+            <QuickActionCard
+              key={action.href}
+              title={action.title}
+              description={action.description}
+              icon={action.icon}
+              href={action.href}
+              bgColor={action.bgColor}
+              iconColor={action.iconColor}
+            />
           ))}
         </div>
       </section>
@@ -195,23 +200,28 @@ export default function Dashboard() {
       </section>
 
       {/* Recent Tests */}
-      <section className="mb-8 animate-fade-in-up" style={{ animationDelay: '350ms' }}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Recent Tests & Performance</h2>
-          <Link href="/tests" className="text-sm text-primary font-medium hover:underline">
-            View All
+      <section className="mb-10 animate-fade-in-up" style={{ animationDelay: '350ms' }}>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <ClipboardCheck className="h-4 w-4 text-accent" />
+            Recent Assessments
+          </h2>
+          <Link href="/tests" className="text-xs font-bold uppercase tracking-widest text-accent hover:underline">
+            View Archive
           </Link>
         </div>
-        <RecentTestsTable />
+        <Card className="border-border bg-card shadow-soft overflow-hidden">
+          <RecentTestsTable />
+        </Card>
       </section>
 
       {/* Two-column analytics + insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-10">
+        <div className="lg:col-span-2 space-y-8">
           {/* Performance Chart */}
-          <Card className="animate-fade-in-up" style={{ animationDelay: '400ms' }}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold">Class Performance</CardTitle>
+          <Card className="animate-fade-in-up border-border bg-card shadow-soft" style={{ animationDelay: '400ms' }}>
+            <CardHeader className="pb-0">
+              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Class Performance Benchmark</CardTitle>
             </CardHeader>
             <CardContent>
               <PerformanceChart />
@@ -219,27 +229,29 @@ export default function Dashboard() {
           </Card>
 
           {/* AI Insights */}
-          <Card className="animate-fade-in-up" style={{ animationDelay: '450ms' }}>
-            <CardHeader className="pb-2">
+          <Card className="animate-fade-in-up border-border bg-card shadow-soft overflow-hidden" style={{ animationDelay: '450ms' }}>
+            <CardHeader className="pb-4 bg-muted/50 border-b border-border">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-primary/10">
-                  <Brain className="h-4 w-4 text-primary" />
-                </div>
-                <CardTitle className="text-lg font-semibold">AI Teaching Insights</CardTitle>
+                <Brain className="h-4 w-4 text-accent" />
+                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">AI Teaching Assistant</CardTitle>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
+            <CardContent className="p-0">
+              <div className="divide-y divide-cream-400">
                 {mockAiInsights.map((insight, index) => (
                   <div
                     key={index}
-                    className={`p-4 rounded-lg border-l-4 ${insight.color} bg-muted/30 hover:bg-muted/50 transition-colors`}
+                    className={`p-5 border-l-4 ${insight.color} bg-background hover:bg-muted/50 transition-colors group`}
                   >
-                    <div className="font-medium text-sm mb-1">{insight.title}</div>
-                    <p className="text-sm text-muted-foreground mb-2">{insight.description}</p>
-                    <Button size="sm" variant="outline" asChild>
-                      <Link href={insight.href}>{insight.action}</Link>
-                    </Button>
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <div className="font-display text-base text-foreground mb-1 group-hover:text-accent transition-colors">{insight.title}</div>
+                        <p className="text-sm text-muted-foreground font-body leading-relaxed">{insight.description}</p>
+                      </div>
+                      <Button size="sm" variant="outline" className="h-8 text-[10px] font-bold uppercase tracking-widest shrink-0" asChild>
+                        <Link href={insight.href}>{insight.action}</Link>
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -248,85 +260,79 @@ export default function Dashboard() {
         </div>
 
         {/* Right column */}
-        <div className="space-y-6">
+        <div className="space-y-8">
           {/* Top Students */}
-          <Card className="animate-fade-in-up" style={{ animationDelay: '400ms' }}>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg font-semibold">Top Students</CardTitle>
+          <Card className="animate-fade-in-up border-border bg-card shadow-soft" style={{ animationDelay: '400ms' }}>
+            <CardHeader className="pb-4 border-b border-border">
+              <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Achievers & Leaders</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-0">
               <TopStudents />
             </CardContent>
           </Card>
 
           {/* Notifications */}
-          <Card className="animate-fade-in-up" style={{ animationDelay: '450ms' }}>
-            <CardHeader className="pb-2">
+          <Card className="animate-fade-in-up border-border bg-card shadow-soft overflow-hidden" style={{ animationDelay: '450ms' }}>
+            <CardHeader className="pb-4 bg-muted/50 border-b border-border">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-primary/10">
-                    <BellRing className="h-4 w-4 text-primary" />
-                  </div>
-                  <CardTitle className="text-lg font-semibold">Notifications</CardTitle>
+                  <BellRing className="h-4 w-4 text-accent" />
+                  <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Updates</CardTitle>
                 </div>
-                <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-0 text-xs">3 New</Badge>
+                <Badge variant="live" className="text-[9px] uppercase tracking-widest border-0">3 New</Badge>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {[
-                  { title: "Test Submissions", desc: "8 students submitted Physics Quiz #4", time: "1h ago", unread: true },
-                  { title: "Student Question", desc: "Aryan has a question about Chemistry homework", time: "3h ago", unread: true },
-                  { title: "AI Alert", desc: "10 students struggling with similar concepts", time: "5h ago", unread: false },
-                ].map((notif, i) => (
-                  <div key={i} className={`p-3 rounded-lg border transition-colors hover:bg-muted/50 ${notif.unread ? 'bg-primary/5 dark:bg-primary/10 border-primary/20' : 'bg-transparent'}`}>
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium text-sm flex items-center gap-2">
-                          {notif.title}
-                          {notif.unread && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
-                        </div>
-                        <p className="text-sm text-muted-foreground">{notif.desc}</p>
+            <CardContent className="p-4 space-y-3">
+              {[
+                { title: "Test Submissions", desc: "8 students submitted Physics Quiz #4", time: "1h ago", unread: true },
+                { title: "Student Question", desc: "Aryan has a question about Chemistry", time: "3h ago", unread: true },
+                { title: "AI Alert", desc: "10 students struggling with similar concepts", time: "5h ago", unread: false },
+              ].map((notif, i) => (
+                <div key={i} className={`p-4 rounded-xl border transition-all duration-300 hover:shadow-soft ${notif.unread ? 'bg-accent-soft border-accent/10' : 'bg-card border-border'}`}>
+                  <div className="flex justify-between items-start">
+                    <div className="min-w-0">
+                      <div className="font-display text-sm text-foreground flex items-center gap-2 truncate">
+                        {notif.title}
+                        {notif.unread && <span className="w-1.5 h-1.5 rounded-full bg-accent" />}
                       </div>
-                      <span className="text-xs text-muted-foreground whitespace-nowrap ml-2">{notif.time}</span>
+                      <p className="text-xs text-muted-foreground font-medium mt-1 truncate">{notif.desc}</p>
                     </div>
+                    <span className="text-[10px] font-bold text-muted-foreground/50 whitespace-nowrap ml-2">{notif.time}</span>
                   </div>
-                ))}
-                <Button variant="outline" size="sm" className="w-full" asChild>
-                  <Link href="/notifications">View All Notifications</Link>
-                </Button>
-              </div>
+                </div>
+              ))}
+              <Button variant="ghost" size="sm" className="w-full text-[10px] font-bold uppercase tracking-widest text-muted-foreground hover:text-accent" asChild>
+                <Link href="/notifications">View All Notification Hub</Link>
+              </Button>
             </CardContent>
           </Card>
 
           {/* Resource Suggestions */}
-          <Card className="animate-fade-in-up" style={{ animationDelay: '500ms' }}>
-            <CardHeader className="pb-2">
+          <Card className="animate-fade-in-up border-border bg-card shadow-soft overflow-hidden" style={{ animationDelay: '500ms' }}>
+            <CardHeader className="pb-4 border-b border-border">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-primary/10">
-                  <BookOpen className="h-4 w-4 text-primary" />
-                </div>
-                <CardTitle className="text-lg font-semibold">Resources</CardTitle>
+                <BookOpen className="h-4 w-4 text-accent" />
+                <CardTitle className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Curated Resources</CardTitle>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
+            <CardContent className="p-3">
+              <div className="space-y-1">
                 {[
-                  { icon: <Video className="h-4 w-4" />, title: "Interactive Physics Labs", subtitle: "For motion & energy topics", color: "text-blue-600 dark:text-blue-400 bg-blue-500/10" },
-                  { icon: <FileQuestion className="h-4 w-4" />, title: "Math Question Bank", subtitle: "Updated with new problems", color: "text-amber-600 dark:text-amber-400 bg-amber-500/10" },
+                  { icon: <Video className="h-4 w-4" />, title: "Interactive Labs", subtitle: "Physics Motion", color: "text-blue-700 bg-blue-50" },
+                  { icon: <FileQuestion className="h-4 w-4" />, title: "Math Q-Bank", subtitle: "New Algebra Set", color: "text-amber-700 bg-amber-50" },
                 ].map((res, i) => (
-                  <div key={i} className="flex items-center p-2.5 rounded-lg hover:bg-muted transition-colors cursor-pointer group">
-                    <div className={`rounded-lg p-2 mr-3 ${res.color}`}>
+                  <div key={i} className="flex items-center p-3 rounded-xl hover:bg-muted transition-all duration-200 cursor-pointer group border border-transparent hover:border-border">
+                    <div className={`rounded-xl p-2.5 mr-3 shadow-soft transition-colors ${res.color}`}>
                       {res.icon}
                     </div>
-                    <div className="text-sm">
-                      <div className="font-medium group-hover:text-primary transition-colors">{res.title}</div>
-                      <div className="text-xs text-muted-foreground">{res.subtitle}</div>
+                    <div className="min-w-0">
+                      <div className="font-display text-sm text-foreground group-hover:text-accent transition-colors truncate">{res.title}</div>
+                      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest truncate">{res.subtitle}</div>
                     </div>
                   </div>
                 ))}
-                <Link href="/resources" className="text-xs text-primary hover:underline block text-center mt-3 font-medium">
-                  Browse all resources →
+                <Link href="/resources" className="text-[10px] font-bold text-accent hover:underline block text-center mt-3 uppercase tracking-widest">
+                  Library →
                 </Link>
               </div>
             </CardContent>
