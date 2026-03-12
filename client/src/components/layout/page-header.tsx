@@ -51,11 +51,11 @@ export function PageHeader({ title, subtitle, children, className, breadcrumbs }
                     </BreadcrumbList>
                 </Breadcrumb>
             )}
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
                 <div>
-                    <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
+                    <h1 className="text-3xl font-display text-foreground tracking-tight leading-tight">{title}</h1>
                     {subtitle && (
-                        <p className="text-muted-foreground mt-1">{subtitle}</p>
+                        <p className="text-lg font-body text-muted-foreground mt-1 max-w-2xl">{subtitle}</p>
                     )}
                 </div>
                 {children && (
