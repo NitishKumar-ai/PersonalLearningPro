@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Shared functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function hasRole(role) {
+      return isAuthenticated() && request.auth.token.role == role;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isActive() {
+      return request.auth.token.status == 'active';
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Users collection
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      // Users can update their own non-sensitive profile info
+      allow update: if isOwner(userId);
+      // Only admins can create or delete users manually, though Cloud Functions might bypass this
+      allow create, delete: if hasRole('admin');
+    }
+
+    // Tests collection
+    match /tests/{testId} {
+      allow read: if isAuthenticated();
+      // Active teachers and admins can create/update tests
+      allow create, update, delete: if (hasRole('teacher') && isActive()) || hasRole('admin') || hasRole('school_admin') || hasRole('principal');
+    }
+
+    // Attempts and answers
+    match /testAttempts/{attemptId} {
+      allow read: if isAuthenticated(); // Teachers need to read them, students need to read their own
+      allow create: if hasRole('student') && isActive();
+      allow update: if (hasRole('student') && isActive() && isOwner(resource.data.studentUid)) || hasRole('teacher') || hasRole('admin');
+    }
+  }
+}

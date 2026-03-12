@@ -6,10 +6,12 @@ import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat, generateStudyPlan, analyzeTestPerformance } from "./lib/openai";
 import { upload, diskPathToUrl } from "./lib/upload";
-import { verifyFirebaseToken } from "./lib/firebase-admin";
+import { verifyFirebaseToken, setCustomUserClaims } from "./lib/firebase-admin";
 import { MongoUser, MongoWorkspace, MongoChannel } from "@shared/mongo-schema";
 import { getNextSequenceValue } from "@shared/mongo-schema";
 import messageRoutes from "./message/routes";
+import liveClassRoutes from "./routes/live-classes";
+import { liveRouter } from "./routes/live";
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -28,7 +30,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key_learning_pro_
 const REFRESH_SECRET = process.env.REFRESH_SECRET || "super_secret_refresh_key_learning_pro_456";
 
 // Auth Middleware
-export const authenticateToken = async (req: Request, res: Response, next: express.NextFunction) => {
+export async function authenticateToken(req: Request, res: Response, next: express.NextFunction) {
   const token = req.cookies?.access_token || req.headers.authorization?.split(" ")[1];
 
   if (!token) return res.status(401).json({ message: "Authentication required" });
@@ -109,11 +111,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount MessagePal REST API routes
   app.use("/api/messagepal", messageRoutes);
 
+  // Mount Live Classes API routes (Legacy / internal if still needed)
+  app.use("/api/live-classes", liveClassRoutes);
+
+  // Mount New Daily.co Live Classes API routes
+  app.use("/api/live", authenticateToken, liveRouter);
+
+  // Health check endpoint
+  app.get("/api/health", (_req, res) => {
+    res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
   // Authentication routes (mostly handled by Firebase Client now)
   // We keep a small route for the client to tell the backend "I just registered in Firebase, create my Mongo document"
   app.post("/api/auth/sync-profile", authenticateToken, async (req: Request, res: Response) => {
     try {
-      const { displayName, class: className, subject } = req.body;
+      const { displayName, class: className, subject, role, school_code, grade, board, subjects, district, status } = req.body;
       const firebaseUid = req.session!.firebaseUid;
 
       if (!firebaseUid) return res.status(401).json({ message: "Unauthorized" });
@@ -122,9 +135,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (user) {
         // Update existing
-        if (displayName) user.displayName = displayName;
-        if (className) user.class = className;
-        if (subject) user.subject = subject;
+        if (displayName !== undefined) user.displayName = displayName;
+        if (className !== undefined) user.class = className;
+        if (subject !== undefined) user.subject = subject;
+        if (role !== undefined) user.role = role as any;
+        if (school_code !== undefined) user.school_code = school_code;
+        if (grade !== undefined) user.grade = grade;
+        if (board !== undefined) user.board = board;
+        if (subjects !== undefined) user.subjects = subjects;
+        if (district !== undefined) user.district = district;
+        if (status !== undefined) user.status = status as any;
         await user.save();
       } else {
         // Create a new mongo user bridge
@@ -138,10 +158,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           displayName: displayName || null,
           class: className || null,
           subject: subject || null,
-          role: "student", // default role, custom claims will override on next token validation
+          role: role || "student",
+          school_code: school_code || null,
+          grade: grade || null,
+          board: board || null,
+          subjects: subjects || [],
+          district: district || null,
+          status: status || (role === 'student' ? 'active' : 'pending'),
           password: "firebase_managed"
         });
         await user.save();
+      }
+
+      // Set custom claims in Firebase
+      try {
+        await setCustomUserClaims(firebaseUid, {
+          role: user.role,
+          status: user.status
+        });
+        console.log(`[auth/sync-profile] Set custom claims for ${firebaseUid}: role=${user.role}, status=${user.status}`);
+      } catch (claimErr) {
+        console.error("[auth/sync-profile] Failed to set custom claims:", claimErr);
       }
 
       res.json({ message: "Profile synced", user });

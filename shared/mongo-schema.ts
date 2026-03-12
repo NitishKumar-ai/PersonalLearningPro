@@ -17,8 +17,12 @@ const UserSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   role: { type: String, enum: ["student", "teacher", "parent", "principal", "school_admin", "admin"], default: "student" },
-  status: { type: String, enum: ["active", "pending", "suspended"], default: "active" },
+  status: { type: String, enum: ["active", "pending", "suspended", "rejected"], default: "active" },
   school_code: { type: String, default: null },
+  grade: { type: String, default: null },
+  board: { type: String, default: null },
+  subjects: [{ type: String }],
+  district: { type: String, default: null },
   avatar: String,
   class: String,
   subject: String,
@@ -207,5 +211,45 @@ export const MongoTestAssignment = mongoose.model("TestAssignment", TestAssignme
 export const MongoWorkspace = mongoose.model("Workspace", WorkspaceSchema);
 export const MongoChannel = mongoose.model("Channel", ChannelSchema);
 export const MongoMessage = mongoose.model("Message", MessageSchema);
+
+const LiveClassSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  title: { type: String, required: true },
+  description: { type: String, default: null },
+  teacherId: { type: Number, required: true },
+  class: { type: String, required: true },
+  scheduledTime: { type: Date, required: true },
+  durationMinutes: { type: Number, default: 60 },
+  status: { type: String, enum: ["scheduled", "live", "completed", "cancelled"], default: "scheduled" },
+  dailyRoomName: { type: String, default: null },
+  dailyRoomUrl: { type: String, default: null },
+  startedAt: { type: Date, default: null },
+  endedAt: { type: Date, default: null },
+  recordingUrl: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now },
+});
+
+export const MongoLiveClass = mongoose.model("LiveClass", LiveClassSchema);
+
+const LiveSessionAttendanceSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  sessionId: { type: Number, required: true },
+  studentId: { type: Number, required: true },
+  joinedAt: { type: Date, default: Date.now },
+  leftAt: { type: Date, default: null },
+  durationMinutes: { type: Number, default: 0 },
+});
+
+export const MongoLiveSessionAttendance = mongoose.model("LiveSessionAttendance", LiveSessionAttendanceSchema);
+
+const FcmTokenSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  userId: { type: Number, required: true },
+  token: { type: String, required: true },
+  deviceType: { type: String, default: null },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+export const MongoFcmToken = mongoose.model("FcmToken", FcmTokenSchema);
 
 export { getNextSequenceValue };

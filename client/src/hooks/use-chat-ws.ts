@@ -33,6 +33,10 @@ export interface ChatWsEvent {
     delta?: number;
     answeredBy?: { userId: number; firebaseUid: string; displayName: string };
     pinnedBy?: { userId: number; firebaseUid: string; displayName: string };
+    // Live class events
+    classId?: number;
+    action?: 'started' | 'ended';
+    triggeredBy?: { userId: number; displayName: string };
 }
 
 interface WsState {
