@@ -183,11 +183,14 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       });
     } catch (error: any) {
       setIsLoading(false);
-      toast({
-        title: "Login failed",
-        description: error.message || "Please check your credentials and try again",
-        variant: "destructive",
-      });
+      const code = error.code || "";
+      if (code !== "auth/operation-not-allowed" && error.message !== "Firebase is not configured") {
+        toast({
+          title: "Login failed",
+          description: error.message || "Please check your credentials and try again",
+          variant: "destructive",
+        });
+      }
       throw error;
     }
     // NOTE: do NOT call setIsLoading(false) here — onAuthStateChanged will do it
@@ -223,11 +226,14 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       });
     } catch (error: any) {
       setIsLoading(false);
-      toast({
-        title: "Registration failed",
-        description: error.message || "Please check your information and try again",
-        variant: "destructive",
-      });
+      const code = error.code || "";
+      if (code !== "auth/operation-not-allowed" && error.message !== "Firebase is not configured") {
+        toast({
+          title: "Registration failed",
+          description: error.message || "Please check your information and try again",
+          variant: "destructive",
+        });
+      }
       throw error;
     }
   };

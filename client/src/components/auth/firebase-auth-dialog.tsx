@@ -84,7 +84,7 @@ const FloatingCard = ({ title, subtitle, progress, tag, className = "", delay = 
 
 const IllustrationPanel = () => {
     return (
-        <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-illustration">
+        <div className="relative flex h-full w-full flex-col items-center justify-center overflow-hidden bg-illustration pointer-events-none">
             <svg className="absolute top-0 left-1/2 -translate-x-1/2 w-[80%] h-auto opacity-40" viewBox="0 0 500 120" fill="none">
                 <path d="M80 110 Q150 10 250 50 Q350 90 420 20" stroke="hsl(var(--primary))" strokeWidth="2.5" fill="none" strokeLinecap="round" />
                 <path d="M100 100 Q170 30 250 60 Q330 90 400 30" stroke="hsl(var(--primary))" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5" />
@@ -113,7 +113,8 @@ export function FirebaseAuthDialog() {
     const { login, register, googleLogin, completeGoogleRegistration, resetUserPassword } = useFirebaseAuth();
     const [isNewGoogleUser, setIsNewGoogleUser] = useState(false);
     const [tempGoogleUser, setTempGoogleUser] = useState<User | null>(null);
-    const [authTab, setAuthTab] = useState<"login" | "register">("login");
+    const [authTab, setAuthTab] = useState<"login" | "register" | "forgotPassword">("login");
+    const [resetEmailSent, setResetEmailSent] = useState(false);
 
     const [loginError, setLoginError] = useState<string | null>(null);
     const [registerError, setRegisterError] = useState<string | null>(null);
@@ -137,23 +138,35 @@ export function FirebaseAuthDialog() {
         role: z.enum(["student", "teacher", "principal", "school_admin", "admin", "parent"], {
             required_error: "Please select a role",
         }),
-        class: z.string().optional(),
+        grade: z.string().optional(),
+        board: z.string().optional(),
+        school_code: z.string().optional(),
+        subjects: z.string().optional(),
     }).refine((data) => data.password === data.confirmPassword, {
         message: "Passwords don't match",
         path: ["confirmPassword"],
-    }).refine((data) => data.role !== "student" || !!data.class, {
-        message: "Please select a class",
-        path: ["class"],
+    }).refine((data) => data.role !== "student" || (!!data.grade && !!data.board), {
+        message: "Please select both grade and board",
+        path: ["grade"],
+    }).refine((data) => !["teacher", "principal", "school_admin"].includes(data.role) || !!data.school_code, {
+        message: "School code is required",
+        path: ["school_code"],
     }), []);
 
     const roleSchema = useMemo(() => z.object({
         role: z.enum(["student", "teacher", "principal", "school_admin", "admin", "parent"], {
             required_error: "Please select a role",
         }),
-        class: z.string().optional(),
-    }).refine((data) => data.role !== "student" || !!data.class, {
-        message: "Please select a class",
-        path: ["class"],
+        grade: z.string().optional(),
+        board: z.string().optional(),
+        school_code: z.string().optional(),
+        subjects: z.string().optional(),
+    }).refine((data) => data.role !== "student" || (!!data.grade && !!data.board), {
+        message: "Please select both grade and board",
+        path: ["grade"],
+    }).refine((data) => !["teacher", "principal", "school_admin"].includes(data.role) || !!data.school_code, {
+        message: "School code is required",
+        path: ["school_code"],
     }), []);
 
     const loginForm = useForm<z.infer<typeof loginSchema>>({
@@ -163,12 +176,12 @@ export function FirebaseAuthDialog() {
 
     const registerForm = useForm<z.infer<typeof registerSchema>>({
         resolver: zodResolver(registerSchema),
-        defaultValues: { name: "", email: "", password: "", confirmPassword: "", role: "student", class: "12" },
+        defaultValues: { name: "", email: "", password: "", confirmPassword: "", role: "student", grade: "12", board: "CBSE" },
     });
 
     const roleForm = useForm<z.infer<typeof roleSchema>>({
         resolver: zodResolver(roleSchema),
-        defaultValues: { role: "student", class: "12" },
+        defaultValues: { role: "student", grade: "12", board: "CBSE" },
     });
 
     const selectedGoogleRole = roleForm.watch("role");
@@ -213,14 +226,32 @@ export function FirebaseAuthDialog() {
         }
     }, [login, loginSchema]);
 
+    const onForgotPasswordSubmit = useCallback(async () => {
+        const email = loginForm.getValues("email");
+        if (!email) {
+            setLoginError("Please enter your email to reset password.");
+            return;
+        }
+        setIsLoginSubmitting(true);
+        setLoginError(null);
+        try {
+            await resetUserPassword(email);
+            setResetEmailSent(true);
+        } catch (error: any) {
+            setLoginError(error.message || "Failed to send reset email.");
+        } finally {
+            setIsLoginSubmitting(false);
+        }
+    }, [loginForm, resetUserPassword]);
+
     const getRoleSpecificData = (role: string, data?: any) => {
+        const subjectsArray = data?.subjects ? data.subjects.split(',').map((s: string) => s.trim()) : [];
         switch (role) {
-            case "student": return { classId: data?.class || "12" };
-            case "teacher": return { subjects: ["Mathematics", "Physics"] };
-            case "principal": return { institutionId: "central-high" };
-            case "school_admin": return { institutionId: "central-high" };
-            case "admin": return { institutionId: "central-high" };
-            case "parent": return { studentId: "student-123" };
+            case "student": return { grade: data?.grade, board: data?.board, subjects: subjectsArray };
+            case "teacher": return { school_code: data?.school_code, subjects: subjectsArray };
+            case "principal":
+            case "school_admin": return { school_code: data?.school_code };
+            case "parent": return { studentId: "student-123" }; // Placeholder
             default: return {};
         }
     };
@@ -245,25 +276,20 @@ export function FirebaseAuthDialog() {
                             email: data.email,
                             password: data.password,
                             role: data.role,
-                            class: data.class,
+                            grade: data.grade,
+                            board: data.board,
+                            school_code: data.school_code,
+                            subjects: data.subjects,
                         }),
                     });
                     if (res.ok) {
-                        const loginRes = await fetch("/api/auth/login", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            credentials: "include",
-                            body: JSON.stringify({ email: data.email, password: data.password }),
-                        });
-                        if (loginRes.ok) {
-                            const payload = await loginRes.json();
-                            if (payload.token) {
-                                localStorage.setItem("auth_token", payload.token);
-                                localStorage.setItem("auth_user", JSON.stringify(payload));
-                            }
-                            window.location.href = "/";
-                            return;
+                        const payload = await res.json();
+                        if (payload.token) {
+                            localStorage.setItem("auth_token", payload.token);
+                            localStorage.setItem("auth_user", JSON.stringify(payload));
                         }
+                        window.location.href = "/";
+                        return;
                     } else {
                         const errBody = await res.json().catch(() => ({}));
                         setRegisterError(errBody.message || "Registration failed. Please try again.");
@@ -349,25 +375,68 @@ export function FirebaseAuthDialog() {
                                 )}
                             />
                             {selectedGoogleRole === "student" && (
+                                <div className="grid grid-cols-2 gap-3">
+                                    <FormField
+                                        control={roleForm.control}
+                                        name="grade"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Grade</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Grade" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="9">9th</SelectItem>
+                                                        <SelectItem value="10">10th</SelectItem>
+                                                        <SelectItem value="11">11th</SelectItem>
+                                                        <SelectItem value="12">12th</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={roleForm.control}
+                                        name="board"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Board</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Board" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="CBSE">CBSE</SelectItem>
+                                                        <SelectItem value="ICSE">ICSE</SelectItem>
+                                                        <SelectItem value="State">State Board</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
+                            )}
+                            {["teacher", "principal", "school_admin"].includes(selectedGoogleRole) && (
                                 <FormField
                                     control={roleForm.control}
-                                    name="class"
+                                    name="school_code"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Class/Grade</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select a class" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="9">9th Grade</SelectItem>
-                                                    <SelectItem value="10">10th Grade</SelectItem>
-                                                    <SelectItem value="11">11th Grade</SelectItem>
-                                                    <SelectItem value="12">12th Grade</SelectItem>
-                                                </SelectContent>
-                                            </Select>
+                                            <FormLabel>School Code</FormLabel>
+                                            <FormControl>
+                                                <input
+                                                    placeholder="e.g. SCH-1234"
+                                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                                    {...field}
+                                                />
+                                            </FormControl>
                                             <FormMessage />
                                         </FormItem>
                                     )}
@@ -391,24 +460,73 @@ export function FirebaseAuthDialog() {
             </div>
 
             {/* Left: Login Form */}
-            <div className="flex w-full lg:w-[45%] min-h-[calc(100vh-300px)] lg:min-h-screen">
-                <motion.div
-                    className="flex h-full w-full flex-col justify-center px-8 sm:px-12 lg:px-16 xl:px-20 max-w-lg mx-auto py-12"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5 }}
+            <div className="flex w-full lg:w-[45%] min-h-[calc(100vh-300px)] lg:min-h-screen relative z-50">
+                <div
+                    className="flex h-full w-full flex-col justify-center px-8 sm:px-12 lg:px-16 xl:px-20 max-w-lg mx-auto py-12 relative z-50 pointer-events-auto"
                 >
                     <h1 className="font-display text-4xl font-bold text-foreground">
-                        {authTab === "login" ? "Welcome back!" : <span className="text-3xl">Create an account</span>}
+                        {authTab === "login" && "Welcome back!"}
+                        {authTab === "register" && <span className="text-3xl">Create an account</span>}
+                        {authTab === "forgotPassword" && <span className="text-3xl">Reset Password</span>}
                     </h1>
                     <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
                         Simplify your workflow and boost your productivity with{" "}
-                        <span className="font-semibold text-foreground">EduAI</span>. {authTab === 'login' ? 'Get started for free.' : 'Join us for free.'}
+                        <span className="font-semibold text-foreground">EduAI</span>. {authTab === 'login' ? 'Get started for free.' : (authTab === 'register' ? 'Join us for free.' : 'No worries, we will send you reset instructions.')}
                     </p>
 
-                    {authTab === "login" ? (
+                    {authTab === "forgotPassword" && (
+                        <div className="mt-8 space-y-4">
+                            {!resetEmailSent ? (
+                                <>
+                                    <div className="space-y-4">
+                                        <input
+                                            type="email"
+                                            placeholder="Enter your email"
+                                            className={inputClasses}
+                                            value={loginForm.watch("email")}
+                                            onChange={(e) => loginForm.setValue("email", e.target.value)}
+                                            disabled={isLoginSubmitting}
+                                        />
+                                        {loginError && <p className="text-red-500 text-xs px-2">{loginError}</p>}
+                                        <button
+                                            type="button"
+                                            onClick={onForgotPasswordSubmit}
+                                            disabled={isLoginSubmitting || !loginForm.watch("email")}
+                                            className="w-full rounded-full bg-eduai-primary py-3.5 text-sm font-semibold text-white transition-all hover:bg-eduai-accent active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
+                                        >
+                                            {isLoginSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+                                            Send Reset Link
+                                        </button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="text-center space-y-4 py-4">
+                                    <div className="mx-auto w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mb-4">
+                                        <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
+                                    </div>
+                                    <h3 className="text-lg font-medium">Check your email</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        We've sent a password reset link to <span className="font-semibold text-foreground">{loginForm.getValues("email")}</span>.
+                                    </p>
+                                </div>
+                            )}
+                            <button
+                                type="button"
+                                className="w-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors mt-6"
+                                onClick={() => {
+                                    setAuthTab("login");
+                                    setResetEmailSent(false);
+                                    setLoginError(null);
+                                }}
+                            >
+                                Back to login
+                            </button>
+                        </div>
+                    )}
+
+                    {authTab === "login" && (
                         <Form {...loginForm}>
-                            <form className="mt-8 space-y-4" onSubmit={loginForm.handleSubmit(onLoginSubmit)}>
+                            <form key="login-form" className="mt-8 space-y-4" onSubmit={loginForm.handleSubmit(onLoginSubmit)}>
                                 {loginError && (
                                     <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm font-medium">
                                         {loginError}
@@ -464,7 +582,8 @@ export function FirebaseAuthDialog() {
                                         type="button"
                                         className="text-sm font-medium text-foreground hover:text-primary transition-colors cursor-pointer bg-transparent border-0 p-0"
                                         onClick={() => {
-                                            // Handle forgot password implicitly or mock
+                                            setLoginError(null);
+                                            setAuthTab("forgotPassword");
                                         }}
                                     >
                                         Forgot Password?
@@ -473,16 +592,18 @@ export function FirebaseAuthDialog() {
                                 <button
                                     type="submit"
                                     disabled={isLoginSubmitting}
-                                    className="w-full rounded-full bg-brand-500 py-3.5 text-sm font-semibold text-white transition-all hover:bg-brand-600 active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
+                                    className="w-full rounded-full bg-eduai-primary py-3.5 text-sm font-semibold text-white transition-all hover:bg-eduai-accent active:scale-[0.98] flex items-center justify-center gap-2 mt-2"
                                 >
                                     {isLoginSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                                     Login
                                 </button>
                             </form>
                         </Form>
-                    ) : (
+                    )}
+
+                    {authTab === "register" && (
                         <Form {...registerForm}>
-                            <form className="mt-6 space-y-3" onSubmit={registerForm.handleSubmit(onRegisterSubmit)}>
+                            <form key="register-form" className="mt-6 space-y-3" onSubmit={registerForm.handleSubmit(onRegisterSubmit)}>
                                 {registerError && (
                                     <div className="p-3 bg-red-100 text-red-600 rounded-lg text-sm font-medium">
                                         {registerError}
@@ -495,6 +616,9 @@ export function FirebaseAuthDialog() {
                                         <FormItem>
                                             <FormControl>
                                                 <input
+                                                    id="register-name"
+                                                    type="text"
+                                                    autoComplete="name"
                                                     placeholder="Full Name"
                                                     disabled={isRegSubmitting}
                                                     className={inputClasses + " py-2.5"}
@@ -588,22 +712,64 @@ export function FirebaseAuthDialog() {
                                         )}
                                     />
                                     {registerForm.watch("role") === "student" && (
+                                        <>
+                                            <FormField
+                                                control={registerForm.control}
+                                                name="grade"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormControl>
+                                                            <select
+                                                                disabled={isRegSubmitting}
+                                                                className={inputClasses + " py-2.5 appearance-none"}
+                                                                {...field}
+                                                            >
+                                                                <option value="9">9th Grade</option>
+                                                                <option value="10">10th Grade</option>
+                                                                <option value="11">11th Grade</option>
+                                                                <option value="12">12th Grade</option>
+                                                            </select>
+                                                        </FormControl>
+                                                        <FormMessage className="text-red-500 text-[10px] px-2" />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={registerForm.control}
+                                                name="board"
+                                                render={({ field }) => (
+                                                    <FormItem className="col-span-2">
+                                                        <FormControl>
+                                                            <select
+                                                                disabled={isRegSubmitting}
+                                                                className={inputClasses + " py-2.5 appearance-none"}
+                                                                {...field}
+                                                            >
+                                                                <option value="CBSE">CBSE</option>
+                                                                <option value="ICSE">ICSE</option>
+                                                                <option value="State">State Board</option>
+                                                            </select>
+                                                        </FormControl>
+                                                        <FormMessage className="text-red-500 text-[10px] px-2" />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </>
+                                    )}
+                                    {["teacher", "principal", "school_admin"].includes(registerForm.watch("role")) && (
                                         <FormField
                                             control={registerForm.control}
-                                            name="class"
+                                            name="school_code"
                                             render={({ field }) => (
-                                                <FormItem>
+                                                <FormItem className="col-span-2">
                                                     <FormControl>
-                                                        <select
+                                                        <input
+                                                            type="text"
+                                                            placeholder="School Code"
                                                             disabled={isRegSubmitting}
-                                                            className={inputClasses + " py-2.5 appearance-none"}
+                                                            className={inputClasses + " py-2.5"}
                                                             {...field}
-                                                        >
-                                                            <option value="9">9th Grade</option>
-                                                            <option value="10">10th Grade</option>
-                                                            <option value="11">11th Grade</option>
-                                                            <option value="12">12th Grade</option>
-                                                        </select>
+                                                        />
                                                     </FormControl>
                                                     <FormMessage className="text-red-500 text-[10px] px-2" />
                                                 </FormItem>
@@ -615,7 +781,7 @@ export function FirebaseAuthDialog() {
                                 <button
                                     type="submit"
                                     disabled={isRegSubmitting}
-                                    className="w-full rounded-full bg-brand-500 py-3 text-sm font-semibold text-white transition-all hover:bg-brand-600 active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
+                                    className="w-full rounded-full bg-eduai-primary py-3 text-sm font-semibold text-white transition-all hover:bg-eduai-accent active:scale-[0.98] flex items-center justify-center gap-2 mt-4"
                                 >
                                     {isRegSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
                                     Create Account
@@ -635,30 +801,35 @@ export function FirebaseAuthDialog() {
                             type="button"
                             onClick={handleGoogleLogin}
                             disabled={googleLoading || isLoginSubmitting || isRegSubmitting}
-                            className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-foreground text-lg font-semibold transition-all hover:bg-muted/80 active:scale-95 border border-border"
+                            className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-foreground transition-all hover:bg-muted/80 active:scale-95 border border-border"
                         >
-                            {googleLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : "G"}
-                        </button>
-                        <button
-                            type="button"
-                            disabled
-                            className="flex h-12 w-12 items-center justify-center rounded-full bg-muted text-foreground text-lg font-semibold transition-all opacity-50 cursor-not-allowed border border-border"
-                        >
-                            A
+                            {googleLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : (
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+                                    <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+                                    <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+                                    <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
+                                </svg>
+                            )}
                         </button>
                     </div>
 
                     <p className="mt-8 text-center text-sm text-muted-foreground">
-                        {authTab === "login" ? "Not a member? " : "Already have an account? "}
+                        {authTab === "login" ? "Not a member? " : (authTab === "register" ? "Already have an account? " : "Remembered your password? ")}
                         <button
                             type="button"
                             className="font-semibold text-primary hover:text-accent transition-colors bg-transparent border-none cursor-pointer"
-                            onClick={() => setAuthTab(authTab === "login" ? "register" : "login")}
+                            onClick={() => {
+                                setAuthTab(authTab === "login" ? "register" : "login");
+                                setResetEmailSent(false);
+                                setLoginError(null);
+                                setRegisterError(null);
+                            }}
                         >
                             {authTab === "login" ? "Register now" : "Login"}
                         </button>
                     </p>
-                </motion.div>
+                </div>
             </div>
 
             {/* Right: Illustration (desktop) */}
