@@ -11,12 +11,16 @@ import {
   type Workspace, type InsertWorkspace,
   type Channel, type InsertChannel,
   type Message, type InsertMessage,
+  type LiveClass, type InsertLiveClass,
+  type LiveSessionAttendance, type InsertLiveSessionAttendance,
+  type FcmToken, type InsertFcmToken,
 } from "@shared/schema";
 import {
   MongoUser, MongoSession, MongoOtp,
   MongoTest, MongoQuestion, MongoTestAttempt, MongoAnswer, MongoAnalytics,
   MongoTestAssignment,
   MongoWorkspace, MongoChannel, MongoMessage,
+  MongoLiveClass, MongoLiveSessionAttendance, MongoFcmToken,
   getNextSequenceValue
 } from "@shared/mongo-schema";
 import { getCassandraClient } from "./lib/cassandra";
@@ -120,6 +124,22 @@ export interface IStorage {
   getPinnedMessages(channelId: number): Promise<Message[]>;
   gradeMessage(messageId: number, status: 'pending' | 'graded', channelId?: number): Promise<Message | undefined>;
   markMessageAsRead(messageId: number, userId: number, channelId?: number): Promise<Message | undefined>;
+
+  // Live Class operations
+  createLiveClass(liveClass: InsertLiveClass): Promise<LiveClass>;
+  getLiveClass(id: number): Promise<LiveClass | undefined>;
+  getLiveClassesBySchoolAndClass(schoolCode: string, className: string): Promise<LiveClass[]>;
+  updateLiveClass(id: number, update: Partial<InsertLiveClass>): Promise<LiveClass | undefined>;
+
+  // Live Session Attendance operations
+  createLiveSessionAttendance(attendance: InsertLiveSessionAttendance): Promise<LiveSessionAttendance>;
+  getAttendanceBySession(sessionId: number): Promise<LiveSessionAttendance[]>;
+  updateLiveSessionAttendance(id: number, update: Partial<InsertLiveSessionAttendance>): Promise<LiveSessionAttendance | undefined>;
+
+  // FCM Token operations
+  upsertFcmToken(token: InsertFcmToken): Promise<FcmToken>;
+  getFcmTokensByUser(userId: number): Promise<FcmToken[]>;
+  removeFcmToken(token: string): Promise<boolean>;
 }
 
 
@@ -588,6 +608,78 @@ export class MongoStorage implements IStorage {
       { new: true }
     );
     return msg ? this.mapMongoDoc<Message>(msg) : undefined;
+  }
+
+  // ─── Live Class operations ───────────────────────────────────────────────
+
+  async createLiveClass(classData: InsertLiveClass): Promise<LiveClass> {
+    const id = await getNextSequenceValue("live_class_id");
+    const newClass = new MongoLiveClass({ ...classData, id });
+    await newClass.save();
+    return this.mapMongoDoc<LiveClass>(newClass);
+  }
+
+  async getLiveClass(id: number): Promise<LiveClass | undefined> {
+    const liveClass = await MongoLiveClass.findOne({ id });
+    return liveClass ? this.mapMongoDoc<LiveClass>(liveClass) : undefined;
+  }
+
+  async getLiveClassesBySchoolAndClass(schoolCode: string, className: string): Promise<LiveClass[]> {
+    // Note: If schoolCode filtering is needed later, we can join with User collection or add schoolCode to LiveClass
+    // For now we filter by class name
+    const classes = await MongoLiveClass.find({ class: className }).sort({ scheduledTime: -1 });
+    return classes.map((c: any) => this.mapMongoDoc<LiveClass>(c));
+  }
+
+  async updateLiveClass(id: number, update: Partial<InsertLiveClass>): Promise<LiveClass | undefined> {
+    const liveClass = await MongoLiveClass.findOneAndUpdate({ id }, update, { new: true });
+    return liveClass ? this.mapMongoDoc<LiveClass>(liveClass) : undefined;
+  }
+
+  // ─── Live Session Attendance operations ──────────────────────────────────
+
+  async createLiveSessionAttendance(attendanceData: InsertLiveSessionAttendance): Promise<LiveSessionAttendance> {
+    const id = await getNextSequenceValue("attendance_id");
+    const attendance = new MongoLiveSessionAttendance({ ...attendanceData, id });
+    await attendance.save();
+    return this.mapMongoDoc<LiveSessionAttendance>(attendance);
+  }
+
+  async getAttendanceBySession(sessionId: number): Promise<LiveSessionAttendance[]> {
+    const attendance = await MongoLiveSessionAttendance.find({ sessionId });
+    return attendance.map((a: any) => this.mapMongoDoc<LiveSessionAttendance>(a));
+  }
+
+  async updateLiveSessionAttendance(id: number, update: Partial<InsertLiveSessionAttendance>): Promise<LiveSessionAttendance | undefined> {
+    const attendance = await MongoLiveSessionAttendance.findOneAndUpdate({ id }, update, { new: true });
+    return attendance ? this.mapMongoDoc<LiveSessionAttendance>(attendance) : undefined;
+  }
+
+  // ─── FCM Token operations ────────────────────────────────────────────────
+
+  async upsertFcmToken(tokenData: InsertFcmToken): Promise<FcmToken> {
+    let token = await MongoFcmToken.findOne({ token: tokenData.token, userId: tokenData.userId });
+    if (token) {
+      token.deviceType = tokenData.deviceType;
+      token.updatedAt = new Date();
+      await token.save();
+      return this.mapMongoDoc<FcmToken>(token);
+    }
+
+    const id = await getNextSequenceValue("fcm_token_id");
+    token = new MongoFcmToken({ ...tokenData, id });
+    await token.save();
+    return this.mapMongoDoc<FcmToken>(token);
+  }
+
+  async getFcmTokensByUser(userId: number): Promise<FcmToken[]> {
+    const tokens = await MongoFcmToken.find({ userId });
+    return tokens.map((t: any) => this.mapMongoDoc<FcmToken>(t));
+  }
+
+  async removeFcmToken(tokenStr: string): Promise<boolean> {
+    const result = await MongoFcmToken.deleteMany({ token: tokenStr });
+    return result.deletedCount > 0;
   }
 }
 

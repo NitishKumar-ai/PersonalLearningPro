@@ -67,3 +67,23 @@ export async function verifyFirebaseToken(
         return null;
     }
 }
+
+/**
+ * Set custom user claims for a Firebase user.
+ */
+export async function setCustomUserClaims(
+    uid: string,
+    claims: Record<string, any>
+): Promise<boolean> {
+    ensureInitialised();
+
+    if (!admin.apps.length) return false;
+
+    try {
+        await admin.auth().setCustomUserClaims(uid, claims);
+        return true;
+    } catch (err) {
+        console.error("[firebase-admin] Failed to set custom claims:", (err as Error).message);
+        return false;
+    }
+}
