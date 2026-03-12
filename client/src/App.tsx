@@ -31,7 +31,10 @@ import FocusPage from "@/pages/focus";
 import AchievementsPage from "@/pages/achievements";
 import LandingPage from "@/pages/landing";
 import SettingsPage from "@/pages/settings";
+import LiveClassesPage from "@/pages/live-classes";
+import LiveClassroomPage from "@/pages/live-classroom";
 import { ThemeProvider } from "./contexts/theme-context";
+import { useLiveClassNotifications } from "@/hooks/live/useLiveClassNotifications";
 
 import { Loader2 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -51,6 +54,9 @@ import { Button } from "@/components/ui/button";
  * @param fullWidth - If true, bypasses the standard container constraints for full-bleed layouts
  */
 function AppLayout({ children, fullWidth = false }: { children: React.ReactNode, fullWidth?: boolean }) {
+  // Listen for live class events via WebSocket and show toast notifications
+  useLiveClassNotifications();
+
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
@@ -110,6 +116,7 @@ const WrappedCalendar = withLayout(AcademicCalendarPage);
 const WrappedFocus = withLayout(FocusPage);
 const WrappedAchievements = withLayout(AchievementsPage);
 const WrappedSettings = withLayout(SettingsPage);
+const WrappedLiveClasses = withLayout(LiveClassesPage);
 
 /**
  * Render application routes and handle authentication and loading states.
@@ -177,7 +184,7 @@ function UnauthenticatedRouter() {
 }
 
 function Router() {
-  const { currentUser: { user, profile }, isLoading } = useAuth();
+  const { currentUser: { user, profile }, isLoading, logout } = useAuth();
 
   // Loading state while checking authentication
   if (isLoading) {
@@ -191,9 +198,52 @@ function Router() {
     );
   }
 
-  // Show landing page or login page if not authenticated
-  if (!user || !profile) {
+  // Show landing page or login page if not authenticated (backend users have no Firebase user, but have a profile)
+  if (!profile) {
     return <UnauthenticatedRouter />;
+  }
+
+  if (profile.status === 'pending') {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-background p-4 text-center">
+        <div className="bg-card border border-border rounded-xl p-8 max-w-md shadow-sm">
+          <h2 className="text-2xl font-bold mb-3 text-foreground">Account Pending Approval</h2>
+          <p className="text-muted-foreground mb-6">
+            Your account has been created successfully but is currently awaiting approval from an administrator.
+            You will be able to access the platform once your account is activated.
+          </p>
+          <Button onClick={() => logout && logout()} variant="default" className="w-full">Sign Out</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (profile.status === 'suspended') {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-background p-4 text-center">
+        <div className="bg-card border border-red-200 dark:border-red-900 rounded-xl p-8 max-w-md shadow-sm">
+          <h2 className="text-2xl font-bold mb-3 text-destructive">Account Suspended</h2>
+          <p className="text-muted-foreground mb-6">
+            Your account has been suspended. Please contact your school administrator or support for assistance.
+          </p>
+          <Button onClick={() => logout && logout()} variant="outline" className="w-full text-destructive hover:bg-destructive/10">Sign Out</Button>
+        </div>
+      </div>
+    );
+  }
+
+  if (profile.status === 'rejected') {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-background p-4 text-center">
+        <div className="bg-card border border-red-200 dark:border-red-900 rounded-xl p-8 max-w-md shadow-sm">
+          <h2 className="text-2xl font-bold mb-3 text-destructive">Registration Declined</h2>
+          <p className="text-muted-foreground mb-6">
+            Your registration request has been declined. Please contact administration for more details.
+          </p>
+          <Button onClick={() => logout && logout()} variant="outline" className="w-full">Sign Out</Button>
+        </div>
+      </div>
+    );
   }
 
   const effectiveRole = profile.role;
@@ -243,6 +293,9 @@ function Router() {
   const ProtectedStudentDirectory = () => <ProtectedRoute component={WrappedStudentDirectory} requiredRole={["teacher", "principal", "admin"]} />;
   const ProtectedAiTutor = () => <ProtectedRoute component={WrappedAiTutor} requiredRole={["teacher", "student"]} />;
 
+  // No layout wrapper for full-screen classroom
+  const ProtectedLiveClassroom = () => <ProtectedRoute component={LiveClassroomPage} requiredRole={["teacher", "student", "admin", "principal"]} />;
+
   return (
     <Switch>
       <Route path="/login">
@@ -290,7 +343,8 @@ function Router() {
 
       {/* Coming Soon — still unimplemented */}
       <Route path="/infrastructure" component={WrappedComingSoon} />
-      <Route path="/live-classes" component={WrappedComingSoon} />
+      <Route path="/live-classes" component={withProtection(WrappedLiveClasses, ["teacher", "student", "admin", "principal"])} />
+      <Route path="/live/:id" component={ProtectedLiveClassroom} />
       <Route path="/progress" component={withProtection(WrappedMyProgress, ["student", "parent"])} />
       <Route path="/study-groups" component={WrappedComingSoon} />
       <Route path="/settings" component={withProtection(WrappedSettings)} />
