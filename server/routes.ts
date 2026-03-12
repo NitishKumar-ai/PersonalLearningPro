@@ -10,7 +10,6 @@ import { verifyFirebaseToken, setCustomUserClaims } from "./lib/firebase-admin";
 import { MongoUser, MongoWorkspace, MongoChannel } from "@shared/mongo-schema";
 import { getNextSequenceValue } from "@shared/mongo-schema";
 import messageRoutes from "./message/routes";
-import liveClassRoutes from "./routes/live-classes";
 import { liveRouter } from "./routes/live";
 
 import bcrypt from "bcryptjs";
@@ -110,9 +109,6 @@ export async function authenticateToken(req: Request, res: Response, next: expre
 export async function registerRoutes(app: Express): Promise<Server> {
   // Mount MessagePal REST API routes
   app.use("/api/messagepal", messageRoutes);
-
-  // Mount Live Classes API routes (Legacy / internal if still needed)
-  app.use("/api/live-classes", liveClassRoutes);
 
   // Mount New Daily.co Live Classes API routes
   app.use("/api/live", authenticateToken, liveRouter);
