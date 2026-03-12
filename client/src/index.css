@@ -4,170 +4,133 @@
 
 @layer base {
   :root {
-    /* ─── New Education-Themed Palette ─── */
-    --background: 40 20% 98%;
-    --foreground: 224 30% 15%;
+    /* ─── Brightwyn Runway Palette (Light) ─── */
+    --background: 0 0% 100%;
+    /* #FFFFFF */
+    --foreground: 0 0% 4%;
+    /* #0B0B0B */
 
-    --card: 0 0% 100%;
-    --card-foreground: 224 30% 15%;
+    --card: 38 42% 96%;
+    /* #FAF6EF (Card Cream) */
+    --card-foreground: 0 0% 4%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 30% 15%;
+    --popover: 38 42% 96%;
+    --popover-foreground: 0 0% 4%;
 
-    --primary: 231 70% 55%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 45 100% 67%;
+    /* #FFD455 (Accent Yellow) */
+    --primary-foreground: 0 0% 4%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 224 30% 15%;
+    --secondary: 170 60% 69%;
+    /* #7EE0D0 (Soft Teal/Green) */
+    --secondary-foreground: 0 0% 4%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 40 10% 92%;
+    --muted-foreground: 224 10% 40%;
 
-    --accent: 220 14% 96%;
-    --accent-foreground: 224 30% 15%;
+    --accent: 45 100% 85%;
+    --accent-foreground: 0 0% 4%;
 
-    --destructive: 0 72% 51%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 20% 98%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 231 70% 55%;
+    --border: 0 0% 4%;
+    /* Thin black outlines */
+    --input: 40 20% 90%;
+    --ring: 45 100% 67%;
 
-    --radius: 0.625rem;
+    --radius: 0.75rem;
 
-    /* ─── Chart Colors ─── */
-    --chart-1: 231 70% 55%;
-    --chart-2: 160 60% 42%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 65% 50%;
+    --illustration-bg: 138 80% 95%;
+    --ticker-bg: 141 79% 85%;
+    --ticker-text: 143 64% 15%;
+    --bubble-1: 141 69% 85%;
+    --bubble-2: 141 79% 92%;
+    --bubble-3: 138 76% 74%;
 
-    /* ─── Subject Colors ─── */
-    --subject-math: 231 70% 55%;
-    --subject-science: 160 60% 42%;
-    --subject-english: 340 65% 50%;
-    --subject-history: 30 70% 50%;
-    --subject-cs: 280 65% 60%;
-    --subject-default: 220 10% 46%;
-
-    /* ─── Sidebar ─── */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 224 30% 15%;
-    --sidebar-primary: 231 70% 55%;
+    /* ─── Sidebar (Light) ─── */
+    --sidebar-background: 40 20% 96%;
+    --sidebar-foreground: 224 40% 15%;
+    --sidebar-primary: 262 83% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 231 70% 97%;
-    --sidebar-accent-foreground: 231 70% 40%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 231 70% 55%;
+    --sidebar-accent: 262 83% 95%;
+    --sidebar-accent-foreground: 262 83% 40%;
+    --sidebar-border: 40 20% 90%;
+    --sidebar-ring: 262 83% 58%;
 
-    /* ─── Layout ─── */
-    --sidebar-width: 16rem;
-    --sidebar-width-collapsed: 4rem;
+    /* ─── Chart Colors (Vibrant Educational) ─── */
+    --chart-1: 262 83% 58%;
+    /* Violet */
+    --chart-2: 199 89% 48%;
+    /* Blue */
+    --chart-3: 160 60% 45%;
+    /* Green */
+    --chart-4: 35 92% 50%;
+    /* Orange */
+    --chart-5: 340 75% 55%;
+    /* Pink */
 
-    /* ─── Chat: Bubble Colors ─── */
-    --bubble-own: 231 60% 85%;
-    --bubble-own-foreground: 231 70% 20%;
+    /* ─── Chat ─── */
+    --bubble-own: 262 80% 92%;
+    --bubble-own-foreground: 262 80% 20%;
     --bubble-other: 0 0% 100%;
-    --bubble-other-foreground: 224 30% 15%;
+    --bubble-other-foreground: 224 40% 12%;
 
-    /* ─── Chat: Status Colors ─── */
-    --status-sent: 220 10% 60%;
-    --status-delivered: 160 60% 42%;
-    --status-read: 199 89% 48%;
-
-    /* ─── Chat: Presence ─── */
-    --online: 142 71% 45%;
-    --typing: 231 70% 55%;
-
-    /* ─── Chat: Role Colors ─── */
-    --role-student: 217 91% 60%;
-    --role-teacher: 262 83% 58%;
-    --role-parent: 25 95% 53%;
-
-    /* ─── Chat: Message Type Colors ─── */
-    --announcement: 45 93% 47%;
-    --announcement-bg: 45 93% 94%;
-    --doubt: 262 83% 58%;
-    --doubt-bg: 262 40% 94%;
-    --assignment: 199 89% 48%;
-    --assignment-bg: 199 60% 92%;
-    --pinned: 45 93% 47%;
+    /* ─── Blackboard Accents ─── */
+    --chalk-white: 40 20% 95%;
+    --chalk-gold: 45 93% 47%;
+    --blackboard-green: 125 28% 15%;
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 20% 95%;
+    /* ─── Premium Midnight Palette (Dark) ─── */
+    --background: 222 50% 5%;
+    --foreground: 210 20% 98%;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 20% 95%;
+    --card: 222 50% 7%;
+    --card-foreground: 210 20% 98%;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 20% 95%;
+    --popover: 222 50% 7%;
+    --popover-foreground: 210 20% 98%;
 
-    --primary: 224 70% 62%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 263 90% 65%;
+    --primary-foreground: 210 20% 98%;
 
-    --secondary: 215 25% 14%;
-    --secondary-foreground: 210 20% 95%;
+    --secondary: 222 30% 12%;
+    --secondary-foreground: 210 20% 98%;
 
-    --muted: 215 25% 14%;
-    --muted-foreground: 217 10% 60%;
+    --muted: 222 30% 12%;
+    --muted-foreground: 217 20% 65%;
 
-    --accent: 215 25% 14%;
-    --accent-foreground: 210 20% 95%;
+    --accent: 263 50% 15%;
+    --accent-foreground: 263 90% 85%;
 
     --destructive: 0 62% 45%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive-foreground: 210 20% 98%;
 
-    --border: 215 25% 16%;
-    --input: 215 25% 16%;
-    --ring: 224 70% 62%;
-
-    /* ─── Chart Colors (Dark) ─── */
-    --chart-1: 224 70% 62%;
-    --chart-2: 160 55% 48%;
-    --chart-3: 30 75% 58%;
-    --chart-4: 280 60% 65%;
-    --chart-5: 340 60% 55%;
+    --border: 222 30% 15%;
+    --input: 222 30% 15%;
+    --ring: 263 90% 65%;
 
     /* ─── Sidebar (Dark) ─── */
-    --sidebar-background: 222 47% 6%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 224 70% 62%;
+    --sidebar-background: 125 28% 10%;
+    --sidebar-foreground: 125 20% 95%;
+    --sidebar-primary: 263 90% 65%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 70% 12%;
-    --sidebar-accent-foreground: 224 70% 75%;
-    --sidebar-border: 215 25% 16%;
-    --sidebar-ring: 224 70% 62%;
+    --sidebar-accent: 125 40% 15%;
+    --sidebar-accent-foreground: 125 40% 85%;
+    --sidebar-border: 125 28% 12%;
+    --sidebar-ring: 263 90% 65%;
 
-    /* ─── Chat: Bubble Colors (Dark) ─── */
-    --bubble-own: 231 50% 22%;
-    --bubble-own-foreground: 210 20% 90%;
-    --bubble-other: 215 25% 14%;
-    --bubble-other-foreground: 210 20% 92%;
+    /* ─── Blackboard Green Accents for Dark Mode ─── */
+    --accent-blackboard: 125 28% 10%;
+    --accent-blackboard-foreground: 125 40% 80%;
 
-    /* ─── Chat: Status Colors (Dark) ─── */
-    --status-sent: 215 12% 45%;
-    --status-delivered: 160 50% 45%;
-    --status-read: 199 89% 48%;
-
-    /* ─── Chat: Presence (Dark) ─── */
-    --online: 142 71% 45%;
-    --typing: 224 70% 62%;
-
-    /* ─── Chat: Role Colors (Dark) ─── */
-    --role-student: 217 91% 60%;
-    --role-teacher: 262 83% 58%;
-    --role-parent: 25 95% 53%;
-
-    /* ─── Chat: Message Type Colors (Dark) ─── */
-    --announcement: 45 93% 47%;
-    --announcement-bg: 45 50% 14%;
-    --doubt: 262 83% 58%;
-    --doubt-bg: 262 40% 16%;
-    --assignment: 199 89% 48%;
-    --assignment-bg: 199 40% 14%;
-    --pinned: 45 93% 47%;
+    /* ─── Chat (Dark) ─── */
+    --bubble-own: 263 60% 25%;
+    --bubble-own-foreground: 210 20% 95%;
+    --bubble-other: 222 30% 15%;
+    --bubble-other-foreground: 210 20% 95%;
   }
 
   * {
@@ -340,5 +303,92 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: hsl(var(--border));
     border-radius: 2px;
+  }
+
+  /* landing page hover tilt */
+  .hover-tilt {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .hover-tilt:hover {
+    transform: perspective(800px) rotateY(-2deg) rotateX(2deg) scale(1.02);
+    box-shadow: 8px 8px 0px hsl(var(--primary) / 1);
+  }
+}
+
+@layer components {
+
+  /* landing page sketch components */
+  .sketch-border {
+    border: 1.5px solid hsl(var(--border) / 1);
+    /* Thin black outlines */
+    border-radius: 1rem;
+  }
+
+  .sketch-shadow {
+    box-shadow: 6px 6px 0px hsl(var(--border) / 0.1);
+    /* subtle grey shadow */
+  }
+
+  .sketch-shadow-yellow {
+    box-shadow: 6px 6px 0px hsl(var(--primary) / 1);
+    /* solid pop color shadow */
+  }
+
+  .teal-glow {
+    box-shadow: 0 0 20px hsl(var(--secondary) / 0.3);
+  }
+
+  /* Notebook Feature Styles */
+  .notebook-bg {
+    background-color: #F8F9FA;
+  }
+
+  .dark .notebook-bg {
+    background-color: hsl(var(--background));
+  }
+
+  .notebook-page {
+    background: #FFFDF6;
+    border-radius: 12px;
+    box-shadow: 12px 14px 0px rgba(0, 0, 0, 0.08), 0 0 40px rgba(0, 0, 0, 0.05);
+    background-image: repeating-linear-gradient(to bottom,
+        #FFFDF6,
+        #FFFDF6 31px,
+        #DDE6FF 32px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .notebook-page {
+    background: #111111;
+    box-shadow: 12px 14px 0px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 0, 0, 0.5);
+    background-image: repeating-linear-gradient(to bottom,
+        #111111,
+        #111111 31px,
+        #2A2A2A 32px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .notebook-card {
+    background: #FFFDF6;
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 4px 6px 0px #000;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background-image: repeating-linear-gradient(to bottom,
+        #FFFDF6,
+        #FFFDF6 28px,
+        #DDE6FF 29px);
+    border: 1px solid #000;
+  }
+
+  .dark .notebook-card {
+    background: #161618;
+    box-shadow: 4px 6px 0px hsl(var(--primary));
+    background-image: repeating-linear-gradient(to bottom,
+        #161618,
+        #161618 28px,
+        #333333 29px);
+    border: 1px solid hsl(var(--primary));
   }
 }

@@ -6,10 +6,16 @@ export const insertUserSchema = z.object({
   password: z.string().min(1),
   name: z.string().min(1),
   email: z.string().email(),
-  role: z.enum(["student", "teacher"]).default("student"),
+  role: z.enum(["student", "teacher", "parent", "principal", "school_admin", "admin"]).default("student"),
+  status: z.enum(["active", "pending", "suspended", "rejected"]).default("active"),
   avatar: z.string().optional().nullable(),
   class: z.string().optional().nullable(),
   subject: z.string().optional().nullable(),
+  school_code: z.string().optional().nullable(),
+  grade: z.string().optional().nullable(),
+  board: z.string().optional().nullable(),
+  subjects: z.array(z.string()).optional().nullable(),
+  district: z.string().optional().nullable(),
 });
 
 export const insertTestSchema = z.object({
@@ -69,8 +75,31 @@ export const insertAnalyticsSchema = z.object({
 
 
 // Types inferred from Zod schemas
-export type User = z.infer<typeof insertUserSchema> & { id: number };
+export type User = z.infer<typeof insertUserSchema> & { id: number; createdAt?: Date; lastLoginAt?: Date };
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+// ─── Authentication Schemas ──────────────────────────────────────────────────
+export const insertSessionSchema = z.object({
+  userId: z.number(),
+  refreshTokenHash: z.string(),
+  deviceInfo: z.string().optional().nullable(),
+  ipAddress: z.string().optional().nullable(),
+  expiresAt: z.date(),
+});
+
+export type Session = z.infer<typeof insertSessionSchema> & { id: number; createdAt: Date };
+export type InsertSession = z.infer<typeof insertSessionSchema>;
+
+export const insertOtpSchema = z.object({
+  userId: z.number(),
+  otpHash: z.string(),
+  type: z.enum(["registration", "password_reset", "2fa"]),
+  expiresAt: z.date(),
+  used: z.boolean().default(false),
+});
+
+export type Otp = z.infer<typeof insertOtpSchema> & { id: number };
+export type InsertOtp = z.infer<typeof insertOtpSchema>;
 
 export type Test = z.infer<typeof insertTestSchema> & { id: number; createdAt: Date };
 export type InsertTest = z.infer<typeof insertTestSchema>;
@@ -138,4 +167,44 @@ export type InsertChannel = z.infer<typeof insertChannelSchema>;
 
 export type Message = z.infer<typeof insertMessageSchema> & { id: number; isPinned: boolean; createdAt: Date };
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+
+// ─── Live Classes Schemas ───────────────────────────────────────────────────
+
+export const insertLiveClassSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().optional().nullable(),
+  teacherId: z.number(),
+  class: z.string().min(1),
+  scheduledTime: z.string().or(z.date()),
+  durationMinutes: z.number().default(60),
+  status: z.enum(["scheduled", "live", "completed", "cancelled"]).default("scheduled"),
+  dailyRoomName: z.string().optional().nullable(),
+  dailyRoomUrl: z.string().optional().nullable(),
+  startedAt: z.string().or(z.date()).optional().nullable(),
+  endedAt: z.string().or(z.date()).optional().nullable(),
+  recordingUrl: z.string().optional().nullable(),
+});
+
+export type LiveClass = z.infer<typeof insertLiveClassSchema> & { id: number; createdAt: Date };
+export type InsertLiveClass = z.infer<typeof insertLiveClassSchema>;
+
+export const insertLiveSessionAttendanceSchema = z.object({
+  sessionId: z.number(),
+  studentId: z.number(),
+  joinedAt: z.string().or(z.date()).optional(),
+  leftAt: z.string().or(z.date()).optional().nullable(),
+  durationMinutes: z.number().default(0),
+});
+
+export type LiveSessionAttendance = z.infer<typeof insertLiveSessionAttendanceSchema> & { id: number };
+export type InsertLiveSessionAttendance = z.infer<typeof insertLiveSessionAttendanceSchema>;
+
+export const insertFcmTokenSchema = z.object({
+  userId: z.number(),
+  token: z.string(),
+  deviceType: z.string().optional().nullable(),
+});
+
+export type FcmToken = z.infer<typeof insertFcmTokenSchema> & { id: number; updatedAt: Date };
+export type InsertFcmToken = z.infer<typeof insertFcmTokenSchema>;
 

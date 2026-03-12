@@ -9,8 +9,8 @@ export const connectMongoDB = async () => {
   if (!process.env.MONGODB_URL) return;
   try {
     await mongoose.connect(process.env.MONGODB_URL, {
-      tls: true,
-      tlsAllowInvalidCertificates: true,
+      tls: process.env.MONGODB_URL.includes('+srv'),
+      tlsAllowInvalidCertificates: process.env.MONGODB_URL.includes('+srv') ? true : undefined,
     });
     console.log('MongoDB Connected...');
   } catch (err) {

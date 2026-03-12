@@ -1,0 +1,25 @@
+name: Sync Docs to Wiki
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Sync docs folder to GitHub Wiki
+        uses: Andrew-Chen-Wang/github-wiki-action@v5
+        with:
+          path: docs
+          commit-message: "docs: automatic sync from main repository"
+        env:
+          # For this to work, GitHub Actions must have read/write access to the repository.
+          # Go to Settings > Actions > General > Workflow permissions and select "Read and write permissions"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
