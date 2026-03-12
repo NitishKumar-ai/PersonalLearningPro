@@ -145,7 +145,7 @@ export default function ResourcesPage() {
     });
 
     return (
-        <div className="min-h-screen bg-background pb-12">
+        <div className="h-full overflow-y-auto bg-background pb-12">
             <PageHeader
                 title="Resource Library"
                 subtitle="Discover premium study materials, interactive labs, and curated lectures."
@@ -241,13 +241,13 @@ export default function ResourcesPage() {
                                         />
                                     )}
                                     <div className="absolute top-4 right-4 z-20 flex gap-2">
-                                        <Badge variant="secondary" className="bg-background/80 backdrop-blur-md border border-white/10">{res.difficulty}</Badge>
+                                        <Badge variant="outline" className="bg-background/80 backdrop-blur-md border border-white/10">{res.difficulty}</Badge>
                                         <Button size="icon" variant="secondary" className="h-8 w-8 rounded-full bg-background/50 backdrop-blur-md opacity-0 group-hover:opacity-100 translate-y-[-10px] group-hover:translate-y-0 transition-all duration-300">
                                             <Bookmark className="h-4 w-4 text-foreground" />
                                         </Button>
                                     </div>
                                     <div className="absolute bottom-4 left-4 z-20 flex gap-2">
-                                        <Badge variant="secondary" className="bg-background/60 backdrop-blur-md border border-white/10">{res.type}</Badge>
+                                        <Badge variant="outline" className="bg-background/60 backdrop-blur-md border border-white/10">{res.type}</Badge>
                                         <Badge variant="outline" className="bg-background/60 backdrop-blur-md border border-white/10 flex items-center gap-1">
                                             <Clock className="w-3 h-3" /> {res.duration}
                                         </Badge>
