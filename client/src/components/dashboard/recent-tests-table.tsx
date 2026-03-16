@@ -74,7 +74,7 @@ export function RecentTestsTable() {
 
   if (!displayTests || displayTests.length === 0) {
     return (
-      <div className="bg-white dark:bg-neutral-800 rounded-lg shadow p-6 text-center">
+      <div className="bg-card rounded-lg shadow p-6 text-center">
         <p className="text-muted-foreground">No tests available</p>
         <Link href="/create-test">
           <Button className="mt-4">Create your first test</Button>

@@ -28,12 +28,39 @@ import {
   BellRing,
   Sparkles,
   Video,
+  Lightbulb,
+  Award,
+  Gamepad2,
+  Heart,
+  MessageSquare,
+  BarChart3,
+  Activity,
+  Compass,
+  Target as TargetIcon,
+  BookMarked,
+  RefreshCw,
+  Settings,
+  HelpCircle,
+  LogOut,
+  User,
+  Volume2,
+  Mic,
+  MicOff,
+  VideoOff,
+  Monitor,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { PageHeader } from "@/components/layout/page-header";
+import { SmartCard } from "@/components/ui/smart-card";
+import { StreakWidget } from "@/components/student/StreakWidget";
+import { XPProgressBar } from "@/components/student/XPProgressBar";
+import { BadgePop } from "@/components/student/animations/BadgePop";
+import { motion } from "framer-motion";
 import {
   Radar,
   RadarChart,
@@ -43,79 +70,60 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 const subjectMeta: Record<
   string,
   {
-    gradient: string;
-    glow: string;
     icon: React.ReactNode;
     textColor: string;
     bgColor: string;
-    color: string;
-    lightBg: string;
+    accentColor: string;
   }
 > = {
   Physics: {
-    gradient: "from-blue-500 to-indigo-600",
-    glow: "glow-border-blue",
-    icon: <Atom className="h-6 w-6" />,
-    textColor: "text-blue-500",
+    icon: <Atom className="h-5 w-5" />,
+    textColor: "text-blue-600 dark:text-blue-400",
     bgColor: "bg-blue-500/10",
-    color: "from-blue-500 to-indigo-600",
-    lightBg: "from-blue-500/10 to-indigo-500/10",
+    accentColor: "bg-blue-500/30",
   },
   Chemistry: {
-    gradient: "from-orange-500 to-amber-500",
-    glow: "glow-border-orange",
-    icon: <FlaskConical className="h-6 w-6" />,
-    textColor: "text-orange-500",
+    icon: <FlaskConical className="h-5 w-5" />,
+    textColor: "text-orange-600 dark:text-orange-400",
     bgColor: "bg-orange-500/10",
-    color: "from-orange-500 to-amber-500",
-    lightBg: "from-orange-500/10 to-amber-500/10",
+    accentColor: "bg-orange-500/30",
   },
   Mathematics: {
-    gradient: "from-indigo-500 to-purple-600",
-    glow: "glow-border-purple",
-    icon: <Calculator className="h-6 w-6" />,
-    textColor: "text-indigo-500",
+    icon: <Calculator className="h-5 w-5" />,
+    textColor: "text-indigo-600 dark:text-indigo-400",
     bgColor: "bg-indigo-500/10",
-    color: "from-indigo-500 to-purple-600",
-    lightBg: "from-indigo-500/10 to-purple-500/10",
+    accentColor: "bg-indigo-500/30",
   },
   Biology: {
-    gradient: "from-emerald-500 to-teal-600",
-    glow: "glow-border-green",
-    icon: <Leaf className="h-6 w-6" />,
-    textColor: "text-emerald-500",
+    icon: <Leaf className="h-5 w-5" />,
+    textColor: "text-emerald-600 dark:text-emerald-400",
     bgColor: "bg-emerald-500/10",
-    color: "from-emerald-500 to-teal-600",
-    lightBg: "from-emerald-500/10 to-teal-500/10",
+    accentColor: "bg-emerald-500/30",
   },
   "Computer Science": {
-    gradient: "from-purple-500 to-violet-600",
-    glow: "glow-border-purple",
-    icon: <Code2 className="h-6 w-6" />,
-    textColor: "text-purple-500",
+    icon: <Code2 className="h-5 w-5" />,
+    textColor: "text-purple-600 dark:text-purple-400",
     bgColor: "bg-purple-500/10",
-    color: "from-purple-500 to-violet-600",
-    lightBg: "from-purple-500/10 to-violet-500/10",
+    accentColor: "bg-purple-500/30",
   },
 };
 
 const getTimetableCellColor = (name: string) => {
   const colors: Record<string, string> = {
-    Physics: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-    Chemistry: "bg-orange-500/10 text-orange-700 dark:text-orange-400",
-    Mathematics: "bg-indigo-500/10 text-indigo-700 dark:text-indigo-400",
-    Biology: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-    CS: "bg-purple-500/10 text-purple-700 dark:text-purple-400",
-    English: "bg-cyan-500/10 text-cyan-700 dark:text-cyan-400",
-    Lunch: "bg-muted text-muted-foreground",
+    Physics: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+    Chemistry: "bg-orange-500/10 text-orange-600 dark:text-orange-400",
+    Mathematics: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+    Biology: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
+    CS: "bg-purple-500/10 text-purple-600 dark:text-purple-400",
+    English: "bg-muted text-muted-foreground",
+    Lunch: "bg-muted text-muted-foreground font-medium",
   };
-  return colors[name] || "bg-muted text-muted-foreground";
+  return colors[name] || "bg-card text-muted-foreground";
 };
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -123,6 +131,20 @@ const getTimetableCellColor = (name: string) => {
 export default function StudentDashboard() {
   const { currentUser } = useFirebaseAuth();
   const [communitiesOpen, setCommunitiesOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [focusMode, setFocusMode] = useState(false);
+  const [studyRoomJoined, setStudyRoomJoined] = useState(false);
+  const [showBadge, setShowBadge] = useState(false);
+  const [earnedBadge, setEarnedBadge] = useState<{name: string, emoji: string, description: string} | null>(null);
+
+  const triggerBadge = () => {
+    setEarnedBadge({
+      name: "Knowledge Seeker",
+      emoji: "📚",
+      description: "You've successfully refactored the EduAI design guide! Your dedication to student psychology is unmatched."
+    });
+    setShowBadge(true);
+  };
 
   // ── Data ──────────────────────────────────────────────────────────────────
 
@@ -186,6 +208,7 @@ export default function StudentDashboard() {
       topic: "Electromagnetic Waves",
       date: "Tomorrow",
       type: "Quiz",
+      href: "/test/1",
       isUrgent: true,
       isAnnounced: true,
     },
@@ -317,7 +340,7 @@ export default function StudentDashboard() {
           PAGE HEADER
       ──────────────────────────────────────────────────────────────────── */}
       <PageHeader
-        title={`Welcome back, ${currentUser?.profile?.displayName || "Student"} 🎓`}
+        title={`Welcome back, ${currentUser?.profile?.displayName || "Student"} 👋`}
         subtitle="Keep up the great work! Here's your learning overview."
         className="animate-fade-in-up"
         breadcrumbs={[
@@ -325,45 +348,59 @@ export default function StudentDashboard() {
           { label: "Student Dashboard" },
         ]}
       >
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-500/10 to-red-500/10 dark:from-orange-500/20 dark:to-red-500/20 border border-orange-500/20">
-          <Flame className="h-5 w-5 text-orange-500" />
-          <div>
-            <div className="text-base font-bold leading-none">6</div>
-            <div className="text-[10px] text-muted-foreground leading-tight">Day Streak</div>
-          </div>
-        </div>
-        <Button asChild>
+        <Button asChild variant="default" className="rounded-full shadow-soft bg-accent hover:bg-accent-hover">
           <Link href="/ai-tutor">
-            <Brain className="h-4 w-4 mr-2" />
+            <Sparkles className="h-4 w-4 mr-2" />
             AI Tutor
           </Link>
         </Button>
       </PageHeader>
 
       {/* ────────────────────────────────────────────────────────────────────
-          1. TODAY SUMMARY STRIP
+          1. EMOTIONAL STATS (Psychology: Row 1)
       ──────────────────────────────────────────────────────────────────── */}
-      <section className="mb-6 animate-fade-in-up" style={{ animationDelay: "50ms" }}>
-        <div className="flex flex-wrap items-center gap-3 px-5 py-3 rounded-2xl bg-gradient-to-r from-primary/5 via-primary/8 to-violet-500/5 border border-primary/15">
-          <span className="text-sm font-semibold text-foreground/80">📅 Today</span>
-          <span className="text-muted-foreground text-xs">·</span>
-          <span className="flex items-center gap-1.5 text-sm font-medium">
-            <Zap className="h-4 w-4 text-amber-500" />
-            <span>2 sessions</span>
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fade-in-up" style={{ animationDelay: "50ms" }}>
+        <StreakWidget 
+          streak={6} 
+          activity={[true, true, true, true, true, true, false]} 
+          className="lg:col-span-1"
+        />
+        <XPProgressBar 
+          currentXP={450} 
+          nextLevelXP={1000} 
+          level={12} 
+          className="lg:col-span-2"
+        />
+        <SmartCard type="flat" className="flex flex-col justify-center items-center text-center">
+          <div className="p-3 rounded-full bg-progress-soft text-progress mb-2">
+            <Trophy className="h-6 w-6" />
+          </div>
+          <div className="stat-number leading-none text-2xl">#4</div>
+          <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-1">Class Rank</div>
+        </SmartCard>
+      </section>
+
+      {/* ────────────────────────────────────────────────────────────────────
+          2. TODAY SUMMARY STRIP
+      ──────────────────────────────────────────────────────────────────── */}
+      <section className="mb-8 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+        <div className="flex flex-wrap items-center gap-6 px-8 py-5 rounded-2xl bg-muted/50 border border-border shadow-sm">
+          <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+            <Clock className="h-4 w-4" /> Today
           </span>
-          <span className="text-muted-foreground text-xs">·</span>
-          <span className="flex items-center gap-1.5 text-sm font-medium">
-            <Timer className="h-4 w-4 text-blue-500" />
-            <span>45m studied</span>
+          <div className="h-6 w-px bg-muted hidden md:block" />
+          <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Zap className="h-4 w-4 text-accent" />
+            <span>2 sessions complete</span>
           </span>
-          <span className="text-muted-foreground text-xs">·</span>
-          <span className="flex items-center gap-1.5 text-sm font-medium">
-            <Flame className="h-4 w-4 text-orange-500" />
-            <span>Streak: 6 days</span>
+          <div className="h-6 w-px bg-muted hidden md:block" />
+          <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Timer className="h-4 w-4 text-muted-foreground" />
+            <span>45m of deep study</span>
           </span>
           <div className="ml-auto">
-            <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/15 text-xs font-semibold">
-              🎯 On Track
+            <Badge variant="accent" className="rounded-full px-4 py-1 text-[10px] font-bold">
+              🎯 ON TRACK
             </Badge>
           </div>
         </div>
@@ -375,74 +412,62 @@ export default function StudentDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-7">
         {/* ── Hero Card ── */}
         <div
-          className={`lg:col-span-3 animate-fade-in-up rounded-2xl border bg-card ${heroMeta.glow} overflow-hidden`}
+          className="lg:col-span-3 animate-fade-in-up rounded-2xl border border-border bg-card overflow-hidden shadow-soft"
           style={{ animationDelay: "100ms" }}
         >
-          {/* Top gradient accent */}
-          <div className={`h-1.5 w-full bg-gradient-to-r ${heroMeta.gradient}`} />
-
-          <div className="p-6">
+          <div className="p-8">
             {/* Header row */}
-            <div className="flex items-start justify-between mb-5">
+            <div className="flex items-start justify-between mb-8">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Badge
-                    variant="outline"
-                    className={`text-[10px] font-bold border-0 ${heroMeta.bgColor} ${heroMeta.textColor}`}
-                  >
-                    CURRENT TOPIC
+                <div className="flex items-center gap-2 mb-3">
+                  <Badge variant="default">
+                    Current Topic
                   </Badge>
                   {heroSession.isExamSoon && (
-                    <Badge className="text-[10px] font-bold bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20">
-                      🔥 Exam in {heroSession.examIn}
+                    <Badge variant="live">
+                      Exam in {heroSession.examIn}
                     </Badge>
                   )}
                 </div>
-                <h2 className="text-2xl font-bold tracking-tight">{heroSession.topic}</h2>
-                <p className={`text-sm mt-0.5 font-medium ${heroMeta.textColor}`}>{heroSession.subject}</p>
+                <h2 className="text-3xl font-display text-foreground tracking-tight leading-tight">{heroSession.topic}</h2>
+                <p className="text-base font-medium text-muted-foreground mt-1">{heroSession.subject}</p>
               </div>
-              {/* Floating subject icon */}
+              {/* Subject icon */}
               <div
-                className={`p-4 rounded-2xl bg-gradient-to-br ${heroMeta.gradient} text-white shadow-lg animate-float flex-shrink-0`}
+                className={`p-4 rounded-2xl ${heroMeta.bgColor} ${heroMeta.textColor} shadow-soft flex-shrink-0`}
               >
                 {heroMeta.icon}
               </div>
             </div>
 
             {/* Progress bar */}
-            <div className="mb-5">
-              <div className="flex items-center justify-between text-xs font-medium mb-2">
-                <span className="text-muted-foreground">Progress</span>
-                <span className={`font-bold ${heroMeta.textColor}`}>{heroSession.progress}% Complete</span>
+            <div className="mb-8">
+              <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5">
+                <span>Course Progress</span>
+                <span className="text-accent">{heroSession.progress}%</span>
               </div>
-              <div className="relative h-3 rounded-full bg-muted overflow-hidden">
+              <div className="relative h-2 rounded-full bg-muted overflow-hidden">
                 <div
-                  className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${heroMeta.gradient} transition-all duration-1000`}
+                  className="absolute inset-y-0 left-0 rounded-full bg-accent transition-all duration-1000 ease-out"
                   style={{ width: `${heroSession.progress}%` }}
                 />
-              </div>
-              {/* Progress labels */}
-              <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5">
-                <span>Start</span>
-                <span className="font-semibold">{heroSession.progress}%</span>
-                <span>Complete</span>
               </div>
             </div>
 
             {/* CTA row */}
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-6">
               <Button
                 asChild
-                className={`flex-1 bg-gradient-to-r ${heroMeta.gradient} hover:opacity-90 transition-opacity text-white border-0 shadow-md font-semibold`}
+                className="flex-1 shadow-card"
               >
                 <Link href="/ai-tutor">
-                  <Play className="h-4 w-4 mr-2 fill-white" />
-                  Resume Session
+                  <Play className="h-4 w-4 mr-2" />
+                  Continue Learning
                 </Link>
               </Button>
-              <div className="text-right text-xs text-muted-foreground">
-                <div className="font-medium">Last studied</div>
-                <div>{heroSession.lastStudied}</div>
+              <div className="text-right">
+                <div className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mb-0.5">Last Study</div>
+                <div className="text-sm font-medium text-foreground">{heroSession.lastStudied}</div>
               </div>
             </div>
           </div>
@@ -450,7 +475,7 @@ export default function StudentDashboard() {
 
         {/* ── Quick Actions ── */}
         <div className="lg:col-span-2 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
             Quick Actions
           </h2>
@@ -458,26 +483,21 @@ export default function StudentDashboard() {
             {quickActions.map((action, i) => (
               <Link key={i} href={action.href}>
                 <Card
-                  className={`group cursor-pointer hover:-translate-y-1.5 hover:shadow-xl transition-all duration-250 h-full border ${action.isPrimary
-                      ? "border-primary/30 bg-primary/5 dark:bg-primary/10 hover:bg-primary/10"
-                      : "hover:border-border/80"
+                  className={`group cursor-pointer hover:-translate-y-1 hover:shadow-card transition-all duration-200 h-full border-border ${action.isPrimary
+                    ? "bg-accent-soft border-accent/10"
+                    : "bg-card"
                     }`}
                 >
-                  <CardContent className="p-4 flex flex-col gap-2">
+                  <CardContent className="p-5 flex flex-col gap-3">
                     <div
-                      className={`p-2.5 rounded-xl bg-gradient-to-br ${action.gradient} text-white shadow-sm group-hover:shadow-md transition-shadow w-fit`}
+                      className={`p-2.5 rounded-xl bg-background/50 backdrop-blur-sm shadow-soft group-hover:shadow-md transition-shadow w-fit ${action.isPrimary ? "text-accent" : "text-muted-foreground"}`}
                     >
                       {action.icon}
                     </div>
                     <div>
-                      <div className="font-semibold text-sm leading-tight">{action.title}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">{action.desc}</div>
+                      <div className="font-semibold text-sm text-foreground leading-tight">{action.title}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{action.desc}</div>
                     </div>
-                    {action.isPrimary && (
-                      <Badge className="w-fit text-[9px] font-bold bg-primary/10 text-primary border-primary/20 px-1.5 py-0">
-                        ⭐ POPULAR
-                      </Badge>
-                    )}
                   </CardContent>
                 </Card>
               </Link>
@@ -489,40 +509,40 @@ export default function StudentDashboard() {
       {/* ────────────────────────────────────────────────────────────────────
           3. TODAY'S SCHEDULE (horizontal strip)
       ──────────────────────────────────────────────────────────────────── */}
-      <section className="mb-7 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+      <section className="mb-8 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             Today's Schedule
           </h2>
-          <span className="text-xs text-muted-foreground">Wednesday</span>
+          <span className="text-xs text-muted-foreground font-medium">Wednesday, Oct 24</span>
         </div>
-        <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide">
           {todaySchedule.map((slot, i) => {
             const meta = subjectMeta[slot.subject];
             const isNow = i === 2; // Mock: 3rd slot is current
             return (
               <div
                 key={i}
-                className={`flex-shrink-0 flex flex-col items-center gap-1 px-4 py-3 rounded-xl border transition-all ${isNow
-                    ? `bg-gradient-to-b ${meta?.lightBg || "from-primary/10 to-primary/5"} border-primary/30 shadow-sm`
-                    : slot.subject === "Lunch"
-                      ? "bg-muted/50 border-border/50 opacity-70"
-                      : "bg-card hover:bg-muted/40 border-border/50"
+                className={`flex-shrink-0 flex flex-col items-center gap-2 px-5 py-4 rounded-2xl border transition-all ${isNow
+                  ? "bg-accent-soft border-accent/20 shadow-soft"
+                  : slot.subject === "Lunch"
+                    ? "bg-muted border-transparent opacity-60"
+                    : "bg-card border-border hover:bg-muted"
                   }`}
               >
-                <span className="text-[10px] text-muted-foreground font-medium">{slot.time}</span>
+                <span className="text-xs text-muted-foreground font-bold uppercase tracking-tighter">{slot.time}</span>
                 {meta ? (
-                  <span className={`${meta.textColor}`}>{meta.icon && <span className="scale-75 inline-block">{meta.icon}</span>}</span>
-                ) : null}
+                  <span className={`${meta.textColor}`}>{meta.icon}</span>
+                ) : <span className="h-5 w-5" />}
                 <span
-                  className={`text-[11px] font-semibold ${meta ? meta.textColor : "text-muted-foreground"
+                  className={`text-sm font-semibold ${meta ? "text-foreground" : "text-muted-foreground"
                     }`}
                 >
                   {slot.subject}
                 </span>
                 {isNow && (
-                  <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 rounded-full">NOW</span>
+                  <Badge variant="accent" className="mt-1 text-[9px] px-1.5 py-0">NOW</Badge>
                 )}
               </div>
             );
@@ -533,65 +553,64 @@ export default function StudentDashboard() {
       {/* ────────────────────────────────────────────────────────────────────
           4. LIVE ROOMS
       ──────────────────────────────────────────────────────────────────── */}
-      <section className="mb-7 animate-fade-in-up" style={{ animationDelay: "250ms" }}>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+      <section className="mb-8 animate-fade-in-up" style={{ animationDelay: "250ms" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
             </span>
-            Live Rooms
-            <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20 text-[10px]">
+            Live Now
+            <Badge variant="default" className="ml-1">
               {liveRooms.length} active
             </Badge>
           </h2>
-          <Link href="/messages" className="text-xs text-primary font-medium hover:underline flex items-center gap-1">
-            View All <ChevronRight className="h-3 w-3" />
+          <Link href="/messages" className="text-xs text-accent font-semibold hover:underline flex items-center gap-1">
+            View All Rooms <ChevronRight className="h-3 w-3" />
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {liveRooms.map((room, i) => {
             const meta = subjectMeta[room.subject];
             return (
               <Card
                 key={i}
-                className="group hover:-translate-y-1 hover:shadow-lg transition-all duration-250 border overflow-hidden"
+                className="group hover:-translate-y-1 hover:shadow-card transition-all duration-200 border-border overflow-hidden"
               >
-                {/* Accent bar */}
-                <div className={`h-0.5 w-full bg-gradient-to-r ${meta?.gradient || "from-primary to-primary"}`} />
-                <CardContent className="p-4">
+                <CardContent className="p-6">
                   {/* Live badge row */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-1.5">
-                      <span className="animate-pulse-live inline-block w-2 h-2 rounded-full bg-emerald-500" />
-                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">
-                        Live
-                      </span>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="live">Live</Badge>
                     </div>
-                    {roleBadge(room.role)}
+                    {room.role === "teacher" ? (
+                      <Badge variant="accent">Instructor</Badge>
+                    ) : (
+                      <Badge variant="default">Group Study</Badge>
+                    )}
                   </div>
 
                   {/* Title */}
-                  <h3 className="font-semibold text-sm mb-1 leading-snug">{room.title}</h3>
-                  <p className="text-xs text-muted-foreground mb-3">{room.host}</p>
+                  <h3 className="font-display text-lg text-foreground mb-1 leading-snug">{room.title}</h3>
+                  <p className="text-sm text-muted-foreground mb-5">{room.host}</p>
 
                   {/* Stats row */}
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground mb-4">
-                    <span className="flex items-center gap-1">
-                      <Users className="h-3.5 w-3.5" />
-                      <strong className="text-foreground">{room.participants}</strong>
+                  <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground mb-6">
+                    <span className="flex items-center gap-1.5">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      {room.participants}
                     </span>
-                    <span className="flex items-center gap-1">
-                      <Timer className="h-3.5 w-3.5" />
-                      <strong className="text-foreground">{room.duration}</strong>
+                    <span className="flex items-center gap-1.5">
+                      <Timer className="h-4 w-4 text-muted-foreground" />
+                      {room.duration}
                     </span>
                   </div>
 
                   <Button
                     asChild
                     size="sm"
-                    className={`w-full bg-gradient-to-r ${meta?.gradient || "from-primary to-primary"} text-white border-0 hover:opacity-90 font-semibold`}
+                    className="w-full bg-accent text-white hover:bg-accent-hover shadow-soft"
                   >
                     <Link href="/messages">Join Room</Link>
                   </Button>
@@ -605,49 +624,51 @@ export default function StudentDashboard() {
       {/* ────────────────────────────────────────────────────────────────────
           5. SUBJECT PROGRESS
       ──────────────────────────────────────────────────────────────────── */}
-      <section className="mb-7 animate-fade-in-up" style={{ animationDelay: "300ms" }}>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+      <section className="mb-10 animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+        <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
           <BookOpen className="h-4 w-4" />
-          Subject Progress
+          Course Progress
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
           {subjects.map((subject, index) => {
             const meta = subjectMeta[subject.name];
+            const type = subject.name.split(" ")[0].toLowerCase() as any;
             return (
-              <Card
+              <SmartCard
                 key={subject.name}
-                className="group hover:-translate-y-1 hover:shadow-md transition-all duration-250 animate-fade-in-up"
-                style={{ animationDelay: `${300 + index * 60}ms` }}
+                type={type}
+                className="group hover:-translate-y-2"
+                style={{ animationDelay: `${300 + index * 50}ms` }}
               >
-                <CardContent className="p-5">
-                  {/* Icon + grade */}
-                  <div className="flex items-center justify-between mb-3">
-                    <div
-                      className={`p-2 rounded-xl bg-gradient-to-br ${meta.gradient} text-white shadow-sm group-hover:shadow-md transition-shadow`}
-                    >
-                      <span className="block [&>svg]:h-4 [&>svg]:w-4">{meta.icon}</span>
-                    </div>
-                    <span
-                      className={`text-xs font-bold px-2 py-0.5 rounded-full ${meta.bgColor} ${meta.textColor}`}
-                    >
-                      {subject.grade}
-                    </span>
+                {/* Icon + grade */}
+                <div className="flex items-center justify-between mb-4">
+                  <div
+                    className={`p-2.5 rounded-xl bg-background/50 backdrop-blur-sm shadow-soft transition-transform group-hover:scale-110`}
+                  >
+                    <span className={meta.textColor}>{meta.icon}</span>
                   </div>
+                  <span
+                    className="text-sm font-bold text-foreground bg-background/50 backdrop-blur-sm px-2 py-0.5 rounded-full"
+                  >
+                    {subject.grade}
+                  </span>
+                </div>
 
-                  <div className="font-semibold text-sm mb-2">{subject.name}</div>
+                <div className="font-bold text-sm text-foreground mb-4 truncate" title={subject.name}>{subject.name}</div>
 
-                  {/* Progress bar */}
-                  <div className="relative h-2 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={`absolute inset-y-0 left-0 rounded-full bg-gradient-to-r ${meta.color} transition-all duration-1000`}
-                      style={{ width: `${subject.progress}%` }}
-                    />
-                  </div>
-                  <div className={`text-xs font-semibold mt-1.5 ${meta.textColor}`}>
-                    {subject.progress}%
-                  </div>
-                </CardContent>
-              </Card>
+                {/* Progress bar */}
+                <div className="relative h-1.5 rounded-full bg-black/5 overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${subject.progress}%` }}
+                    transition={{ duration: 1, delay: 0.5 }}
+                    className={`absolute inset-y-0 left-0 rounded-full ${meta.accentColor}`}
+                  />
+                </div>
+                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2">
+                  {subject.progress}% Complete
+                </div>
+              </SmartCard>
             );
           })}
         </div>
@@ -656,14 +677,14 @@ export default function StudentDashboard() {
       {/* ────────────────────────────────────────────────────────────────────
           6. TESTS
       ──────────────────────────────────────────────────────────────────── */}
-      <section className="mb-7 animate-fade-in-up" style={{ animationDelay: "350ms" }}>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <section className="mb-10 animate-fade-in-up" style={{ animationDelay: "350ms" }}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Upcoming Tests */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                 <BellRing className="h-4 w-4" />
-                Upcoming Tests
+                Upcoming Evaluations
               </h2>
             </div>
             <div className="space-y-3">
@@ -672,36 +693,32 @@ export default function StudentDashboard() {
                 return (
                   <div
                     key={i}
-                    className={`flex items-center gap-4 p-4 rounded-xl border transition-all hover:shadow-sm ${test.isUrgent
-                        ? "border-red-500/20 bg-red-500/5 dark:bg-red-500/10"
-                        : "border-border/60 bg-card"
+                    className={`flex items-center gap-4 p-5 rounded-2xl border transition-all hover:shadow-soft ${test.isUrgent
+                      ? "border-red-200 bg-red-500/10"
+                      : "border-border bg-card"
                       }`}
                   >
-                    <div className={`p-2.5 rounded-xl bg-gradient-to-br ${meta?.gradient} text-white flex-shrink-0 shadow-sm`}>
-                      <span className="block [&>svg]:h-4 [&>svg]:w-4">{meta?.icon}</span>
+                    <div className={`p-3 rounded-xl ${meta?.bgColor} ${meta?.textColor} flex-shrink-0 shadow-soft`}>
+                      {meta?.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-semibold text-sm truncate">{test.topic}</span>
+                      <div className="flex items-center gap-2 flex-wrap mb-1">
+                        <span className="font-semibold text-sm text-foreground truncate">{test.topic}</span>
                         {test.isUrgent && (
-                          <Badge className="text-[9px] font-bold bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20 px-1.5 py-0 flex-shrink-0">
-                            🔥 Tomorrow!
-                          </Badge>
+                          <Badge variant="live" className="animate-none">Urgent</Badge>
                         )}
                         {test.isAnnounced && (
-                          <Badge className="text-[9px] font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 px-1.5 py-0 flex-shrink-0">
-                            📌 Teacher Announced
-                          </Badge>
+                          <Badge variant="warning">Posted</Badge>
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
+                      <div className="text-xs text-muted-foreground font-medium">
                         {test.subject} · {test.type}
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="text-xs font-semibold text-foreground">{test.date}</div>
-                      <Button variant="outline" size="sm" className="mt-1.5 h-7 text-xs px-2.5" asChild>
-                        <Link href="/tests">Prepare</Link>
+                      <div className="text-sm font-bold text-foreground mb-2">{test.date}</div>
+                      <Button variant="outline" size="sm" className="h-8 px-4" asChild>
+                        <Link href={test.href || "/tests"}>Prepare</Link>
                       </Button>
                     </div>
                   </div>
@@ -712,10 +729,10 @@ export default function StudentDashboard() {
 
           {/* Recent Results */}
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4" />
-                Recent Results
+                Recent Achievements
               </h2>
             </div>
             <div className="space-y-3">
@@ -723,38 +740,37 @@ export default function StudentDashboard() {
                 const pct = (result.score / result.total) * 100;
                 const scoreColor =
                   pct >= 90
-                    ? "text-emerald-600 dark:text-emerald-400"
+                    ? "text-emerald-700"
                     : pct >= 70
-                      ? "text-blue-600 dark:text-blue-400"
-                      : "text-amber-600 dark:text-amber-400";
+                      ? "text-blue-700"
+                      : "text-amber-700";
                 const bgColor =
                   pct >= 90
                     ? "bg-emerald-500/10"
                     : pct >= 70
                       ? "bg-blue-500/10"
                       : "bg-amber-500/10";
-                const meta = subjectMeta[result.subject];
                 return (
                   <div
                     key={i}
-                    className="flex items-center gap-4 p-4 rounded-xl border border-border/60 bg-card hover:shadow-sm transition-all"
+                    className="flex items-center gap-4 p-5 rounded-2xl border border-border bg-card hover:shadow-soft transition-all"
                   >
-                    <div className={`p-2.5 rounded-xl ${bgColor} ${scoreColor} flex-shrink-0`}>
-                      <CheckCircle2 className="h-5 w-5" />
+                    <div className={`p-3 rounded-xl ${bgColor} ${scoreColor} flex-shrink-0 shadow-soft`}>
+                      <Award className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm truncate">{result.topic}</div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
+                      <div className="font-semibold text-sm text-foreground truncate mb-1">{result.topic}</div>
+                      <div className="text-xs text-muted-foreground font-medium font-body">
                         {result.subject} · {result.date}
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className="text-xl font-bold">
+                      <div className="text-xl font-display text-foreground leading-tight">
                         {result.score}
-                        <span className="text-sm text-muted-foreground font-normal">/{result.total}</span>
+                        <span className="text-sm text-muted-foreground font-body">/{result.total}</span>
                       </div>
-                      <div className={`text-[11px] font-bold ${scoreColor}`}>
-                        {pct >= 90 ? "🏆 Excellent" : pct >= 70 ? "👍 Good" : "📚 Needs work"}
+                      <div className={`text-[10px] font-bold uppercase tracking-widest mt-1 ${scoreColor}`}>
+                        {pct >= 90 ? "Excellent" : pct >= 70 ? "Stable" : "Needs Review"}
                       </div>
                     </div>
                   </div>
@@ -807,33 +823,31 @@ export default function StudentDashboard() {
           </CardContent>
         </Card>
 
-        {/* Radar Analytics */}
-        <Card className="lg:col-span-2 animate-fade-in-up hover:shadow-md transition-all duration-300" style={{ animationDelay: "420ms" }}>
-          <CardHeader className="pb-2">
+        {/* Analytics + Progress Detail */}
+        <Card className="lg:col-span-2 animate-fade-in-up hover:shadow-card transition-all duration-300" style={{ animationDelay: "420ms" }}>
+          <CardHeader className="pb-4">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <Target className="h-4 w-4 text-primary" />
-              </div>
-              <CardTitle className="text-base font-semibold">Learning Analytics</CardTitle>
+              <Target className="h-5 w-5 text-accent" />
+              <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Learning Analytics</CardTitle>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Stats */}
               <div>
-                <div className="grid grid-cols-3 gap-2 mb-5">
+                <div className="grid grid-cols-3 gap-3 mb-8">
                   {[
                     { label: "Avg. Score", value: "82%", change: "+5%", positive: true },
                     { label: "Tests", value: "24", change: "3 new", positive: true },
                     { label: "Study hrs", value: "18h", change: "-2h", positive: false },
                   ].map((stat) => (
-                    <div key={stat.label} className="p-3 rounded-xl bg-muted/50 border border-border/50 text-center">
-                      <div className="text-lg font-bold">{stat.value}</div>
-                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mt-0.5">
+                    <div key={stat.label} className="p-3 rounded-xl bg-muted border border-border text-center">
+                      <div className="text-xl font-display text-foreground leading-none">{stat.value}</div>
+                      <div className="text-[9px] uppercase tracking-widest text-muted-foreground font-bold mt-1.5 whitespace-nowrap">
                         {stat.label}
                       </div>
                       <div
-                        className={`text-[10px] mt-0.5 font-bold ${stat.positive ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"
+                        className={`text-[9px] mt-1 font-bold ${stat.positive ? "text-emerald-700" : "text-amber-700"
                           }`}
                       >
                         {stat.change}
@@ -842,22 +856,22 @@ export default function StudentDashboard() {
                   ))}
                 </div>
 
-                <h4 className="text-xs font-semibold flex items-center gap-2 mb-3 text-muted-foreground uppercase tracking-wider">
-                  <TrendingUp className="h-3.5 w-3.5" />
-                  Subject Performance
+                <h4 className="text-[10px] font-bold flex items-center gap-2 mb-4 text-muted-foreground uppercase tracking-widest">
+                  <TrendingUp className="h-4 w-4" />
+                  Performance by Subject
                 </h4>
-                <div className="space-y-2.5">
+                <div className="space-y-4">
                   {subjects.slice(0, 4).map((subject) => {
                     const meta = subjectMeta[subject.name];
                     return (
-                      <div key={subject.name} className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-medium">{subject.name}</span>
-                          <span className={`font-bold ${meta.textColor}`}>{subject.progress}%</span>
+                      <div key={subject.name} className="space-y-2">
+                        <div className="flex items-center justify-between text-xs font-medium">
+                          <span className="text-foreground">{subject.name}</span>
+                          <span className={`${meta.textColor} font-bold`}>{subject.progress}%</span>
                         </div>
                         <div className="h-1.5 rounded-full bg-muted overflow-hidden">
                           <div
-                            className={`h-full rounded-full bg-gradient-to-r ${meta.color} transition-all duration-1000`}
+                            className={`h-full rounded-full ${meta.accentColor} transition-all duration-1000`}
                             style={{ width: `${subject.progress}%` }}
                           />
                         </div>
@@ -868,33 +882,34 @@ export default function StudentDashboard() {
               </div>
 
               {/* Radar chart */}
-              <div className="h-[220px] w-full">
+              <div className="h-[240px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <RadarChart
                     cx="50%"
                     cy="50%"
-                    outerRadius="78%"
+                    outerRadius="80%"
                     data={subjects.map((s) => ({ subject: s.name.split(" ")[0], fullMark: 100, score: s.progress }))}
                   >
-                    <PolarGrid stroke="hsl(var(--border))" />
+                    <PolarGrid stroke="#E6E0D4" />
                     <PolarAngleAxis
                       dataKey="subject"
-                      tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }}
+                      tick={{ fill: "#4A4947", fontSize: 10, fontWeight: 500 }}
                     />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
                     <Radar
                       name="Mastery"
                       dataKey="score"
-                      stroke="hsl(var(--primary))"
-                      fill="hsl(var(--primary))"
-                      fillOpacity={0.2}
+                      stroke="#CC7B5C"
+                      fill="#CC7B5C"
+                      fillOpacity={0.15}
                     />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        borderColor: "hsl(var(--border))",
-                        borderRadius: "0.75rem",
+                        backgroundColor: "#FFF9F0",
+                        borderColor: "#E6E0D4",
+                        borderRadius: "1rem",
                         fontSize: "12px",
+                        boxShadow: "0 4px 20px -4px rgba(0,0,0,0.1)"
                       }}
                     />
                   </RadarChart>
@@ -906,31 +921,32 @@ export default function StudentDashboard() {
       </div>
 
       {/* ────────────────────────────────────────────────────────────────────
-          8. COMMUNITIES (collapsed by default)
+          8. COMMUNITIES
       ──────────────────────────────────────────────────────────────────── */}
-      <section className="mb-7 animate-fade-in-up" style={{ animationDelay: "450ms" }}>
+      <section className="mb-10 animate-fade-in-up" style={{ animationDelay: "450ms" }}>
         <button
           onClick={() => setCommunitiesOpen((v) => !v)}
-          className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors w-full mb-3"
+          className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground hover:text-accent transition-colors w-full mb-4 group"
         >
           <Users className="h-4 w-4" />
-          Discover Communities
+          Network & Communities
+          <div className="h-px flex-1 bg-border ml-2 group-hover:bg-accent/20 transition-colors" />
           <ChevronDown
-            className={`h-4 w-4 ml-auto transition-transform duration-200 ${communitiesOpen ? "rotate-180" : ""}`}
+            className={`h-4 w-4 ml-2 transition-transform duration-200 ${communitiesOpen ? "rotate-180" : ""}`}
           />
         </button>
 
         {communitiesOpen && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in-up">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 animate-fade-in">
             {communities.map((c, i) => (
-              <Card key={i} className="hover:-translate-y-1 hover:shadow-md transition-all duration-250 cursor-pointer">
-                <CardContent className="p-4 flex items-center gap-3">
-                  <div className="p-2.5 rounded-xl bg-primary/10 text-primary">{c.icon}</div>
-                  <div>
-                    <div className="font-semibold text-sm">{c.name}</div>
-                    <div className="text-xs text-muted-foreground">{c.members} members</div>
+              <Card key={i} className="hover:-translate-y-1 hover:shadow-soft transition-all duration-200 cursor-pointer border-border bg-card">
+                <CardContent className="p-5 flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-accent-soft text-accent shadow-soft">{c.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm text-foreground truncate">{c.name}</div>
+                    <div className="text-xs text-muted-foreground font-medium">{c.members} members</div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground ml-auto" />
+                  <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
                 </CardContent>
               </Card>
             ))}
@@ -939,49 +955,53 @@ export default function StudentDashboard() {
       </section>
 
       {/* ────────────────────────────────────────────────────────────────────
-          9. WEEKLY TIMETABLE (de-emphasized, at bottom)
+          9. WEEKLY TIMETABLE
       ──────────────────────────────────────────────────────────────────── */}
-      <section className="mb-8 animate-fade-in-up" style={{ animationDelay: "500ms" }}>
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-primary/10">
-                <Calendar className="h-4 w-4 text-primary" />
+      <section className="mb-10 animate-fade-in-up" style={{ animationDelay: "500ms" }}>
+        <Card className="border-border bg-card shadow-soft">
+          <CardHeader className="pb-4 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-accent" />
+                <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                  Weekly Curriculum
+                </CardTitle>
               </div>
-              <CardTitle className="text-base font-semibold text-muted-foreground">
-                Weekly Timetable
-              </CardTitle>
+              <Button variant="outline" size="sm" className="h-8">
+                <RefreshCw className="h-3 w-3 mr-2" />
+                Update
+              </Button>
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="relative overflow-hidden rounded-lg border border-border">
+          <CardContent className="p-0">
+            <div className="relative overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm min-w-[700px]">
-                  <thead className="sticky top-0 z-10 bg-muted/50 backdrop-blur-md">
-                    <tr className="border-b border-border/50">
-                      <th className="text-left py-2.5 px-4 text-muted-foreground font-semibold text-xs uppercase tracking-wider sticky left-0 z-20 bg-muted/80 backdrop-blur-md border-r border-border/50">
-                        Time
+                  <thead>
+                    <tr className="bg-muted">
+                      <th className="text-left py-4 px-6 text-muted-foreground font-bold text-[10px] uppercase tracking-widest border-r border-border sticky left-0 z-20 bg-muted">
+                        Time Block
                       </th>
                       {["Mon", "Tue", "Wed", "Thu", "Fri"].map((day) => (
                         <th
                           key={day}
-                          className="text-center py-2.5 px-4 text-muted-foreground font-semibold text-xs uppercase tracking-wider"
+                          className="text-center py-4 px-4 text-muted-foreground font-bold text-[10px] uppercase tracking-widest"
                         >
                           {day}
                         </th>
                       ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-cream-400">
                     {timetable.map((row, i) => (
-                      <tr key={i} className="border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors">
-                        <td className="py-2.5 px-4 font-bold text-xs text-primary sticky left-0 z-20 bg-muted/80 backdrop-blur-sm border-r border-border/50">
+                      <tr key={i} className="hover:bg-muted transition-colors">
+                        <td className="py-4 px-6 font-bold text-[10px] uppercase tracking-tighter text-accent sticky left-0 z-20 bg-background border-r border-border">
                           {row.time}
                         </td>
                         {[row.mon, row.tue, row.wed, row.thu, row.fri].map((subject, j) => (
-                          <td key={j} className="text-center py-2 px-2">
+                          <td key={j} className="text-center py-3 px-2">
                             <span
-                              className={`inline-block px-2.5 py-1 rounded-lg text-xs font-semibold transition-transform hover:scale-105 cursor-default ${getTimetableCellColor(subject)}`}
+                              className={`inline-block px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap ${getTimetableCellColor(subject)}`}
                             >
                               {subject}
                             </span>
@@ -996,6 +1016,95 @@ export default function StudentDashboard() {
           </CardContent>
         </Card>
       </section>
+
+      {/* Learning Tools */}
+      <section className="mb-10 animate-fade-in-up" style={{ animationDelay: "600ms" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-accent" />
+            Productivity Suite
+            <Badge variant="live" className="ml-1 uppercase tracking-widest text-[9px]">
+              New
+            </Badge>
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+          {[
+            { icon: <BookMarked className="h-5 w-5" />, title: "Smart Notes", desc: "AI Summaries" },
+            { icon: <TargetIcon className="h-5 w-5" />, title: "Practice Hub", desc: "Adaptive Drill" },
+            { icon: <BarChart3 className="h-5 w-5" />, title: "Insights", desc: "Real-time Data" },
+            { icon: <Award className="h-5 w-5" />, title: "Skill Lab", desc: "Earn Badges" },
+          ].map((tool, i) => (
+            <Card key={i} className="group hover:-translate-y-1 hover:shadow-card transition-all duration-200 cursor-pointer border-border bg-card">
+              <CardContent className="p-6 text-center">
+                <div className="p-4 rounded-2xl bg-muted text-accent mx-auto mb-4 w-fit group-hover:bg-accent group-hover:text-white transition-all duration-300 shadow-soft">
+                  {tool.icon}
+                </div>
+                <div className="font-semibold text-sm text-foreground mb-1 leading-tight">{tool.title}</div>
+                <div className="text-xs text-muted-foreground font-medium">{tool.desc}</div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Focus Mode Toggle */}
+      {focusMode && (
+        <div className="fixed inset-0 bg-ink-900/60 backdrop-blur-md z-50 flex items-center justify-center animate-fade-in p-6">
+          <Card className="w-full max-w-2xl border border-border bg-muted shadow-modal overflow-hidden">
+            <CardContent className="p-10">
+              <div className="text-center mb-10">
+                <div className="p-6 rounded-full bg-accent text-white mx-auto mb-6 w-fit shadow-soft animate-pulse-live">
+                  <Headphones className="h-10 w-10" />
+                </div>
+                <h2 className="text-4xl font-display text-foreground mb-2 tracking-tight">Deep Focus Active</h2>
+                <p className="text-lg text-muted-foreground font-body">Minimal environment enabled • All distractions silenced</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-6 mb-10">
+                <div className="text-center p-6 rounded-2xl bg-card border border-border shadow-soft">
+                  <div className="text-3xl font-display text-accent mb-1 leading-none">25:00</div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Time Left</div>
+                </div>
+                <div className="text-center p-6 rounded-2xl bg-card border border-border shadow-soft">
+                  <div className="text-xl font-display text-foreground mb-1 leading-none">Physics</div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Subject</div>
+                </div>
+                <div className="text-center p-6 rounded-2xl bg-card border border-border shadow-soft">
+                  <div className="text-2xl font-display text-foreground mb-1 leading-none">87</div>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Score</div>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <Button variant="outline" className="flex-1 h-12 text-sm font-bold uppercase tracking-widest" onClick={() => setFocusMode(false)}>
+                  End Session
+                </Button>
+                <Button className="flex-1 h-12 text-sm font-bold uppercase tracking-widest shadow-soft">
+                  Add 10 Minutes
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+      {/* Badge Achievement Overlay */}
+      <BadgePop 
+        badge={earnedBadge} 
+        isOpen={showBadge} 
+        onClose={() => setShowBadge(false)} 
+      />
+
+      {/* Mock Trigger for Demo - Floating Button */}
+      {!showBadge && (
+        <Button 
+          onClick={triggerBadge}
+          className="fixed bottom-8 right-8 rounded-full h-14 w-14 shadow-modal bg-energy hover:bg-energy-dark border-2 border-white/20 animate-bounce"
+        >
+          <Award className="h-7 w-7 text-white" />
+        </Button>
+      )}
     </>
   );
 }

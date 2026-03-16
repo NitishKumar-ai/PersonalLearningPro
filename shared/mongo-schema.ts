@@ -16,14 +16,47 @@ const UserSchema = new mongoose.Schema({
   password: { type: String, required: true },
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
-  role: { type: String, enum: ["student", "teacher", "parent", "principal", "admin"], default: "student" },
+  role: { type: String, enum: ["student", "teacher", "parent", "principal", "school_admin", "admin"], default: "student" },
+  status: { type: String, enum: ["active", "pending", "suspended", "rejected"], default: "active" },
+  school_code: { type: String, default: null },
+  grade: { type: String, default: null },
+  board: { type: String, default: null },
+  subjects: [{ type: String }],
+  district: { type: String, default: null },
   avatar: String,
   class: String,
   subject: String,
-  // Firebase auth bridge
+  // Firebase auth bridge (to be deprecated once full migration is complete)
   firebaseUid: { type: String, default: null, sparse: true },
   displayName: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now },
+  lastLoginAt: { type: Date, default: null },
 });
+
+// ─── Authentication Schemas ──────────────────────────────────────────────────
+const SessionSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  userId: { type: Number, required: true },
+  refreshTokenHash: { type: String, required: true },
+  deviceInfo: { type: String, default: null },
+  ipAddress: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now },
+  expiresAt: { type: Date, required: true },
+});
+
+const OtpSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  userId: { type: Number, required: true },
+  otpHash: { type: String, required: true },
+  type: { type: String, enum: ["registration", "password_reset", "2fa"], required: true },
+  expiresAt: { type: Date, required: true },
+  used: { type: Boolean, default: false },
+});
+
+// Indexes for Auth lookup
+SessionSchema.index({ userId: 1 });
+SessionSchema.index({ refreshTokenHash: 1 });
+OtpSchema.index({ userId: 1, type: 1, used: 1 });
 
 const TestSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
@@ -151,7 +184,7 @@ const MessageSchema = new mongoose.Schema({
   readBy: [{ type: Number }],
   createdAt: { type: Date, default: Date.now },
   // Phase 3: Messaging feature extensions
-  senderRole: { type: String, enum: ['student', 'teacher', 'parent', 'principal', 'admin'], default: 'student' },
+  senderRole: { type: String, enum: ['student', 'teacher', 'parent', 'principal', 'school_admin', 'admin'], default: 'student' },
   messageType: { type: String, enum: ['text', 'doubt', 'assignment', 'announcement', 'system'], default: 'text' },
   replyTo: { type: Number, default: null },          // message id being replied to
   mentions: [{ type: String }],                      // firebase UIDs mentioned
@@ -167,6 +200,8 @@ const MessageSchema = new mongoose.Schema({
 
 
 export const MongoUser = mongoose.model("User", UserSchema);
+export const MongoSession = mongoose.model("Session", SessionSchema);
+export const MongoOtp = mongoose.model("Otp", OtpSchema);
 export const MongoTest = mongoose.model("Test", TestSchema);
 export const MongoQuestion = mongoose.model("Question", QuestionSchema);
 export const MongoTestAttempt = mongoose.model("TestAttempt", TestAttemptSchema);
@@ -176,5 +211,45 @@ export const MongoTestAssignment = mongoose.model("TestAssignment", TestAssignme
 export const MongoWorkspace = mongoose.model("Workspace", WorkspaceSchema);
 export const MongoChannel = mongoose.model("Channel", ChannelSchema);
 export const MongoMessage = mongoose.model("Message", MessageSchema);
+
+const LiveClassSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  title: { type: String, required: true },
+  description: { type: String, default: null },
+  teacherId: { type: Number, required: true },
+  class: { type: String, required: true },
+  scheduledTime: { type: Date, required: true },
+  durationMinutes: { type: Number, default: 60 },
+  status: { type: String, enum: ["scheduled", "live", "completed", "cancelled"], default: "scheduled" },
+  dailyRoomName: { type: String, default: null },
+  dailyRoomUrl: { type: String, default: null },
+  startedAt: { type: Date, default: null },
+  endedAt: { type: Date, default: null },
+  recordingUrl: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now },
+});
+
+export const MongoLiveClass = mongoose.model("LiveClass", LiveClassSchema);
+
+const LiveSessionAttendanceSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  sessionId: { type: Number, required: true },
+  studentId: { type: Number, required: true },
+  joinedAt: { type: Date, default: Date.now },
+  leftAt: { type: Date, default: null },
+  durationMinutes: { type: Number, default: 0 },
+});
+
+export const MongoLiveSessionAttendance = mongoose.model("LiveSessionAttendance", LiveSessionAttendanceSchema);
+
+const FcmTokenSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  userId: { type: Number, required: true },
+  token: { type: String, required: true },
+  deviceType: { type: String, default: null },
+  updatedAt: { type: Date, default: Date.now },
+});
+
+export const MongoFcmToken = mongoose.model("FcmToken", FcmTokenSchema);
 
 export { getNextSequenceValue };

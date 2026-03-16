@@ -5,7 +5,7 @@ import { MessageStore } from "./message-store";
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const MESSAGE_PORT = 5002;
+const MESSAGEPAL_PORT = parseInt(process.env.MESSAGEPAL_PORT || "5002", 10);
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -57,7 +57,7 @@ function send(ws: WebSocket, data: object) {
 function broadcastToUser(userId: number, data: object) {
     const connections = userConnections.get(userId);
     if (!connections) return;
-    
+
     for (const client of Array.from(connections)) {
         send(client, data);
     }
@@ -95,7 +95,7 @@ function validateSession(ws: WebSocket, sessionStore: Store): Promise<ClientMeta
 function getSessionIdFromCookie(ws: WebSocket): string | null {
     const cookies = (ws as any).upgradeReq?.headers?.cookie;
     if (!cookies) return null;
-    
+
     const match = cookies.match(/connect.sid=([^;]+)/);
     return match ? match[1] : null;
 }
@@ -104,16 +104,16 @@ function getSessionIdFromCookie(ws: WebSocket): string | null {
 
 async function handleSendMessage(ws: WebSocket, event: IncomingEvent, senderMeta: ClientMeta) {
     if (!event.recipientId || !event.content) {
-        send(ws, { 
-            type: "error", 
-            message: "Recipient ID and content are required" 
+        send(ws, {
+            type: "error",
+            message: "Recipient ID and content are required"
         });
         return;
     }
 
     try {
         const conversationId = createConversationId(senderMeta.userId, event.recipientId);
-        
+
         // Store message
         const message = await messageStore.saveMessage({
             conversationId,
@@ -144,9 +144,9 @@ async function handleSendMessage(ws: WebSocket, event: IncomingEvent, senderMeta
 
     } catch (error) {
         console.error("Error sending message:", error);
-        send(ws, { 
-            type: "error", 
-            message: "Failed to send message" 
+        send(ws, {
+            type: "error",
+            message: "Failed to send message"
         });
     }
 }
@@ -172,7 +172,7 @@ async function handleMarkRead(ws: WebSocket, event: IncomingEvent, senderMeta: C
 
     try {
         await messageStore.markMessageAsRead(event.messageId, senderMeta.userId);
-        
+
         // Notify sender that message was read
         const ack = {
             type: "message_read",
@@ -192,16 +192,16 @@ async function handleMarkRead(ws: WebSocket, event: IncomingEvent, senderMeta: C
 
 async function handleFetchHistory(ws: WebSocket, event: IncomingEvent, senderMeta: ClientMeta) {
     if (!event.conversationId) {
-        send(ws, { 
-            type: "error", 
-            message: "Conversation ID is required" 
+        send(ws, {
+            type: "error",
+            message: "Conversation ID is required"
         });
         return;
     }
 
     try {
         const messages = await messageStore.getConversationHistory(
-            event.conversationId, 
+            event.conversationId,
             senderMeta.userId,
             50 // limit
         );
@@ -216,9 +216,9 @@ async function handleFetchHistory(ws: WebSocket, event: IncomingEvent, senderMet
         });
     } catch (error) {
         console.error("Error fetching history:", error);
-        send(ws, { 
-            type: "error", 
-            message: "Failed to fetch message history" 
+        send(ws, {
+            type: "error",
+            message: "Failed to fetch message history"
         });
     }
 }
@@ -260,7 +260,7 @@ function handleUnsubscribe(ws: WebSocket, event: IncomingEvent, senderMeta: Clie
 // ─── Main WebSocket Server ───────────────────────────────────────────────────
 
 export async function setupMessagePalWebSocket(httpServer: Server, sessionStore: Store) {
-    const wss = new WebSocketServer({ 
+    const wss = new WebSocketServer({
         noServer: true,
         path: "/messagepal"
     });
@@ -274,7 +274,7 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
     });
 
     wss.on("connection", async (ws: WebSocket) => {
-        console.log("New Message WebSocket connection");
+        console.log("New MessagePal WebSocket connection");
 
         // Validate session
         const userMeta = await validateSession(ws, sessionStore);
@@ -285,13 +285,13 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
 
         // Register client
         clientMeta.set(ws, userMeta);
-        
+
         if (!userConnections.has(userMeta.userId)) {
             userConnections.set(userMeta.userId, new Set());
         }
         userConnections.get(userMeta.userId)?.add(ws);
 
-        console.log(`User ${userMeta.username} (${userMeta.userId}) connected to Message`);
+        console.log(`User ${userMeta.username} (${userMeta.userId}) connected to MessagePal`);
 
         // Send welcome message
         send(ws, {
@@ -331,16 +331,16 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
                         handleUnsubscribe(ws, event, senderMeta);
                         break;
                     default:
-                        send(ws, { 
-                            type: "error", 
-                            message: `Unknown event type: ${event.type}` 
+                        send(ws, {
+                            type: "error",
+                            message: `Unknown event type: ${event.type}`
                         });
                 }
             } catch (error) {
                 console.error("Error processing WebSocket message:", error);
-                send(ws, { 
-                    type: "error", 
-                    message: "Invalid message format" 
+                send(ws, {
+                    type: "error",
+                    message: "Invalid message format"
                 });
             }
         });
@@ -350,7 +350,7 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
             const meta = clientMeta.get(ws);
             if (meta) {
                 console.log(`User ${meta.username} disconnected from MessagePal`);
-                
+
                 // Remove from connections
                 const userConns = userConnections.get(meta.userId);
                 if (userConns) {
@@ -359,7 +359,7 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
                         userConnections.delete(meta.userId);
                     }
                 }
-                
+
                 // Clean up client metadata
                 clientMeta.delete(ws);
             }
@@ -370,7 +370,7 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
         });
     });
 
-    console.log(`Message WebSocket server listening on port ${MESSAGE_PORT}`);
+    console.log(`MessagePal WebSocket server listening on port ${MESSAGEPAL_PORT}`);
     return wss;
 }
 
@@ -379,18 +379,18 @@ export async function setupMessagePalWebSocket(httpServer: Server, sessionStore:
 export async function startMessagePalServer() {
     const express = (await import("express")).default;
     const app = express();
-    
+
     app.use(express.json());
-    
+
     // Health check endpoint
     app.get("/health", (req, res) => {
-        res.json({ 
-            status: "ok", 
+        res.json({
+            status: "ok",
             service: "MessagePal",
             timestamp: new Date().toISOString()
         });
     });
-    
+
     // API endpoints will be added here
     app.get("/api/conversations/:userId", async (req, res) => {
         try {
@@ -401,10 +401,10 @@ export async function startMessagePalServer() {
             res.status(500).json({ error: "Failed to fetch conversations" });
         }
     });
-    
-    const server = app.listen(MESSAGE_PORT, () => {
-        console.log(`Message HTTP server running on port ${MESSAGE_PORT}`);
+
+    const server = app.listen(MESSAGEPAL_PORT, () => {
+        console.log(`MessagePal HTTP server running on port ${MESSAGEPAL_PORT}`);
     });
-    
+
     return server;
 }

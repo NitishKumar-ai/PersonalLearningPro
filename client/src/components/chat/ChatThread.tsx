@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Conversation, Message, ServerMessage } from '@/types/chat';
 import { mockMessages, users as allUsers } from '@/data/mockData';
 import { useRole } from '@/contexts/chat-role-context';
-import { useChatWs, WsNewMessage, WsTypingEvent, WsReadEvent } from '@/hooks/use-chat-ws';
+import { useChatWs, ChatWsEvent } from '@/hooks/use-chat-ws';
 import { fetchMessages } from '@/lib/chat-api';
 import MessageBubble from './MessageBubble';
 import MessageInput from './MessageInput';
@@ -69,54 +69,66 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
   const { sendMessage, sendTyping, markRead } = useChatWs({
     channelId: isServerChannel ? numericId : undefined,
 
-    onNewMessage: useCallback((event: WsNewMessage) => {
-      const uiMsg = toUIMessage(event.message, conversation.id);
-      // Deduplicate: if we already have it as opt. message, replace it
-      setOptimisticMessages((prev) =>
-        prev.map((m) => (m.content === uiMsg.content && m.senderId === uiMsg.senderId ? uiMsg : m)),
-      );
-      // Also invalidate the React Query cache so a refetch has fresh data
-      qc.invalidateQueries({ queryKey: ['messages', numericId] });
+    onEvent: useCallback((event: ChatWsEvent) => {
+      switch (event.type) {
+        case 'new_message': {
+          if (!event.message) break;
+          const uiMsg = toUIMessage(event.message, conversation.id);
+          // Deduplicate: if we already have it as opt. message, replace it
+          setOptimisticMessages((prev) =>
+            prev.map((m) => (m.content === uiMsg.content && m.senderId === uiMsg.senderId ? uiMsg : m)),
+          );
+          // Also invalidate the React Query cache so a refetch has fresh data
+          qc.invalidateQueries({ queryKey: ['messages', numericId] });
+          break;
+        }
+        case 'user_typing': {
+          if (!event.userId || !event.displayName) break;
+          const uId = event.userId;
+          setTypingUsers((prev) => ({ ...prev, [uId]: event.displayName! }));
+          // Clear typing for this user after 3 s of silence
+          setTimeout(() => {
+            setTypingUsers((prev) => {
+              const next = { ...prev };
+              delete next[uId];
+              return next;
+            });
+          }, 3000);
+          break;
+        }
+        case 'message_read': {
+          if (!event.messageId || !event.userId) break;
+          qc.setQueryData<Message[]>(['messages', numericId], (old) =>
+            old?.map((m) =>
+              m.id === String(event.messageId)
+                ? { ...m, readBy: [...(m.readBy ?? []), String(event.userId)] }
+                : m,
+            ),
+          );
+          break;
+        }
+      }
     }, [conversation.id, numericId, qc]),
-
-    onTyping: useCallback((ev: WsTypingEvent) => {
-      setTypingUsers((prev) => ({ ...prev, [ev.userId]: ev.username }));
-      // Clear typing for this user after 3 s of silence
-      setTimeout(() => {
-        setTypingUsers((prev) => {
-          const next = { ...prev };
-          delete next[ev.userId];
-          return next;
-        });
-      }, 3000);
-    }, []),
-
-    onRead: useCallback((ev: WsReadEvent) => {
-      qc.setQueryData<Message[]>(['messages', numericId], (old) =>
-        old?.map((m) =>
-          m.id === String(ev.messageId)
-            ? { ...m, readBy: [...(m.readBy ?? []), String(ev.userId)] }
-            : m,
-        ),
-      );
-    }, [numericId, qc]),
-  });
+  } as any);
 
   // ── React Query: initial 50 messages ──────────────────────────────────────
-  const { data: serverMessages, isLoading } = useQuery({
+  const { data: serverMessages, isLoading } = useQuery<Message[]>({
     queryKey: ['messages', numericId],
-    queryFn: () => fetchMessages(numericId, 50),
+    queryFn: async () => {
+      const raw = await fetchMessages(numericId, 50);
+      return raw.map((m: any) => toUIMessage(m, conversation.id));
+    },
     enabled: isServerChannel,
     staleTime: 0,
-    select: (raw) => {
-      const msgs = raw.map((m) => toUIMessage(m, conversation.id));
-      if (raw.length > 0 && raw[0].id != null) {
-        setOldestId(raw[0].id);
-        setHasMore(raw.length === 50);
-      }
-      return msgs;
-    },
   });
+
+  // Effect to update oldestId based on new serverMessages fetch
+  useEffect(() => {
+    if (serverMessages && serverMessages.length > 0) {
+      setOldestId(Number(serverMessages[0].id));
+      setHasMore(serverMessages.length === 50);
+    }
+  }, [serverMessages]);
 
   // ── Fall back to mock if not a real server channel (empty list = dev mode) ──
   const [messages, setMessages] = useState<Message[]>(() =>
@@ -157,13 +169,13 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
     const observer = new IntersectionObserver(
       async ([entry]) => {
         if (!entry.isIntersecting || oldestId == null) return;
-        const older = await fetchMessages(numericId, 50, oldestId);
+        const older: any[] = await fetchMessages(numericId, 50, oldestId);
         if (older.length === 0) { setHasMore(false); return; }
         setHasMore(older.length === 50);
         const oldestFetched = older[0].id;
-        if (oldestFetched != null) setOldestId(oldestFetched);
+        if (oldestFetched != null) setOldestId(Number(oldestFetched));
 
-        const uiOlder = older.map((m) => toUIMessage(m, conversation.id));
+        const uiOlder = older.map((m: any) => toUIMessage(m, conversation.id));
         qc.setQueryData<Message[]>(['messages', numericId], (prev) =>
           [...uiOlder, ...(prev ?? [])],
         );
@@ -231,7 +243,10 @@ const ChatThread = ({ conversation, onBack }: ChatThreadProps) => {
         };
         setOptimisticMessages((prev) => [...prev, optimistic]);
 
-        const sent = sendMessage(numericId, content, fileUrl ? 'file' : 'text', fileUrl);
+        const sent = sendMessage(numericId, content, {
+          messageType: fileUrl ? 'file' : type || 'text',
+          fileUrl,
+        });
         if (!sent) {
           // WS not ready — fall back to mock status progression
           setTimeout(() => {

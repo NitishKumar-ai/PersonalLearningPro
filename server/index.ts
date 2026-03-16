@@ -79,7 +79,7 @@ app.use((req, res, next) => {
   // Attach WebSocket servers
   setupChatWebSocket(server, storage.sessionStore);
   setupMessagePalWebSocket(server, storage.sessionStore);
-    
+
   // Start Message HTTP server
   startMessagePalServer();
 
@@ -91,19 +91,25 @@ app.use((req, res, next) => {
     throw err;
   });
 
-  // importantly only setup vite in development and after
-  // setting up all the other routes so the catch-all route
-  // doesn't interfere with the other routes
   if (app.get("env") === "development") {
-    await setupVite(app, server);
+    try {
+      await setupVite(app, server);
+    } catch (error) {
+      if (error && (error as any).code === 'ERR_MODULE_NOT_FOUND') {
+        log("Vite not found. Assuming production mode and falling back to static serving.");
+        serveStatic(app);
+      } else {
+        throw error;
+      }
+    }
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5001
+  // Use port strictly if provided by Render/environment, otherwise default to 5001
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = 5001;
+  const port = parseInt(process.env.PORT || "5001", 10);
   server.listen({
     port,
     host: "0.0.0.0",

@@ -33,6 +33,10 @@ export interface ChatWsEvent {
     delta?: number;
     answeredBy?: { userId: number; firebaseUid: string; displayName: string };
     pinnedBy?: { userId: number; firebaseUid: string; displayName: string };
+    // Live class events
+    classId?: number;
+    action?: 'started' | 'ended';
+    triggeredBy?: { userId: number; displayName: string };
 }
 
 interface WsState {
@@ -113,7 +117,8 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
         }
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host;
+        // Construct host properly handling cases where port isn't explicitly defined in window.location.host
+        const host = window.location.port ? `${window.location.hostname}:${window.location.port}` : window.location.hostname;
         const url = `${protocol}//${host}/ws/chat${token ? `?token=${encodeURIComponent(token)}` : ''}`;
 
         const ws = new WebSocket(url);

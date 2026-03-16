@@ -9,7 +9,9 @@ export function isAuthenticated(req: Request, res: Response, next: NextFunction)
 
 export function hasRole(roles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
-    if (!req.session?.userRole || !roles.includes(req.session.userRole)) {
+    // We expect authenticateToken to have already placed req.user
+    const user = (req as any).user;
+    if (!user || !user.role || !roles.includes(user.role)) {
       return res.status(403).json({ message: "Forbidden" });
     }
     next();

@@ -1,0 +1,22 @@
+client/**/*:
+  - frontend
+  - ui
+
+server/**/*:
+  - backend
+  - api
+
+shared/**/*:
+  - schemas
+
+k8s/**/*:
+  - infrastructure
+  - devops
+
+terraform/**/*:
+  - infrastructure
+  - devops
+
+.github/**/*:
+  - ci-cd
+  - devops

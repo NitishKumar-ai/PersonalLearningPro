@@ -3,7 +3,7 @@ import { Link, useLocation } from "wouter";
 import { cn, getInitials } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useFirebaseAuth as useAuth } from "@/contexts/firebase-auth-context";
 import {
   LayoutDashboard,
   FileQuestion,
@@ -29,6 +29,13 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+interface NavItem {
+  title: string;
+  href: string;
+  icon: React.ReactNode;
+  isSoon?: boolean;
+}
+
 interface SidebarProps {
   className?: string;
 }
@@ -47,7 +54,7 @@ interface SidebarProps {
  */
 export function Sidebar({ className }: SidebarProps) {
   const [location] = useLocation();
-  const { currentUser, logout } = useFirebaseAuth();
+  const { currentUser: { profile: user }, logout } = useAuth();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
@@ -74,79 +81,91 @@ export function Sidebar({ className }: SidebarProps) {
   const toggleSidebar = () => setIsCollapsed((prev) => !prev);
 
   // Principal navigation items
-  const principalNavItems = [
+  const principalNavItems: NavItem[] = [
     { title: "Dashboard", href: "/principal-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { title: "Institution", href: "/institution", icon: <School className="h-5 w-5" /> },
-    { title: "Staff", href: "/staff", icon: <Users className="h-5 w-5" /> },
-    { title: "Students", href: "/students", icon: <GraduationCap className="h-5 w-5" /> },
+    { title: "Institution", href: "/institution", icon: <School className="h-5 w-5" />, isSoon: true },
+    { title: "Staff", href: "/staff", icon: <Users className="h-5 w-5" />, isSoon: true },
+    { title: "Students", href: "/students", icon: <GraduationCap className="h-5 w-5" />, isSoon: true },
     { title: "Student Directory", href: "/student-directory", icon: <Award className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "Calendar", href: "/calendar", icon: <CalendarDays className="h-5 w-5" /> },
-    { title: "Infrastructure", href: "/infrastructure", icon: <Building2 className="h-5 w-5" /> },
+    { title: "Calendar", href: "/calendar", icon: <CalendarDays className="h-5 w-5" />, isSoon: true },
+    { title: "Infrastructure", href: "/infrastructure", icon: <Building2 className="h-5 w-5" />, isSoon: true },
+    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
+  ];
 
-    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
+  // School Admin navigation items
+  const schoolAdminNavItems: NavItem[] = [
+    { title: "Dashboard", href: "/school-admin-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
+    { title: "Staff", href: "/staff", icon: <Users className="h-5 w-5" />, isSoon: true },
+    { title: "Students", href: "/students", icon: <GraduationCap className="h-5 w-5" />, isSoon: true },
+    { title: "Student Directory", href: "/student-directory", icon: <Award className="h-5 w-5" /> },
+    { title: "Reports", href: "/reports", icon: <FileQuestion className="h-5 w-5" />, isSoon: true },
+    { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
+    { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
+    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
   ];
 
   // Admin navigation items
-  const adminNavItems = [
+  const adminNavItems: NavItem[] = [
     { title: "Dashboard", href: "/admin-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { title: "User Management", href: "/users", icon: <UserCog className="h-5 w-5" /> },
-    { title: "Institution", href: "/institution", icon: <Building2 className="h-5 w-5" /> },
-    { title: "Classes", href: "/classes", icon: <School className="h-5 w-5" /> },
+    { title: "User Management", href: "/users", icon: <UserCog className="h-5 w-5" />, isSoon: true },
+    { title: "Institution", href: "/institution", icon: <Building2 className="h-5 w-5" />, isSoon: true },
+    { title: "Classes", href: "/classes", icon: <School className="h-5 w-5" />, isSoon: true },
     { title: "Student Directory", href: "/student-directory", icon: <GraduationCap className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "Reports", href: "/reports", icon: <FileQuestion className="h-5 w-5" /> },
-    { title: "System Settings", href: "/system-settings", icon: <Settings className="h-5 w-5" /> },
+    { title: "Reports", href: "/reports", icon: <FileQuestion className="h-5 w-5" />, isSoon: true },
+    { title: "System Settings", href: "/system-settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
   ];
 
   // Teacher navigation items
-  const teacherNavItems = [
+  const teacherNavItems: NavItem[] = [
     { title: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
     { title: "Tests", href: "/create-test", icon: <FileQuestion className="h-5 w-5" /> },
     { title: "Scan Tests", href: "/ocr-scan", icon: <ScanBarcode className="h-5 w-5" /> },
     { title: "Analytics", href: "/analytics", icon: <BarChart className="h-5 w-5" /> },
-    { title: "Students", href: "/students", icon: <Users className="h-5 w-5" /> },
+    { title: "Students", href: "/students", icon: <Users className="h-5 w-5" />, isSoon: true },
     { title: "Student Directory", href: "/student-directory", icon: <GraduationCap className="h-5 w-5" /> },
-    { title: "AI Study Plans", href: "/ai-study-plans", icon: <Sparkles className="h-5 w-5" /> },
+    { title: "AI Study Plans", href: "/ai-study-plans", icon: <Sparkles className="h-5 w-5" />, isSoon: true },
     { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
+    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
   ];
 
   // Student navigation items
-  const studentNavItems = [
+  const studentNavItems: NavItem[] = [
     { title: "Dashboard", href: "/student-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { title: "Tests", href: "/tests", icon: <FileQuestion className="h-5 w-5" /> },
+    { title: "Test MVP", href: "/test/1", icon: <FileQuestion className="h-5 w-5" /> },
     { title: "My Progress", href: "/progress", icon: <BarChart className="h-5 w-5" /> },
-    { title: "Resources", href: "/resources", icon: <BookOpen className="h-5 w-5" /> },
+    { title: "Resources", href: "/resources", icon: <BookOpen className="h-5 w-5" />, isSoon: true },
     { title: "AI Tutor", href: "/ai-tutor", icon: <Brain className="h-5 w-5" /> },
     { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
-    { title: "Study Groups", href: "/study-groups", icon: <Users className="h-5 w-5" /> },
-    { title: "Achievements", href: "/achievements", icon: <Trophy className="h-5 w-5" /> },
+    { title: "Study Arena", href: "/study-arena", icon: <Users className="h-5 w-5" /> },
+    { title: "Achievements", href: "/achievements", icon: <Trophy className="h-5 w-5" />, isSoon: true },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
+    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
+    { title: "Tasks", href: "/tasks", icon: <FileQuestion className="h-5 w-5" /> },
   ];
 
   // Parent navigation items
-  const parentNavItems = [
+  const parentNavItems: NavItem[] = [
     { title: "Dashboard", href: "/parent-dashboard", icon: <LayoutDashboard className="h-5 w-5" /> },
-    { title: "My Children", href: "/children", icon: <Users className="h-5 w-5" /> },
+    { title: "My Children", href: "/children", icon: <Users className="h-5 w-5" />, isSoon: true },
     { title: "Academic Progress", href: "/progress", icon: <BarChart className="h-5 w-5" /> },
-    { title: "Tests & Results", href: "/test-results", icon: <FileQuestion className="h-5 w-5" /> },
-    { title: "Teacher Meetings", href: "/meetings", icon: <Video className="h-5 w-5" /> },
+    { title: "Tests & Results", href: "/test-results", icon: <FileQuestion className="h-5 w-5" />, isSoon: true },
+    { title: "Teacher Meetings", href: "/meetings", icon: <Video className="h-5 w-5" />, isSoon: true },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
-    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" /> },
+    { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
   ];
 
-  // Select navigation items based on user role
   let items = teacherNavItems;
-  if (currentUser.profile?.role === "student") items = studentNavItems;
-  else if (currentUser.profile?.role === "teacher") items = teacherNavItems;
-  else if (currentUser.profile?.role === "principal") items = principalNavItems;
-  else if (currentUser.profile?.role === "admin") items = adminNavItems;
-  else if (currentUser.profile?.role === "parent") items = parentNavItems;
+  if (user?.role === "student") items = studentNavItems;
+  else if (user?.role === "teacher") items = teacherNavItems;
+  else if (user?.role === "principal") items = principalNavItems;
+  else if (user?.role === "school_admin") items = schoolAdminNavItems;
+  else if (user?.role === "admin") items = adminNavItems;
+  else if (user?.role === "parent") items = parentNavItems;
 
   const MobileMenuButton = () => (
     <Button
@@ -178,7 +197,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed top-0 bottom-0 left-0 flex h-screen flex-col bg-card border-r border-border shadow-sm transition-all duration-300 ease-in-out z-50",
+          "fixed top-0 bottom-0 left-0 flex h-screen flex-col bg-muted/30 border-r border-border transition-all duration-300 ease-in-out z-50",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           isCollapsed ? "w-16 md:w-16" : "w-64 md:w-64",
           className
@@ -187,41 +206,40 @@ export function Sidebar({ className }: SidebarProps) {
         {/* Collapse toggle button */}
         <button
           onClick={toggleSidebar}
-          className="absolute -right-3 top-20 h-6 w-6 bg-card rounded-full border border-border flex items-center justify-center cursor-pointer shadow-sm text-muted-foreground hover:text-foreground hover:bg-primary/5 transition-colors hidden md:flex"
+          className="absolute -right-3 top-20 h-6 w-6 bg-background rounded-full border border-border flex items-center justify-center cursor-pointer shadow-soft text-muted-foreground hover:text-foreground hover:bg-muted transition-colors hidden md:flex"
         >
           {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </button>
-
+        +
         {/* Logo and title */}
-        <div className="py-5 px-4 flex items-center border-b border-border">
-          <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground font-bold shadow-sm flex-shrink-0">
-            MP
-          </div>
+        <div className="py-6 px-6 flex items-center">
           {!isCollapsed && (
-            <h1 className="ml-3 font-bold text-lg whitespace-nowrap overflow-hidden transition-opacity duration-300">
-              <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Master Plan
-              </span>
-            </h1>
+            <div className="flex flex-col">
+              <h1 className="font-display text-2xl text-foreground leading-tight">EduAI</h1>
+              <p className="font-body text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">Learning Platform</p>
+            </div>
+          )}
+          {isCollapsed && (
+            <div className="h-9 w-9 bg-accent-soft text-accent rounded-xl flex items-center justify-center font-display text-xl">E</div>
           )}
         </div>
 
         {/* User info */}
-        <div className={cn("mt-4 px-4 mb-6", isCollapsed && "flex justify-center px-2")}>
+        <div className={cn("mt-2 px-3 mb-6", isCollapsed && "flex justify-center")}>
           {isCollapsed ? (
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/80 to-primary/60 text-primary-foreground flex items-center justify-center font-medium shadow-sm text-sm">
-              {currentUser.profile?.displayName ? getInitials(currentUser.profile.displayName) : "U"}
+            <div className="w-10 h-10 rounded-full bg-accent-soft text-accent flex items-center justify-center font-semibold text-sm">
+              {user?.displayName ? getInitials(user.displayName) : "U"}
             </div>
           ) : (
-            <div className="flex items-center p-2.5 rounded-lg bg-primary/5 dark:bg-primary/10 w-full">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/80 to-primary/60 text-primary-foreground flex items-center justify-center font-medium shadow-sm flex-shrink-0 text-sm">
-                {currentUser.profile?.displayName ? getInitials(currentUser.profile.displayName) : "U"}
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted cursor-pointer transition-colors group">
+              <div className="w-9 h-9 rounded-full bg-accent-soft text-accent flex items-center justify-center font-semibold flex-shrink-0 text-sm">
+                {user?.displayName ? getInitials(user.displayName) : "U"}
               </div>
-              <div className="ml-3 overflow-hidden">
-                <p className="font-medium text-sm truncate">{currentUser.profile?.displayName}</p>
+              <div className="overflow-hidden">
+                <p className="font-medium text-sm text-foreground truncate">{user?.displayName}</p>
                 <p className="text-xs text-muted-foreground">
-                  {currentUser.profile?.role ?
-                    currentUser.profile.role.charAt(0).toUpperCase() + currentUser.profile.role.slice(1) :
+                  {user?.role ?
+                    user.role.charAt(0).toUpperCase() + user.role.slice(1) :
                     "User"}
                 </p>
               </div>
@@ -232,11 +250,11 @@ export function Sidebar({ className }: SidebarProps) {
         {/* Navigation */}
         <div className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-2" : "px-3")}>
           {!isCollapsed && (
-            <div className="mb-2 px-3 text-xs uppercase font-semibold text-muted-foreground tracking-wider">
-              Navigation
+            <div className="mb-2 px-3 text-[10px] uppercase font-semibold text-muted-foreground tracking-widest">
+              Main Menu
             </div>
           )}
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {items.map((item) => {
               const isActive = location === item.href;
               return (
@@ -245,55 +263,44 @@ export function Sidebar({ className }: SidebarProps) {
                     href={item.href}
                     onClick={closeMobileMenu}
                     className={cn(
-                      "flex items-center py-2.5 text-sm rounded-lg transition-all duration-200 group relative",
+                      "flex items-center py-2.5 rounded-xl transition-all duration-150 group relative text-sm font-medium",
                       isActive
-                        ? "text-primary bg-primary/10 dark:bg-primary/15 font-medium shadow-sm"
-                        : "text-foreground/70 hover:text-foreground hover:bg-muted",
+                        ? "bg-muted text-foreground shadow-soft"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
                       isCollapsed ? "justify-center px-2" : "px-3"
                     )}
                     title={isCollapsed ? item.title : undefined}
                   >
-                    {isActive && !isCollapsed && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
-                    )}
                     <span
                       className={cn(
                         "flex items-center justify-center w-5 h-5 transition-colors",
-                        isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground/80",
+                        isActive ? "text-accent" : "text-muted-foreground group-hover:text-foreground",
                         !isCollapsed && "mr-3"
                       )}
                     >
                       {item.icon}
                     </span>
-                    {!isCollapsed && <span className="truncate">{item.title}</span>}
+                    {!isCollapsed && (
+                      <>
+                        <span className="truncate flex-1">{item.title}</span>
+                        {item.isSoon && (
+                          <span className="ml-2 flex-shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent-soft text-accent border border-accent/10">
+                            Soon
+                          </span>
+                        )}
+                      </>
+                    )}
                   </Link>
                 </div>
               );
             })}
           </nav>
-
-          {currentUser.profile?.role === "student" && !isCollapsed && (
-            <>
-              <div className="mt-6 mb-2 px-3 text-xs uppercase font-semibold text-muted-foreground tracking-wider">
-                Learning Tools
-              </div>
-              <div className="mb-2 bg-primary/5 dark:bg-primary/10 rounded-lg p-3">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-medium">Today's Progress</span>
-                  <span className="text-xs text-primary font-semibold">70%</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-1.5">
-                  <div className="bg-gradient-to-r from-primary/80 to-primary h-1.5 rounded-full transition-all duration-500" style={{ width: '70%' }}></div>
-                </div>
-              </div>
-            </>
-          )}
         </div>
 
         {/* Bottom actions */}
         <div className={cn(
-          "border-t border-border flex items-center",
-          isCollapsed ? "justify-center p-3 space-y-3 flex-col" : "p-4 justify-between"
+          "border-t border-border mt-auto",
+          isCollapsed ? "p-3 space-y-3 flex flex-col items-center" : "p-4 flex items-center justify-between"
         )}>
           {isCollapsed ? (
             <>
@@ -302,24 +309,26 @@ export function Sidebar({ className }: SidebarProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => logout()}
-                className="rounded-lg text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                className="rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-50"
               >
                 <LogOut className="h-4 w-4" />
               </Button>
             </>
           ) : (
             <>
-              <div className="flex space-x-2">
+              <div className="flex gap-1">
                 <ThemeToggle />
-                <Button variant="ghost" size="icon" className="rounded-lg">
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                </Button>
+                <Link href="/settings">
+                  <Button variant="ghost" size="icon" className="rounded-xl text-muted-foreground hover:text-foreground">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </Link>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => logout()}
-                className="rounded-lg text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                className="rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-50"
               >
                 <LogOut className="h-4 w-4" />
               </Button>
