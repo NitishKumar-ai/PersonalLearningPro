@@ -58,7 +58,7 @@ function AppLayout({ children, fullWidth = false }: { children: React.ReactNode,
   useLiveClassNotifications();
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background font-body antialiased">
       <Sidebar />
       <main
         className="flex-1 transition-all duration-300 ease-in-out"
@@ -69,7 +69,7 @@ function AppLayout({ children, fullWidth = false }: { children: React.ReactNode,
             {children}
           </div>
         ) : (
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
+          <div className="max-w-5xl mx-auto px-6 py-8">
             {children}
           </div>
         )}
@@ -107,7 +107,7 @@ const WrappedMessage = withLayout(MessagePage, { fullWidth: true });
 const WrappedComingSoon = withLayout(ComingSoon, { fullWidth: true });
 const WrappedTestPage = withLayout(TestPage, { fullWidth: true });
 const WrappedResourcesPage = withLayout(ResourcesPage, { fullWidth: true });
-const WrappedMyProgress = withLayout(MyProgress, { fullWidth: true });
+const WrappedMyProgress = withLayout(MyProgress);
 const WrappedStudyArena = withLayout(StudyArenaPage, { fullWidth: true });
 const WrappedTasks = withLayout(TasksPage, { fullWidth: true });
 const WrappedNotifications = withLayout(NotificationsPage);

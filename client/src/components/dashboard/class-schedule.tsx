@@ -1,17 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import { 
-  Calendar, 
-  ClipboardList, 
-  Clock, 
+import {
+  Calendar,
+  ClipboardList,
+  Clock,
   Users,
   Laptop
 } from "lucide-react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -112,60 +112,67 @@ export function ClassSchedule() {
   const schedule = scheduleData || mockSchedule;
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
+    <Card className="border-border bg-card shadow-soft overflow-hidden">
+      <CardHeader className="pb-4 bg-muted/50 border-b border-border">
         <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Calendar className="h-5 w-5 text-primary mr-2" />
-            <CardTitle>Class Schedule</CardTitle>
+          <div className="flex items-center gap-2">
+            <Calendar className="h-5 w-5 text-accent" />
+            <CardTitle className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Class Schedule</CardTitle>
           </div>
-          <CardDescription className="mt-0">
+          <CardDescription className="text-xs font-semibold text-accent/80 mt-0">
             {new Date().toLocaleDateString("en-US", {
               weekday: "long",
-              month: "long",
+              month: "short",
               day: "numeric",
             })}
           </CardDescription>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-6">
         <Tabs defaultValue="Today">
-          <TabsList className="mb-4 grid grid-cols-3">
+          <TabsList className="mb-6 grid grid-cols-3 bg-muted p-1 rounded-xl">
             {schedule.map((day) => (
-              <TabsTrigger key={day.day} value={day.day}>
+              <TabsTrigger key={day.day} value={day.day} className="rounded-lg text-xs font-bold uppercase tracking-widest data-[state=active]:bg-background data-[state=active]:text-accent data-[state=active]:shadow-soft">
                 {day.day}
               </TabsTrigger>
             ))}
           </TabsList>
-          
+
           {schedule.map((day) => (
-            <TabsContent key={day.day} value={day.day} className="space-y-4">
+            <TabsContent key={day.day} value={day.day} className="space-y-4 m-0 transition-all duration-300">
               {day.sessions.length === 0 ? (
-                <div className="text-center py-4 text-muted-foreground">
+                <div className="text-center py-8 text-muted-foreground italic font-body">
                   No classes scheduled for this day
                 </div>
               ) : (
                 day.sessions.map((session) => (
                   <div
                     key={session.id}
-                    className="flex items-start gap-4 p-3 rounded-lg border bg-card"
+                    className="flex items-center gap-4 p-4 rounded-xl border border-border bg-card hover:bg-muted/50 hover:shadow-soft transition-all duration-300 group cursor-pointer"
                   >
-                    <div className={`rounded-full p-2 ${session.isLiveClass ? 'bg-red-100 text-red-600 dark:bg-red-900/20 dark:text-red-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'}`}>
+                    <div className={`rounded-xl p-3 shrink-0 shadow-soft transition-colors ${session.isLiveClass
+                        ? 'bg-rose-50 text-rose-600 shadow-rose-100'
+                        : 'bg-accent-soft text-accent shadow-accent-100'
+                      }`}>
                       {session.isLiveClass ? <Laptop className="h-5 w-5" /> : <ClipboardList className="h-5 w-5" />}
                     </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{session.title}</div>
-                      <div className="text-xs text-muted-foreground mt-1">Class {session.class}</div>
-                    </div>
-                    <div className="text-right text-xs text-muted-foreground">
-                      <div className="flex items-center justify-end mb-1">
-                        <Clock className="h-3 w-3 mr-1" />
-                        <span>{session.time}</span>
-                        <span className="ml-1">({session.duration})</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-display text-[15px] text-foreground group-hover:text-accent transition-colors truncate">{session.title}</div>
+                      <div className="flex items-center gap-3 mt-1 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">
+                        <span className="bg-muted px-2 py-0.5 rounded-md">Class {session.class}</span>
+                        <div className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          <span>{session.students} students</span>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-end">
-                        <Users className="h-3 w-3 mr-1" />
-                        <span>{session.students} students</span>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="flex items-center justify-end gap-1.5 text-accent font-display text-sm">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{session.time}</span>
+                      </div>
+                      <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mt-1">
+                        {session.duration} session
                       </div>
                     </div>
                   </div>

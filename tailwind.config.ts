@@ -18,24 +18,36 @@ export default {
         ring: "hsl(var(--ring))",
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
-        brand: {
-          50: "#E8F2FF",
-          100: "#CFE3FF",
-          200: "#A7C8FF",
-          300: "#7FAEFF",
-          400: "#4F8CFF",
-          500: "#2563EB",
-          600: "#1D4ED8",
-          700: "#1E40AF",
-          800: "#1E3A8A",
-          900: "#172554",
+        cream: {
+          50: "#FDFAF5",
+          100: "#F5F0E8",
+          150: "#F2F0EB",
+          200: "#EEEBE3",
+          300: "#E8E4DC",
+          400: "#E0DBD3",
+          500: "#C8C3BB",
         },
-        eduai: {
-          primary: "#22C55E",
-          secondary: "#86EFAC",
-          accent: "#16A34A",
-          light: "#DCFCE7",
-          dark: "#166534"
+        accent: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+          hover: "#B8654A",
+          soft: "#F2E8E3",
+        },
+        ink: {
+          900: "#1A1A1A",
+          600: "#5C5C5C",
+          400: "#9A9A9A",
+          300: "#B0B0B0",
+          200: "#D1D1D1",
+        },
+        energy: {
+          DEFAULT: "#F0A500",
+          soft: "#FEF3D0",
+          dark: "#C87E00",
+        },
+        progress: {
+          DEFAULT: "#4A7C59",
+          soft: "#EBF3EE",
         },
         primary: {
           DEFAULT: "hsl(var(--primary))",
@@ -53,7 +65,7 @@ export default {
           DEFAULT: "hsl(var(--muted))",
           foreground: "hsl(var(--muted-foreground))",
         },
-        accent: {
+        eduaccent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
         },
@@ -75,9 +87,39 @@ export default {
           2: "hsl(var(--bubble-2))",
           3: "hsl(var(--bubble-3))",
         },
+      },
+      fontFamily: {
+        display: ["Crimson Pro", "Georgia", "serif"],
+        body: ["DM Sans", "system-ui", "sans-serif"],
+        sans: ["DM Sans", "system-ui", "sans-serif"],
+      },
+      borderRadius: {
+        xl: "0.75rem",
+        "2xl": "1.125rem",
+        "3xl": "1.5rem",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        soft: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)",
+        card: "0 4px 12px rgba(0,0,0,0.06)",
+        modal: "0 20px 40px rgba(0,0,0,0.12)",
+        streak: "0 4px 16px rgba(240, 165, 0, 0.12)",
+        xp: "0 4px 16px rgba(204, 120, 92, 0.10)",
+        challenge: "0 4px 16px rgba(74, 124, 89, 0.10)",
+      },
+      backgroundImage: {
+        "gradient-streak": "var(--grad-streak)",
+        "gradient-xp": "var(--grad-xp)",
+        "gradient-badge": "var(--grad-badge)",
+        "gradient-challenge": "var(--grad-challenge)",
+        "gradient-math": "var(--grad-math)",
+        "gradient-physics": "var(--grad-physics)",
+        "gradient-chemistry": "var(--grad-chemistry)",
+        "gradient-biology": "var(--grad-biology)",
+        "gradient-english": "var(--grad-english)",
+        "gradient-history": "var(--grad-history)",
       },
       keyframes: {
         "accordion-down": {

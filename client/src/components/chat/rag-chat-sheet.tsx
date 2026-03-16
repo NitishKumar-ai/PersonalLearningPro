@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { X, Send, Book, FileText, ChevronDown } from "lucide-react";
+import { X, Send, Book, FileText, ChevronDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -92,7 +92,7 @@ export function RagChatSheet({
             {/* Backdrop */}
             <div
                 className={cn(
-                    "fixed inset-0 bg-[#0f1720]/60 backdrop-blur-sm z-40 transition-opacity duration-300",
+                    "fixed inset-0 bg-ink-900/10 backdrop-blur-[2px] z-40 transition-opacity duration-300",
                     isOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
                 )}
                 onClick={onClose}
@@ -101,58 +101,58 @@ export function RagChatSheet({
             {/* Sheet */}
             <div
                 className={cn(
-                    "fixed inset-x-0 bottom-0 md:inset-x-auto md:right-4 md:bottom-4 md:top-auto z-50 w-full md:w-[440px] h-[80vh] md:h-[600px] bg-[#192026] border border-white/10 md:rounded-[16px] rounded-t-[20px] shadow-[0_-10px_40px_rgba(0,0,0,0.3)] flex flex-col transform transition-transform duration-300 ease-out",
-                    isOpen ? "translate-y-0" : "translate-y-full"
+                    "fixed inset-x-0 bottom-0 md:inset-x-auto md:right-8 md:bottom-8 md:top-auto z-50 w-full md:w-[480px] h-[85vh] md:h-[680px] bg-card border border-border md:rounded-2xl rounded-t-3xl shadow-card flex flex-col transform transition-all duration-500 ease-out animate-fade-in-up",
+                    isOpen ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"
                 )}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 shrink-0">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-[#1f2a31] flex items-center justify-center border border-white/5">
-                            <span className="text-sm">✨</span>
+                <div className="flex items-center justify-between px-6 py-5 border-b border-border shrink-0 bg-muted/30">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-accent-soft flex items-center justify-center border border-accent/10 shadow-soft">
+                            <Sparkles className="w-5 h-5 text-accent" />
                         </div>
                         <div>
-                            <h3 className="text-sm font-semibold text-[#e6eef6]">Tutor • {subjectName}</h3>
-                            <p className="text-[11px] text-[#3ad29f] font-medium flex items-center gap-1">
-                                <span className="relative flex h-2 w-2">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#3ad29f] opacity-75"></span>
-                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-[#3ad29f]"></span>
+                            <h3 className="text-sm font-display text-foreground">EduAI Tutor • {subjectName}</h3>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="relative flex h-1.5 w-1.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
                                 </span>
-                                Online (Context Aware)
-                            </p>
+                                <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest px-1">Active Learning Mode</span>
+                            </div>
                         </div>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={onClose} className="text-[#9aa7b2] hover:text-white hover:bg-white/5 rounded-full">
+                    <Button variant="ghost" size="icon" onClick={onClose} className="text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors">
                         <ChevronDown className="w-5 h-5 md:hidden" />
                         <X className="w-5 h-5 hidden md:block" />
                     </Button>
                 </div>
 
                 {/* Messages */}
-                <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-6 scroll-smooth">
+                <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-8 scroll-smooth bg-muted/10">
                     {messages.map((msg) => (
-                        <div key={msg.id} className={cn("flex flex-col gap-1 w-full")}>
+                        <div key={msg.id} className={cn("flex flex-col gap-2 w-full")}>
                             {msg.role === "user" ? (
-                                <div className="ml-auto w-fit max-w-[85%] bg-[#1f2a31] rounded-2xl rounded-tr-sm px-4 py-2.5 text-[15px] text-[#e6eef6] whitespace-pre-wrap">
+                                <div className="ml-auto w-fit max-w-[85%] bg-accent-soft border border-accent/10 rounded-2xl rounded-tr-sm px-5 py-3.5 text-sm text-foreground font-body leading-relaxed shadow-soft">
                                     {msg.content}
                                 </div>
                             ) : (
-                                <div className="mr-auto w-full max-w-[90%] flex flex-col gap-3">
-                                    <div className="prose prose-invert prose-p:leading-relaxed prose-sm max-w-none text-[#9aa7b2]">
+                                <div className="mr-auto w-full max-w-[95%] flex flex-col gap-4">
+                                    <div className="prose prose-stone prose-sm max-w-none text-muted-foreground font-body leading-relaxed md:text-base">
                                         <ReactMarkdown>{msg.content}</ReactMarkdown>
                                     </div>
 
                                     {/* Citations Pill */}
                                     {msg.sources && msg.sources.length > 0 && (
-                                        <div className="flex flex-wrap gap-2 mt-1">
+                                        <div className="flex flex-wrap gap-2 pt-2 border-t border-border border-dashed">
                                             {msg.sources.map(src => (
-                                                <div key={src.id} className="flex items-center gap-1.5 px-2 py-1 rounded-[6px] bg-[#1f2a31] border border-white/5 group cursor-help transition-colors hover:bg-white/10">
+                                                <div key={src.id} className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-muted border border-border group cursor-pointer transition-all hover:bg-muted/80 hover:shadow-soft">
                                                     {src.type === 'notes' ? (
-                                                        <FileText className="w-3 h-3 text-[#4f8cff]" />
+                                                        <FileText className="w-3 h-3 text-accent" />
                                                     ) : (
-                                                        <Book className="w-3 h-3 text-[#ffb86b]" />
+                                                        <Book className="w-3 h-3 text-amber-600" />
                                                     )}
-                                                    <span className="text-[11px] font-medium text-[#9aa7b2] group-hover:text-[#e6eef6]">
+                                                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest group-hover:text-foreground">
                                                         {src.title}
                                                     </span>
                                                 </div>
@@ -164,43 +164,44 @@ export function RagChatSheet({
                         </div>
                     ))}
                     {isTyping && (
-                        <div className="flex gap-1 items-center px-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#4f8cff] animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#4f8cff] animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#4f8cff] animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <div className="flex gap-1.5 items-center px-2 py-2">
+                            <span className="w-2 h-2 rounded-full bg-accent opacity-20 animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-2 h-2 rounded-full bg-accent opacity-40 animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-2 h-2 rounded-full bg-accent opacity-60 animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
                     )}
                 </div>
 
                 {/* Input Area */}
-                <div className="p-3 bg-[#192026] border-t border-white/10 shrink-0">
-                    <div className="relative flex items-end bg-[#1f2a31] rounded-[16px] border border-transparent focus-within:border-[#4f8cff]/50 focus-within:ring-1 focus-within:ring-[#4f8cff]/50 transition-all">
+                <div className="p-5 bg-card border-t border-border shrink-0">
+                    <div className="relative flex items-end bg-muted rounded-2xl border border-border focus-within:border-accent/40 focus-within:ring-2 focus-within:ring-accent/5 transition-all shadow-inner">
                         <Textarea
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="Ask anything..."
-                            className="min-h-[44px] max-h-[120px] w-full resize-none border-0 bg-transparent py-3 pl-4 pr-12 text-[15px] text-[#e6eef6] placeholder:text-[#9aa7b2] focus-visible:ring-0 shadow-none leading-relaxed"
+                            placeholder="Type your question..."
+                            className="min-h-[56px] max-h-[160px] w-full resize-none border-0 bg-transparent py-4 pl-5 pr-14 text-sm md:text-base text-foreground placeholder:text-muted-foreground focus-visible:ring-0 shadow-none leading-relaxed font-body"
                             rows={1}
                         />
-                        <div className="absolute right-2 bottom-2">
+                        <div className="absolute right-3 bottom-3">
                             <Button
                                 onClick={handleSend}
                                 disabled={!input.trim() || isTyping}
                                 size="icon"
                                 className={cn(
-                                    "w-8 h-8 rounded-[10px] transition-all",
+                                    "w-10 h-10 rounded-xl transition-all shadow-soft",
                                     input.trim() && !isTyping
-                                        ? "bg-[#4f8cff] text-white hover:bg-[#4f8cff]/90"
-                                        : "bg-white/5 text-white/30"
+                                        ? "bg-accent text-white hover:bg-accent/90"
+                                        : "bg-muted text-muted-foreground"
                                 )}
                             >
                                 <Send className="w-4 h-4" />
                             </Button>
                         </div>
                     </div>
-                    <div className="text-center mt-2">
-                        <span className="text-[10px] text-[#9aa7b2]/60">AI can make mistakes. Consider verifying important information.</span>
+                    <div className="flex items-center justify-center gap-1.5 mt-3 opacity-40">
+                        <Sparkles className="w-3 h-3 text-accent" />
+                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest text-center">AI generated insights for faster learning</span>
                     </div>
                 </div>
             </div>

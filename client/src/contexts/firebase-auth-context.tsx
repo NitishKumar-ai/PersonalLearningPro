@@ -56,6 +56,7 @@ function buildFallbackProfile(user: import("firebase/auth").User): UserProfile |
     email: user.email,
     displayName: user.displayName || user.email.split("@")[0],
     role: "student", // Safe default; user can be re-authenticated properly later
+    status: "active",
     photoURL: user.photoURL || undefined,
     createdAt: null,
     lastLogin: null,
@@ -136,6 +137,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 email: backendUser.email,
                 displayName: backendUser.displayName || backendUser.name,
                 role: backendUser.role,
+                status: backendUser.status || "active",
                 photoURL: backendUser.avatar || undefined,
                 createdAt: null,
                 lastLogin: null,
