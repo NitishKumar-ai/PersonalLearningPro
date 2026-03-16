@@ -29,7 +29,6 @@ interface CalEvent {
 }
 
 const EVENT_COLORS: Record<EventType, { bg: string; text: string; border: string; dot: string; label: string; icon: ReactNode }> = {
-
     exam: { bg: "bg-red-500/10", text: "text-red-600 dark:text-red-400", border: "border-red-500/30", dot: "bg-red-500", label: "Exam", icon: <FileQuestion className="h-3 w-3" /> },
     test: { bg: "bg-orange-500/10", text: "text-orange-600 dark:text-orange-400", border: "border-orange-500/30", dot: "bg-orange-500", label: "Quiz", icon: <BookOpen className="h-3 w-3" /> },
     assignment: { bg: "bg-blue-500/10", text: "text-blue-600 dark:text-blue-400", border: "border-blue-500/30", dot: "bg-blue-500", label: "Assignment", icon: <BookOpen className="h-3 w-3" /> },
@@ -37,7 +36,6 @@ const EVENT_COLORS: Record<EventType, { bg: string; text: string; border: string
     event: { bg: "bg-violet-500/10", text: "text-violet-600 dark:text-violet-400", border: "border-violet-500/30", dot: "bg-violet-500", label: "Event", icon: <Trophy className="h-3 w-3" /> },
 };
 
-// Seed events for March 2026
 const EVENTS: CalEvent[] = [
     { id: "1", date: 8, month: 2, year: 2026, title: "Physics Quiz — EM Waves", type: "test", subject: "Physics", time: "10:00 AM" },
     { id: "2", date: 11, month: 2, year: 2026, title: "Math Integration Unit Test", type: "test", subject: "Mathematics", time: "9:00 AM" },
@@ -48,7 +46,6 @@ const EVENTS: CalEvent[] = [
     { id: "7", date: 25, month: 2, year: 2026, title: "Computer Science Project Demo", type: "assignment", subject: "Computer Science", time: "2:00 PM" },
     { id: "8", date: 28, month: 2, year: 2026, title: "Chapter Test — English", type: "test", subject: "English", time: "8:00 AM" },
     { id: "9", date: 30, month: 2, year: 2026, title: "Chemistry Final Exam", type: "exam", subject: "Chemistry", time: "9:00 AM" },
-    // April teaser
     { id: "10", date: 1, month: 3, year: 2026, title: "Summer Break Begins", type: "holiday" },
 ];
 
@@ -112,46 +109,46 @@ export default function AcademicCalendarPage() {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Calendar */}
                 <div className="lg:col-span-2">
-                    <Card className="animate-fade-in-up overflow-hidden" style={{ animationDelay: "100ms" }}>
+                    <Card className="animate-fade-in-up overflow-hidden shadow-soft border-border" style={{ animationDelay: "100ms" }}>
                         {/* Month nav */}
-                        <div className="flex items-center justify-between p-5 pb-4 border-b border-border/50">
+                        <div className="flex items-center justify-between p-6 pb-5 border-b border-border bg-muted/50">
                             <div className="flex items-center gap-3">
-                                <CalendarDays className="h-5 w-5 text-primary" />
-                                <h2 className="text-lg font-bold">
+                                <CalendarDays className="h-5 w-5 text-accent" />
+                                <h2 className="text-xl font-display text-foreground">
                                     {MONTHS[currentMonth]} {currentYear}
                                 </h2>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={prevMonth}>
+                                <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl border-border hover:bg-muted/50" onClick={prevMonth}>
                                     <ChevronLeft className="h-4 w-4" />
                                 </Button>
-                                <Button variant="outline" size="sm" className="text-xs font-semibold" onClick={() => { setCurrentMonth(today.getMonth()); setCurrentYear(today.getFullYear()); setSelectedDate(today.getDate()); }}>
+                                <Button variant="outline" size="sm" className="h-9 px-4 text-xs font-bold uppercase tracking-widest border-border hover:bg-muted/50" onClick={() => { setCurrentMonth(today.getMonth()); setCurrentYear(today.getFullYear()); setSelectedDate(today.getDate()); }}>
                                     Today
                                 </Button>
-                                <Button variant="outline" size="icon" className="h-8 w-8" onClick={nextMonth}>
+                                <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl border-border hover:bg-muted/50" onClick={nextMonth}>
                                     <ChevronRight className="h-4 w-4" />
                                 </Button>
                             </div>
                         </div>
 
-                        <CardContent className="p-4 pt-3">
+                        <CardContent className="p-6 pt-5">
                             {/* Day headers */}
-                            <div className="grid grid-cols-7 gap-1 mb-2">
+                            <div className="grid grid-cols-7 gap-2 mb-4">
                                 {DAYS.map((d) => (
-                                    <div key={d} className={cn("text-[11px] font-semibold text-center py-1", d === "Sun" || d === "Sat" ? "text-muted-foreground/60" : "text-muted-foreground")}>
+                                    <div key={d} className={cn("text-[10px] font-bold text-center py-2 uppercase tracking-widest", d === "Sun" || d === "Sat" ? "text-energy" : "text-muted-foreground")}>
                                         {d}
                                     </div>
                                 ))}
                             </div>
 
                             {/* Day cells */}
-                            <div className="grid grid-cols-7 gap-1">
+                            <div className="grid grid-cols-7 gap-2">
                                 {/* Empty cells before first day */}
                                 {Array.from({ length: firstDay }).map((_, i) => (
-                                    <div key={`empty-${i}`} />
+                                    <div key={`empty-${i}`} className="min-h-[70px]" />
                                 ))}
 
                                 {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -165,24 +162,26 @@ export default function AcademicCalendarPage() {
                                             key={day}
                                             onClick={() => setSelectedDate(day === selectedDate ? null : day)}
                                             className={cn(
-                                                "relative flex flex-col items-center p-1.5 rounded-xl transition-all text-sm font-medium min-h-[56px] border",
-                                                isSelected ? "border-primary/50 bg-primary/5 shadow-sm" : "border-transparent hover:bg-muted/60",
-                                                todayDay && !isSelected ? "border-primary/30 bg-primary/5" : ""
+                                                "relative flex flex-col items-center p-2 rounded-2xl transition-all text-sm font-medium min-h-[70px] border group",
+                                                isSelected 
+                                                    ? "border-accent/40 bg-accent-soft/30 shadow-inner" 
+                                                    : "border-cream-100 hover:border-border hover:bg-muted",
+                                                todayDay && !isSelected ? "border-accent/20 bg-muted/50" : ""
                                             )}
                                         >
                                             <span className={cn(
-                                                "w-7 h-7 flex items-center justify-center rounded-full text-sm font-semibold transition-all",
-                                                todayDay ? "bg-primary text-primary-foreground shadow" : isSelected ? "text-primary" : "text-foreground"
+                                                "w-8 h-8 flex items-center justify-center rounded-full text-sm font-bold transition-all mb-1",
+                                                todayDay ? "bg-accent text-white shadow-soft" : isSelected ? "text-accent" : "text-foreground"
                                             )}>
                                                 {day}
                                             </span>
                                             {/* Event dots */}
                                             {dayEvents.length > 0 && (
-                                                <div className="flex gap-0.5 mt-0.5 flex-wrap justify-center">
+                                                <div className="flex gap-1 flex-wrap justify-center">
                                                     {dayEvents.slice(0, 3).map((ev) => (
                                                         <span
                                                             key={ev.id}
-                                                            className={cn("w-1.5 h-1.5 rounded-full", EVENT_COLORS[ev.type].dot)}
+                                                            className={cn("w-1.5 h-1.5 rounded-full ring-1 ring-white", EVENT_COLORS[ev.type].dot)}
                                                         />
                                                     ))}
                                                 </div>
@@ -195,18 +194,18 @@ export default function AcademicCalendarPage() {
                     </Card>
 
                     {/* Month summary strip */}
-                    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
+                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
                         {Object.entries(EVENT_COLORS).slice(0, 4).map(([type, cfg]) => {
                             const count = eventsForMonth.filter((e) => e.type === type).length;
                             return (
-                                <Card key={type} className="hover:shadow-md transition-all">
-                                    <CardContent className="p-3 flex items-center gap-2.5">
-                                        <div className={cn("p-1.5 rounded-lg", cfg.bg)}>
+                                <Card key={type} className="hover:shadow-card transition-all border-border group">
+                                    <CardContent className="p-4 flex items-center gap-3">
+                                        <div className={cn("p-2 rounded-xl transition-transform group-hover:scale-110", cfg.bg)}>
                                             <span className={cfg.text}>{cfg.icon}</span>
                                         </div>
                                         <div>
-                                            <div className="text-lg font-bold">{count}</div>
-                                            <div className="text-[11px] text-muted-foreground">{cfg.label}s</div>
+                                            <div className="text-xl font-display text-foreground leading-none mb-1">{count}</div>
+                                            <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">{cfg.label}s</div>
                                         </div>
                                     </CardContent>
                                 </Card>

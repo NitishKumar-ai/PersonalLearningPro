@@ -66,67 +66,69 @@ export default function AiTutor() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-80px)] bg-[#0a0f14] text-[#e6eef6] p-4 md:p-8 lg:p-12 font-sans -mx-4 md:-mx-6 -my-4 md:-my-6 relative overflow-hidden">
-
-      {/* Subtle page background glow */}
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-[#4f8cff]/5 blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] rounded-full bg-[#3ad29f]/5 blur-[120px] pointer-events-none" />
-
-      <div className="max-w-[1280px] mx-auto space-y-6 md:space-y-8 relative z-10">
-
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10 pt-4">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 mb-4 backdrop-blur-sm">
-              <Sparkles className="w-3.5 h-3.5 text-[#4f8cff]" />
-              <span className="text-[12px] font-semibold tracking-wide text-white/80 uppercase">AI-Powered Learning</span>
-            </div>
-            <h1 className="text-3xl md:text-[44px] font-bold tracking-[-0.03em] text-white leading-tight mb-2">
-              Welcome back, {currentUser?.profile?.displayName?.split(' ')[0] || "Student"}.
-            </h1>
-            <p className="text-[17px] text-[#8b9ba8] font-medium max-w-2xl leading-relaxed">
-              Your personalized learning grid is ready. Ask EduAI to break down complex topics or generate tailored practice questions based on your history.
-            </p>
+    <div className="space-y-10 animate-fade-in-up">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent-soft border border-accent/10 mb-5">
+            <Sparkles className="w-3.5 h-3.5 text-accent" />
+            <span className="text-[10px] font-bold tracking-widest text-accent uppercase">AI Intelligent Tutor</span>
           </div>
+          <h1 className="text-4xl md:text-5xl font-display text-foreground leading-tight mb-4">
+            Welcome back, {currentUser?.profile?.displayName?.split(' ')[0] || "Scholar"}.
+          </h1>
+          <p className="text-lg text-muted-foreground font-body max-w-2xl leading-relaxed">
+            Your personalized learning journey is evolving. Ask EduAI to clarify complex theories or generate practice paths tailored to your recent progress.
+          </p>
         </div>
+      </div>
 
-        {/* Hero Card */}
+      {/* Hero Section */}
+      <section className="animate-fade-in-up" style={{ animationDelay: '100ms' }}>
         <BentoHeroCard
-          title="Master Class: Physics"
-          description="You are 65% through the advanced mechanics module. Your RAG tutor recommends reviewing Rotational Motion next based on recent quiz results."
-          ctaText="Open Physics Tutor"
+          title="Focus Session: Physics"
+          description="You've mastered 65% of Advanced Mechanics. EduAI suggests focusing on Rotational Motion today to bridge the gap in your recent quiz performance."
+          ctaText="Start Learning Session"
           visual={
-            <div className="relative">
-              <Rocket className="w-full h-full text-white/90 drop-shadow-[0_0_30px_rgba(255,255,255,0.4)] transition-all duration-700 ease-in-out" strokeWidth={1} />
+            <div className="relative group">
+              <div className="absolute inset-0 bg-accent/20 blur-3xl rounded-full scale-75 group-hover:scale-100 transition-transform duration-700" />
+              <Rocket className="w-24 h-24 text-accent relative z-10 drop-shadow-sm transition-transform duration-500 group-hover:-translate-y-2" strokeWidth={1.5} />
             </div>
           }
           onCtaClick={() => handleAction("Physics", "chat")}
         />
+      </section>
 
-        {/* Section Title */}
-        <div className="pt-8 pb-2 flex items-center justify-between border-b border-white/5">
-          <h2 className="text-xl font-bold text-white tracking-tight">Your Subjects</h2>
-          <span className="text-sm font-medium text-[#8b9ba8]">{subjects.length} Active Courses</span>
+      {/* Subjects Section */}
+      <section className="animate-fade-in-up" style={{ animationDelay: '200ms' }}>
+        <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+            <GraduationCap className="h-4 w-4 text-accent" />
+            Academic Curriculum
+          </h2>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/50 bg-muted/50 px-2 py-1 rounded-md">
+            {subjects.length} Active Modules
+          </span>
         </div>
 
-        {/* Subject Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
-          {subjects.map((subject) => (
-            <BentoSubjectCard
-              key={subject.id}
-              title={subject.name}
-              description={subject.description}
-              icon={subject.icon}
-              tag={subject.tag}
-              progressPercentage={subject.progress}
-              weakness={subject.weakness}
-              isLocked={subject.isLocked}
-              onAction={(action) => handleAction(subject.name, action)}
-              className="w-full"
-            />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {subjects.map((subject, index) => (
+            <div key={subject.id} className="animate-fade-in-up" style={{ animationDelay: `${250 + index * 50}ms` }}>
+              <BentoSubjectCard
+                title={subject.name}
+                description={subject.description}
+                icon={subject.icon}
+                tag={subject.tag}
+                progressPercentage={subject.progress}
+                weakness={subject.weakness}
+                isLocked={subject.isLocked}
+                onAction={(action) => handleAction(subject.name, action)}
+                className="h-full"
+              />
+            </div>
           ))}
         </div>
-      </div>
+      </section>
 
       {/* RAG Chat Sheet Overlay */}
       {activeSubject && (

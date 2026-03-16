@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import express from 'express';
 import request from 'supertest';
 import session from 'express-session';
+import cookieParser from 'cookie-parser';
+import jwt from 'jsonwebtoken';
 
 // ─── Mocks (factories must not reference outer variables) ─────────────────────
 
@@ -25,6 +27,18 @@ vi.mock('../chat-ws', () => ({
 vi.mock('../lib/cassandra', () => ({
     initCassandra: vi.fn(),
     getCassandraClient: vi.fn().mockReturnValue(null),
+}));
+
+vi.mock('@shared/mongo-schema', () => ({
+    MongoUser: {
+        findOne: vi.fn().mockImplementation((query) => {
+            if (query?.id === 1) return Promise.resolve({ id: 1, role: 'teacher' });
+            if (query?.id === 2) return Promise.resolve({ id: 2, role: 'student' });
+            if (query?.id === 99) return Promise.resolve({ id: 99, role: 'teacher' });
+            return Promise.resolve(null);
+        })
+    },
+    getNextSequenceValue: vi.fn(),
 }));
 
 vi.mock('../message', () => ({
@@ -101,6 +115,7 @@ import { createRoom, createMeetingToken, getRecordings } from '../services/daily
 async function buildApp() {
     const app = express();
     app.use(express.json());
+    app.use(cookieParser());
     app.use(session({ secret: 'test-secret', resave: false, saveUninitialized: false }));
 
     // Shim req.isAuthenticated() so the live router middleware doesn't throw
@@ -112,6 +127,9 @@ async function buildApp() {
     // Pre-auth helper — sets session without credentials
     app.post('/test/set-user', (req: any, res) => {
         req.session.userId = req.body.userId;
+        const JWT_SECRET = process.env.JWT_SECRET || "super_secret_jwt_key_learning_pro_123";
+        const token = jwt.sign({ userId: req.body.userId }, JWT_SECRET);
+        res.cookie('access_token', token);
         res.json({ ok: true });
     });
 
