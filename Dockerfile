@@ -3,15 +3,16 @@
 #  Stages: deps → development | deps → build → production
 # ══════════════════════════════════════════════════════════════════
 
-# ── Metadata ──────────────────────────────────────────────────────
 ARG NODE_VERSION=20-alpine
-LABEL org.opencontainers.image.title="PersonalLearningPro"
-LABEL org.opencontainers.image.description="AI-powered personal learning platform"
-LABEL org.opencontainers.image.source="https://github.com/NitishKumar-ai/PersonalLearningPro"
 
 # ── Stage 1: Shared dependency layer ──────────────────────────────
 # Both dev and prod build on top of this for maximum cache reuse.
 FROM node:${NODE_VERSION} AS deps
+
+# ── Metadata ──────────────────────────────────────────────────────
+LABEL org.opencontainers.image.title="PersonalLearningPro"
+LABEL org.opencontainers.image.description="AI-powered personal learning platform"
+LABEL org.opencontainers.image.source="https://github.com/NitishKumar-ai/PersonalLearningPro"
 
 # Install OS-level build tools needed by native addons (e.g. canvas, bcrypt)
 RUN apk add --no-cache libc6-compat python3 make g++
@@ -52,6 +53,18 @@ CMD ["npm", "run", "dev"]
 
 # ── Stage 3: Build ────────────────────────────────────────────────
 FROM node:${NODE_VERSION} AS build
+
+ARG VITE_FIREBASE_API_KEY
+ARG VITE_FIREBASE_APP_ID
+ARG VITE_FIREBASE_MEASUREMENT_ID
+ARG VITE_FIREBASE_MESSAGING_SENDER_ID
+ARG VITE_FIREBASE_PROJECT_ID
+
+ENV VITE_FIREBASE_API_KEY=$VITE_FIREBASE_API_KEY \
+    VITE_FIREBASE_APP_ID=$VITE_FIREBASE_APP_ID \
+    VITE_FIREBASE_MEASUREMENT_ID=$VITE_FIREBASE_MEASUREMENT_ID \
+    VITE_FIREBASE_MESSAGING_SENDER_ID=$VITE_FIREBASE_MESSAGING_SENDER_ID \
+    VITE_FIREBASE_PROJECT_ID=$VITE_FIREBASE_PROJECT_ID
 
 RUN apk add --no-cache libc6-compat python3 make g++
 

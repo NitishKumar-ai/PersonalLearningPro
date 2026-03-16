@@ -128,7 +128,7 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "Students", href: "/students", icon: <Users className="h-5 w-5" />, isSoon: true },
     { title: "Student Directory", href: "/student-directory", icon: <GraduationCap className="h-5 w-5" /> },
     { title: "AI Study Plans", href: "/ai-study-plans", icon: <Sparkles className="h-5 w-5" />, isSoon: true },
-    { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" />, isSoon: true },
+    { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
     { title: "Settings", href: "/settings", icon: <Settings className="h-5 w-5" />, isSoon: true },
   ];
@@ -140,7 +140,7 @@ export function Sidebar({ className }: SidebarProps) {
     { title: "My Progress", href: "/progress", icon: <BarChart className="h-5 w-5" /> },
     { title: "Resources", href: "/resources", icon: <BookOpen className="h-5 w-5" />, isSoon: true },
     { title: "AI Tutor", href: "/ai-tutor", icon: <Brain className="h-5 w-5" /> },
-    { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" />, isSoon: true },
+    { title: "Live Classes", href: "/live-classes", icon: <Video className="h-5 w-5" /> },
     { title: "Study Arena", href: "/study-arena", icon: <Users className="h-5 w-5" /> },
     { title: "Achievements", href: "/achievements", icon: <Trophy className="h-5 w-5" />, isSoon: true },
     { title: "Messages", href: "/messages", icon: <MessageSquare className="h-5 w-5" /> },
@@ -197,7 +197,7 @@ export function Sidebar({ className }: SidebarProps) {
       {/* Sidebar */}
       <div
         className={cn(
-          "fixed top-0 bottom-0 left-0 flex h-screen flex-col bg-card border-r border-border shadow-sm transition-all duration-300 ease-in-out z-50",
+          "fixed top-0 bottom-0 left-0 flex h-screen flex-col bg-muted/30 border-r border-border transition-all duration-300 ease-in-out z-50",
           isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
           isCollapsed ? "w-16 md:w-16" : "w-64 md:w-64",
           className
@@ -206,38 +206,37 @@ export function Sidebar({ className }: SidebarProps) {
         {/* Collapse toggle button */}
         <button
           onClick={toggleSidebar}
-          className="absolute -right-3 top-20 h-6 w-6 bg-card rounded-full border border-border flex items-center justify-center cursor-pointer shadow-sm text-muted-foreground hover:text-foreground hover:bg-primary/5 transition-colors hidden md:flex"
+          className="absolute -right-3 top-20 h-6 w-6 bg-background rounded-full border border-border flex items-center justify-center cursor-pointer shadow-soft text-muted-foreground hover:text-foreground hover:bg-muted transition-colors hidden md:flex"
         >
           {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </button>
-
+        +
         {/* Logo and title */}
-        <div className="py-5 px-4 flex items-center border-b border-border">
-          <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center text-primary-foreground font-bold shadow-sm flex-shrink-0">
-            MP
-          </div>
+        <div className="py-6 px-6 flex items-center">
           {!isCollapsed && (
-            <h1 className="ml-3 font-bold text-lg whitespace-nowrap overflow-hidden transition-opacity duration-300">
-              <span className="bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-                Master Plan
-              </span>
-            </h1>
+            <div className="flex flex-col">
+              <h1 className="font-display text-2xl text-foreground leading-tight">EduAI</h1>
+              <p className="font-body text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">Learning Platform</p>
+            </div>
+          )}
+          {isCollapsed && (
+            <div className="h-9 w-9 bg-accent-soft text-accent rounded-xl flex items-center justify-center font-display text-xl">E</div>
           )}
         </div>
 
         {/* User info */}
-        <div className={cn("mt-4 px-4 mb-6", isCollapsed && "flex justify-center px-2")}>
+        <div className={cn("mt-2 px-3 mb-6", isCollapsed && "flex justify-center")}>
           {isCollapsed ? (
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/80 to-primary/60 text-primary-foreground flex items-center justify-center font-medium shadow-sm text-sm">
+            <div className="w-10 h-10 rounded-full bg-accent-soft text-accent flex items-center justify-center font-semibold text-sm">
               {user?.displayName ? getInitials(user.displayName) : "U"}
             </div>
           ) : (
-            <div className="flex items-center p-2.5 rounded-lg bg-primary/5 dark:bg-primary/10 w-full">
-              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary/80 to-primary/60 text-primary-foreground flex items-center justify-center font-medium shadow-sm flex-shrink-0 text-sm">
+            <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted cursor-pointer transition-colors group">
+              <div className="w-9 h-9 rounded-full bg-accent-soft text-accent flex items-center justify-center font-semibold flex-shrink-0 text-sm">
                 {user?.displayName ? getInitials(user.displayName) : "U"}
               </div>
-              <div className="ml-3 overflow-hidden">
-                <p className="font-medium text-sm truncate">{user?.displayName}</p>
+              <div className="overflow-hidden">
+                <p className="font-medium text-sm text-foreground truncate">{user?.displayName}</p>
                 <p className="text-xs text-muted-foreground">
                   {user?.role ?
                     user.role.charAt(0).toUpperCase() + user.role.slice(1) :
@@ -251,11 +250,11 @@ export function Sidebar({ className }: SidebarProps) {
         {/* Navigation */}
         <div className={cn("flex-1 overflow-y-auto", isCollapsed ? "px-2" : "px-3")}>
           {!isCollapsed && (
-            <div className="mb-2 px-3 text-xs uppercase font-semibold text-muted-foreground tracking-wider">
-              Navigation
+            <div className="mb-2 px-3 text-[10px] uppercase font-semibold text-muted-foreground tracking-widest">
+              Main Menu
             </div>
           )}
-          <nav className="space-y-1">
+          <nav className="space-y-0.5">
             {items.map((item) => {
               const isActive = location === item.href;
               return (
@@ -264,21 +263,18 @@ export function Sidebar({ className }: SidebarProps) {
                     href={item.href}
                     onClick={closeMobileMenu}
                     className={cn(
-                      "flex items-center py-2.5 text-sm rounded-lg transition-all duration-200 group relative",
+                      "flex items-center py-2.5 rounded-xl transition-all duration-150 group relative text-sm font-medium",
                       isActive
-                        ? "text-primary bg-primary/10 dark:bg-primary/15 font-medium shadow-sm"
-                        : "text-foreground/70 hover:text-foreground hover:bg-muted",
+                        ? "bg-muted text-foreground shadow-soft"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
                       isCollapsed ? "justify-center px-2" : "px-3"
                     )}
                     title={isCollapsed ? item.title : undefined}
                   >
-                    {isActive && !isCollapsed && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-primary rounded-r-full" />
-                    )}
                     <span
                       className={cn(
                         "flex items-center justify-center w-5 h-5 transition-colors",
-                        isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground/80",
+                        isActive ? "text-accent" : "text-muted-foreground group-hover:text-foreground",
                         !isCollapsed && "mr-3"
                       )}
                     >
@@ -288,7 +284,7 @@ export function Sidebar({ className }: SidebarProps) {
                       <>
                         <span className="truncate flex-1">{item.title}</span>
                         {item.isSoon && (
-                          <span className="ml-2 flex-shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                          <span className="ml-2 flex-shrink-0 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent-soft text-accent border border-accent/10">
                             Soon
                           </span>
                         )}
@@ -299,29 +295,12 @@ export function Sidebar({ className }: SidebarProps) {
               );
             })}
           </nav>
-
-          {user?.role === "student" && !isCollapsed && (
-            <>
-              <div className="mt-6 mb-2 px-3 text-xs uppercase font-semibold text-muted-foreground tracking-wider">
-                Learning Tools
-              </div>
-              <div className="mb-2 bg-primary/5 dark:bg-primary/10 rounded-lg p-3">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-xs font-medium">Today's Progress</span>
-                  <span className="text-xs text-primary font-semibold">70%</span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-1.5">
-                  <div className="bg-gradient-to-r from-primary/80 to-primary h-1.5 rounded-full transition-all duration-500" style={{ width: '70%' }}></div>
-                </div>
-              </div>
-            </>
-          )}
         </div>
 
         {/* Bottom actions */}
         <div className={cn(
-          "border-t border-border flex items-center",
-          isCollapsed ? "justify-center p-3 space-y-3 flex-col" : "p-4 justify-between"
+          "border-t border-border mt-auto",
+          isCollapsed ? "p-3 space-y-3 flex flex-col items-center" : "p-4 flex items-center justify-between"
         )}>
           {isCollapsed ? (
             <>
@@ -330,24 +309,26 @@ export function Sidebar({ className }: SidebarProps) {
                 variant="ghost"
                 size="icon"
                 onClick={() => logout()}
-                className="rounded-lg text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                className="rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-50"
               >
                 <LogOut className="h-4 w-4" />
               </Button>
             </>
           ) : (
             <>
-              <div className="flex space-x-2">
+              <div className="flex gap-1">
                 <ThemeToggle />
-                <Button variant="ghost" size="icon" className="rounded-lg">
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                </Button>
+                <Link href="/settings">
+                  <Button variant="ghost" size="icon" className="rounded-xl text-muted-foreground hover:text-foreground">
+                    <Settings className="h-4 w-4" />
+                  </Button>
+                </Link>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={() => logout()}
-                className="rounded-lg text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                className="rounded-xl text-muted-foreground hover:text-red-500 hover:bg-red-50"
               >
                 <LogOut className="h-4 w-4" />
               </Button>

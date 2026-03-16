@@ -1,173 +1,189 @@
+@import url('https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    /* ─── New Education-Themed Palette ─── */
-    --background: 40 20% 98%;
-    --foreground: 224 30% 15%;
+    /* ── Base ── */
+    --cream-50: #FDFAF5;
+    --cream-100: #F5F0E8;
+    --cream-150: #F2F0EB;
+    --cream-200: #EEEBE3;
+    --cream-300: #E8E4DC;
+    --cream-400: #E0DBD3;
 
-    --card: 0 0% 100%;
-    --card-foreground: 224 30% 15%;
+    /* ── Text ── */
+    --ink-900: #1A1A1A;
+    --ink-600: #5C5C5C;
+    --ink-400: #9A9A9A;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 224 30% 15%;
+    /* ── Primary Accent ── */
+    --accent: #CC785C;
+    --accent-hover: #B8654A;
+    --accent-soft: #F2E8E3;
 
-    --primary: 231 70% 55%;
-    --primary-foreground: 0 0% 100%;
+    /* ── NEW: Energy Color ── */
+    --energy: #F0A500;
+    --energy-soft: #FEF3D0;
+    --energy-dark: #C87E00;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 224 30% 15%;
+    /* ── NEW: Progress Color ── */
+    --progress: #4A7C59;
+    --progress-soft: #EBF3EE;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 10% 46%;
-
-    --accent: 220 14% 96%;
-    --accent-foreground: 224 30% 15%;
-
-    --destructive: 0 72% 51%;
+    /* ── Shadcn Defaults (Mapped to Palette) ── */
+    --background: 38 29% 94%;
+    --foreground: 0 0% 10%;
+    --card: 38 67% 98%;
+    --card-foreground: 0 0% 10%;
+    --popover: 38 67% 98%;
+    --popover-foreground: 0 0% 10%;
+    --primary: 15 51% 58%;
+    --primary-foreground: 38 29% 94%;
+    --secondary: 48 20% 91%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 40 16% 89%;
+    --muted-foreground: 0 0% 36%;
+    --accent-base: 20 37% 92%;
+    --accent-foreground: 15 51% 58%;
+    --destructive: 2 42% 52%;
     --destructive-foreground: 0 0% 100%;
+    --border: 39 16% 85%;
+    --input: 38 12% 76%;
+    --ring: 15 51% 58% / 0.3;
+    --radius: 0.75rem;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 231 70% 55%;
+    --illustration-bg: 38 29% 94%;
+    --ticker-bg: 48 20% 91%;
+    --ticker-text: 0 0% 10%;
+    --bubble-1: 38 67% 98%;
+    --bubble-2: 48 20% 91%;
+    --bubble-3: 40 16% 89%;
 
-    --radius: 0.625rem;
-
-    /* ─── Chart Colors ─── */
-    --chart-1: 231 70% 55%;
-    --chart-2: 160 60% 42%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 65% 50%;
-
-    /* ─── Subject Colors ─── */
-    --subject-math: 231 70% 55%;
-    --subject-science: 160 60% 42%;
-    --subject-english: 340 65% 50%;
-    --subject-history: 30 70% 50%;
-    --subject-cs: 280 65% 60%;
-    --subject-default: 220 10% 46%;
-
-    /* ─── Sidebar ─── */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 224 30% 15%;
-    --sidebar-primary: 231 70% 55%;
+    /* ─── Sidebar (Light) ─── */
+    --sidebar-background: 48 20% 91%;
+    --sidebar-foreground: 0 0% 10%;
+    --sidebar-primary: 251 83% 75%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 231 70% 97%;
-    --sidebar-accent-foreground: 231 70% 40%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 231 70% 55%;
+    --sidebar-accent: 40 16% 89%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 39 16% 85%;
+    --sidebar-ring: 15 51% 58% / 0.3;
 
-    /* ─── Layout ─── */
-    --sidebar-width: 16rem;
-    --sidebar-width-collapsed: 4rem;
+    /* ─── Chart Colors (Vibrant Educational) ─── */
+    --chart-1: 15 51% 58%;
+    --chart-2: 251 83% 75%;
+    --chart-3: 215 38% 47%;
+    --chart-4: 39 54% 41%;
+    --chart-5: 137 25% 39%;
 
-    /* ─── Chat: Bubble Colors ─── */
-    --bubble-own: 231 60% 85%;
-    --bubble-own-foreground: 231 70% 20%;
-    --bubble-other: 0 0% 100%;
-    --bubble-other-foreground: 224 30% 15%;
+    /* ─── Chat ─── */
+    --bubble-own: 40 16% 89%;
+    /* User: Tertiary Cream */
+    --bubble-own-foreground: 0 0% 10%;
+    /* AI: White surface */
+    --bubble-other-foreground: 0 0% 10%;
 
-    /* ─── Chat: Status Colors ─── */
-    --status-sent: 220 10% 60%;
-    --status-delivered: 160 60% 42%;
-    --status-read: 199 89% 48%;
-
-    /* ─── Chat: Presence ─── */
-    --online: 142 71% 45%;
-    --typing: 231 70% 55%;
-
-    /* ─── Chat: Role Colors ─── */
-    --role-student: 217 91% 60%;
-    --role-teacher: 262 83% 58%;
-    --role-parent: 25 95% 53%;
-
-    /* ─── Chat: Message Type Colors ─── */
-    --announcement: 45 93% 47%;
-    --announcement-bg: 45 93% 94%;
-    --doubt: 262 83% 58%;
-    --doubt-bg: 262 40% 94%;
-    --assignment: 199 89% 48%;
-    --assignment-bg: 199 60% 92%;
-    --pinned: 45 93% 47%;
+    /* ─── Gradients (Dynamic) ─── */
+    --grad-streak: linear-gradient(135deg, #FEF3D0 0%, #FDEAB0 60%, #FBDC80 100%);
+    --grad-xp: linear-gradient(135deg, #F2E8E3 0%, #EDD5C8 100%);
+    --grad-badge: linear-gradient(145deg, #FFFBF0 0%, #FEF3D0 50%, #F2E8E3 100%);
+    --grad-challenge: linear-gradient(135deg, #EBF3EE 0%, #D6EAE0 100%);
+    --grad-math: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%);
+    --grad-physics: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%);
+    --grad-chemistry: linear-gradient(135deg, #F0FDFA 0%, #CCFBF1 100%);
+    --grad-biology: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+    --grad-english: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+    --grad-history: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 20% 95%;
+    /* Warm Dark Palette */
+    --background: 24 10% 10%;
+    /* #1C1917ish */
+    --foreground: 38 29% 94%;
+    --card: 24 10% 15%;
+    /* #292524ish */
+    --card-foreground: 38 29% 94%;
+    --popover: 24 10% 15%;
+    --popover-foreground: 38 29% 94%;
+    --primary: 15 51% 58%;
+    --primary-foreground: 38 29% 94%;
+    --secondary: 24 10% 20%;
+    --secondary-foreground: 38 29% 94%;
+    --muted: 24 10% 25%;
+    --muted-foreground: 0 0% 60%;
+    --accent-base: 24 10% 25%;
+    --accent-foreground: 38 29% 94%;
+    --destructive: 2 42% 52%;
+    --destructive-foreground: 38 29% 94%;
+    --border: 24 10% 22%;
+    /* #3C3836ish */
+    --input: 24 10% 22%;
+    --ring: 15 51% 58% / 0.3;
 
-    --card: 222 47% 8%;
-    --card-foreground: 210 20% 95%;
+    /* Dark Mode specific variables */
+    --cream-50: #292524;
+    --cream-100: #1C1917;
+    --cream-200: #24201E;
+    --cream-300: #3C3836;
+    --cream-400: #4A4543;
 
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 20% 95%;
+    --ink-900: #F5F0E8;
+    --ink-600: #E0DBD3;
+    --ink-400: #C8C3BB;
 
-    --primary: 224 70% 62%;
-    --primary-foreground: 0 0% 100%;
+    --accent: #CC785C;
+    --accent-hover: #B8654A;
+    --accent-soft: #4A4543;
 
-    --secondary: 215 25% 14%;
-    --secondary-foreground: 210 20% 95%;
+    --energy: #F0A500;
+    --energy-soft: #4A4543;
+    --energy-dark: #C87E00;
 
-    --muted: 215 25% 14%;
-    --muted-foreground: 217 10% 60%;
+    --progress: #4A7C59;
+    --progress-soft: #4A4543;
 
-    --accent: 215 25% 14%;
-    --accent-foreground: 210 20% 95%;
+    --illustration-bg: 24 10% 10%;
+    --ticker-bg: 24 10% 15%;
+    --ticker-text: 38 29% 94%;
+    --bubble-1: 24 10% 15%;
+    --bubble-2: 24 10% 20%;
+    --bubble-3: 24 10% 25%;
 
-    --destructive: 0 62% 45%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 215 25% 16%;
-    --input: 215 25% 16%;
-    --ring: 224 70% 62%;
-
-    /* ─── Chart Colors (Dark) ─── */
-    --chart-1: 224 70% 62%;
-    --chart-2: 160 55% 48%;
-    --chart-3: 30 75% 58%;
-    --chart-4: 280 60% 65%;
-    --chart-5: 340 60% 55%;
-
-    /* ─── Sidebar (Dark) ─── */
-    --sidebar-background: 222 47% 6%;
-    --sidebar-foreground: 210 20% 95%;
-    --sidebar-primary: 224 70% 62%;
+    --sidebar-background: 24 10% 15%;
+    --sidebar-foreground: 38 29% 94%;
+    --sidebar-primary: 251 83% 75%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 224 70% 12%;
-    --sidebar-accent-foreground: 224 70% 75%;
-    --sidebar-border: 215 25% 16%;
-    --sidebar-ring: 224 70% 62%;
+    --sidebar-accent: 24 10% 20%;
+    --sidebar-accent-foreground: 38 29% 94%;
+    --sidebar-border: 24 10% 22%;
+    --sidebar-ring: 15 51% 58% / 0.3;
 
-    /* ─── Chat: Bubble Colors (Dark) ─── */
-    --bubble-own: 231 50% 22%;
-    --bubble-own-foreground: 210 20% 90%;
-    --bubble-other: 215 25% 14%;
-    --bubble-other-foreground: 210 20% 92%;
+    --chart-1: 15 51% 58%;
+    --chart-2: 251 83% 75%;
+    --chart-3: 215 38% 47%;
+    --chart-4: 39 54% 41%;
+    --chart-5: 137 25% 39%;
 
-    /* ─── Chat: Status Colors (Dark) ─── */
-    --status-sent: 215 12% 45%;
-    --status-delivered: 160 50% 45%;
-    --status-read: 199 89% 48%;
+    --bubble-own: 24 10% 25%;
+    --bubble-own-foreground: 38 29% 94%;
+    --bubble-other: 24 10% 10%;
+    --bubble-other-foreground: 38 29% 94%;
 
-    /* ─── Chat: Presence (Dark) ─── */
-    --online: 142 71% 45%;
-    --typing: 224 70% 62%;
-
-    /* ─── Chat: Role Colors (Dark) ─── */
-    --role-student: 217 91% 60%;
-    --role-teacher: 262 83% 58%;
-    --role-parent: 25 95% 53%;
-
-    /* ─── Chat: Message Type Colors (Dark) ─── */
-    --announcement: 45 93% 47%;
-    --announcement-bg: 45 50% 14%;
-    --doubt: 262 83% 58%;
-    --doubt-bg: 262 40% 16%;
-    --assignment: 199 89% 48%;
-    --assignment-bg: 199 40% 14%;
-    --pinned: 45 93% 47%;
+    /* ─── Gradients (Dynamic Dark) ─── */
+    --grad-streak: linear-gradient(135deg, #4A3A10 0%, #3B2A08 60%, #2A1D05 100%);
+    --grad-xp: linear-gradient(135deg, #3A2A22 0%, #2A1C15 100%);
+    --grad-badge: linear-gradient(145deg, #2A251E 0%, #3A3018 50%, #3A2A22 100%);
+    --grad-challenge: linear-gradient(135deg, #1C2A22 0%, #15221B 100%);
+    --grad-math: linear-gradient(135deg, #1A1C30 0%, #101222 100%);
+    --grad-physics: linear-gradient(135deg, #1A2235 0%, #121828 100%);
+    --grad-chemistry: linear-gradient(135deg, #15302E 0%, #0D2220 100%);
+    --grad-biology: linear-gradient(135deg, #153018 0%, #0D2210 100%);
+    --grad-english: linear-gradient(135deg, #302A15 0%, #221C0D 100%);
+    --grad-history: linear-gradient(135deg, #302015 0%, #22150D 100%);
   }
 
   * {
@@ -175,7 +191,48 @@
   }
 
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-body antialiased bg-background text-foreground;
+    font-size: 0.9375rem;
+  }
+
+  /* ── Typography Voices ── */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display font-medium text-foreground;
+  }
+
+  /* Student Pages specific overrides via classes */
+  .student-h1 {
+    @apply font-sans font-bold text-3xl tracking-tight text-foreground;
+  }
+
+  .teacher-h1 {
+    @apply font-display font-medium text-4xl text-foreground;
+  }
+
+  .stat-number {
+    @apply font-sans font-extrabold text-5xl tracking-tighter text-foreground;
+  }
+
+  .streak-number {
+    @apply font-sans font-black text-6xl text-energy;
+  }
+
+  h1 {
+    font-size: 2.25rem;
+  }
+
+  h2 {
+    font-size: 1.75rem;
+  }
+
+  h3 {
+    @apply font-body font-semibold;
+    font-size: 1.125rem;
   }
 }
 
@@ -340,5 +397,92 @@
   .scrollbar-thin::-webkit-scrollbar-thumb {
     background: hsl(var(--border));
     border-radius: 2px;
+  }
+
+  /* landing page hover tilt */
+  .hover-tilt {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .hover-tilt:hover {
+    transform: perspective(800px) rotateY(-2deg) rotateX(2deg) scale(1.02);
+    box-shadow: 8px 8px 0px hsl(var(--primary) / 1);
+  }
+}
+
+@layer components {
+
+  /* landing page sketch components */
+  .sketch-border {
+    border: 1.5px solid hsl(var(--border) / 1);
+    /* Thin black outlines */
+    border-radius: 1rem;
+  }
+
+  .sketch-shadow {
+    box-shadow: 6px 6px 0px hsl(var(--border) / 0.1);
+    /* subtle grey shadow */
+  }
+
+  .sketch-shadow-yellow {
+    box-shadow: 6px 6px 0px hsl(var(--primary) / 1);
+    /* solid pop color shadow */
+  }
+
+  .teal-glow {
+    box-shadow: 0 0 20px hsl(var(--secondary) / 0.3);
+  }
+
+  /* Notebook Feature Styles */
+  .notebook-bg {
+    background-color: #F8F9FA;
+  }
+
+  .dark .notebook-bg {
+    background-color: hsl(var(--background));
+  }
+
+  .notebook-page {
+    background: #FFFDF6;
+    border-radius: 12px;
+    box-shadow: 12px 14px 0px rgba(0, 0, 0, 0.08), 0 0 40px rgba(0, 0, 0, 0.05);
+    background-image: repeating-linear-gradient(to bottom,
+        #FFFDF6,
+        #FFFDF6 31px,
+        #DDE6FF 32px);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .notebook-page {
+    background: #111111;
+    box-shadow: 12px 14px 0px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 0, 0, 0.5);
+    background-image: repeating-linear-gradient(to bottom,
+        #111111,
+        #111111 31px,
+        #2A2A2A 32px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .notebook-card {
+    background: #FFFDF6;
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 4px 6px 0px #000;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    background-image: repeating-linear-gradient(to bottom,
+        #FFFDF6,
+        #FFFDF6 28px,
+        #DDE6FF 29px);
+    border: 1px solid #000;
+  }
+
+  .dark .notebook-card {
+    background: #161618;
+    box-shadow: 4px 6px 0px hsl(var(--primary));
+    background-image: repeating-linear-gradient(to bottom,
+        #161618,
+        #161618 28px,
+        #333333 29px);
+    border: 1px solid hsl(var(--primary));
   }
 }

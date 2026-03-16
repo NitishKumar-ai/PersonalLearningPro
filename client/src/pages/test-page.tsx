@@ -1,7 +1,19 @@
 import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Loader2, PanelRightClose, PanelRightOpen, ArrowRight, Home } from "lucide-react";
+import {
+    CheckCircle,
+    Lightbulb,
+    Sparkles,
+    BookOpen,
+    AlertCircle,
+    X,
+    Home,
+    ArrowRight,
+    Loader2
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -18,8 +30,8 @@ const mockAchieversData = {
 # Chapter 5: Electromagnetism
 
 ### Key Concepts
-- **Magnetic Flux ($\\Phi_B$)**: $\\Phi_B = B \\cdot A \\cdot \\cos(\\theta)$
-- **Faraday's Law of Induction**: $\\mathcal{E} = -N \\frac{d\\Phi_B}{dt}$
+- **Magnetic Flux ($\Phi_B$)**: $\Phi_B = B \cdot A \cdot \cos(\theta)$
+- **Faraday's Law of Induction**: $\mathcal{E} = -N \frac{d\Phi_B}{dt}$
 - **Lenz's Law**: The direction of the induced current opposes the change in magnetic flux that produced it.
 
 ### Important Real-World Examples
@@ -78,8 +90,6 @@ export default function TestPage() {
             setAttemptId(data.id);
         },
         onError: (err: any) => {
-            // If there's an existing attempt, we could handle it here.
-            // For MVP, we'll just log or show toast
             toast({
                 title: "Test Attempt Started",
                 description: "Your answers are being recorded.",
@@ -93,12 +103,10 @@ export default function TestPage() {
             return res.json();
         },
         onSuccess: (data, variables) => {
-            // Evaluate locally for MVP instant feedback if MCQ, or just show the correct answer
             const q = questions![currentQuestionIndex];
             let isCorrect = data.isCorrect;
 
             if (q.type !== 'mcq') {
-                // Simple string match for short/numerical if not evaluated by backend yet
                 if (!isCorrect && data.isCorrect == null) {
                     isCorrect = variables.text?.trim().toLowerCase() === q.correctAnswer?.trim().toLowerCase();
                 }
@@ -132,7 +140,6 @@ export default function TestPage() {
         }
     });
 
-    // Effect to init attempt
     useEffect(() => {
         if (test && !attemptId && !initAttemptMutation.isPending && !initAttemptMutation.isSuccess) {
             initAttemptMutation.mutate();
@@ -141,18 +148,39 @@ export default function TestPage() {
 
     if (isLoadingTest || isLoadingQuestions) {
         return (
-            <div className="flex items-center justify-center h-screen">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-                <span className="ml-2 text-muted-foreground">Loading test environment...</span>
+            <div className="flex flex-col items-center justify-center h-screen bg-background">
+                <div className="relative w-24 h-24 flex items-center justify-center mb-6">
+                    <motion.div 
+                        initial={{ scale: 0.8, opacity: 0.2 }}
+                        animate={{ scale: 1.2, opacity: 0 }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "easeOut" }}
+                        className="absolute inset-0 bg-accent rounded-full"
+                    />
+                    <motion.div 
+                        initial={{ scale: 0.9 }}
+                        animate={{ scale: 1 }}
+                        transition={{ repeat: Infinity, repeatType: "reverse", duration: 1 }}
+                        className="relative z-10"
+                    >
+                        <Sparkles className="w-12 h-12 text-accent" />
+                    </motion.div>
+                </div>
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-[0.2em] animate-pulse">Prepping Focus Environment...</span>
             </div>
         );
     }
 
     if (!test || !questions || questions.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center h-screen">
-                <h2 className="text-xl font-bold">Test not found</h2>
-                <Button onClick={() => setLocation("/")} className="mt-4">Back to Dashboard</Button>
+            <div className="flex flex-col items-center justify-center h-screen bg-background p-6 text-center">
+                <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-6">
+                    <X className="w-10 h-10 text-energy" />
+                </div>
+                <h2 className="text-3xl font-display text-foreground mb-2">Test Not Found</h2>
+                <p className="text-muted-foreground font-body mb-8">It seems this assessment has been archived or is no longer available.</p>
+                <Button onClick={() => setLocation("/")} className="rounded-full bg-primary text-primary-foreground hover:bg-primary/90 px-8 h-12">
+                    Back to Dashboard
+                </Button>
             </div>
         );
     }
@@ -202,42 +230,62 @@ export default function TestPage() {
 
     if (testCompleted) {
         return (
-            <div className="max-w-2xl mx-auto py-16 px-4">
-                <Card className="text-center py-10 shadow-lg border-primary/20">
-                    <CardContent>
-                        <div className="mx-auto w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-                            <CheckCircle className="w-8 h-8 text-primary" />
-                        </div>
-                        <h1 className="text-3xl font-bold tracking-tight mb-2">Test Completed!</h1>
-                        <p className="text-muted-foreground mb-8">
-                            Great job completing "{test.title}".
+            <div className="min-h-screen bg-background py-12 px-6 flex items-center justify-center">
+                <Card className="w-full max-w-2xl text-center bg-card shadow-modal border border-border rounded-[2.5rem] overflow-hidden animate-fade-in-up">
+                    <CardContent className="p-12">
+                        <motion.div 
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1, rotate: 360 }}
+                            className="mx-auto w-24 h-24 bg-progress-soft rounded-full flex items-center justify-center mb-8 shadow-soft border border-progress/10"
+                        >
+                            <CheckCircle className="w-12 h-12 text-progress" />
+                        </motion.div>
+                        <h1 className="text-4xl font-display text-foreground tracking-tight mb-4">Bravo! Assessment Concluded</h1>
+                        <p className="text-lg text-muted-foreground font-body mb-10 leading-relaxed max-w-md mx-auto">
+                            You've shown great focus on <span className="text-foreground font-bold">"{test.title}"</span>. Here's how you performed.
                         </p>
 
-                        <div className="grid grid-cols-2 gap-4 mb-8">
-                            <div className="bg-muted p-4 rounded-lg">
-                                <div className="text-sm text-muted-foreground mb-1">Time Elapsed</div>
-                                <div className="text-xl font-mono font-semibold">12:34</div>
+                        <div className="grid grid-cols-2 gap-8 mb-12">
+                            <div className="bg-muted/50 p-6 rounded-3xl border border-border shadow-sm">
+                                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Time Invested</div>
+                                <div className="text-4xl font-display font-bold text-foreground">12:34</div>
                             </div>
-                            <div className="bg-muted p-4 rounded-lg">
-                                <div className="text-sm text-muted-foreground mb-1">Questions Attempted</div>
-                                <div className="text-xl font-mono font-semibold">{questions.length} / {questions.length}</div>
+                            <div className="bg-muted/50 p-6 rounded-3xl border border-border shadow-sm">
+                                <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-2">Subject Mastery</div>
+                                <div className="text-4xl font-display font-bold text-progress">85%</div>
                             </div>
                         </div>
 
-                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-5 mb-8 text-left">
-                            <h3 className="font-semibold flex items-center gap-2 mb-2">
-                                <Lightbulb className="w-4 h-4 text-amber-500" />
-                                AI Recommendation
+                        <div className="bg-background border-2 border-dashed border-border rounded-3xl p-8 mb-10 text-left relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                <Sparkles className="w-20 h-20 text-accent" />
+                            </div>
+                            <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2 mb-4">
+                                <Lightbulb className="w-4 h-4 text-accent" />
+                                Tutor Insight
                             </h3>
-                            <p className="text-sm text-muted-foreground">
-                                Based on your performance, you should review the <strong>Faraday's Law</strong> section in the Achievers Book before your next attempt.
+                            <p className="text-base text-foreground font-body leading-relaxed">
+                                You demonstrated strong logical reasoning. For further mastery, we recommend a secondary review of <span className="text-accent font-bold">"Faraday's Law"</span> in the Digital Textbook before your next session.
                             </p>
                         </div>
 
-                        <Button onClick={() => setLocation("/")} className="w-full sm:w-auto px-8">
-                            <Home className="w-4 h-4 mr-2" />
-                            Return to Dashboard
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <Button
+                                onClick={() => setLocation("/")}
+                                className="bg-primary text-primary-foreground hover:bg-primary/90 px-10 h-14 rounded-full font-bold shadow-soft transition-all"
+                            >
+                                <Home className="w-5 h-5 mr-3" />
+                                Back to Dashboard
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => setLocation("/subjects")}
+                                className="border-border text-foreground hover:bg-muted px-10 h-14 rounded-full font-bold transition-all"
+                            >
+                                <ArrowRight className="w-5 h-5 mr-3" />
+                                Learning Path
+                            </Button>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
@@ -245,8 +293,8 @@ export default function TestPage() {
     }
 
     return (
-        <div className="flex h-screen w-full bg-[#fcfcfc] overflow-hidden">
-            <div className={`flex-1 flex flex-col transition-all duration-300 ${isBookOpen ? 'md:mr-80' : ''}`}>
+        <div className="flex h-screen w-full bg-background overflow-hidden">
+            <div className={cn("flex-1 flex flex-col transition-all duration-500 ease-in-out relative")}>
 
                 <TestProgress
                     currentQuestionIndex={currentQuestionIndex + 1}
@@ -255,72 +303,89 @@ export default function TestPage() {
                     onTimeUp={() => completeTestMutation.mutate()}
                 />
 
-                <div className="flex-1 overflow-y-auto px-4 pb-24 relative">
-                    {/* Top right toggle button for Achievers Book visible on desktop */}
-                    <div className="absolute right-4 top-4 hidden md:block">
+                <div className="flex-1 overflow-y-auto px-6 md:px-12 pb-24 relative bg-background/50">
+                    <div className="absolute right-8 top-8 hidden md:block">
                         <Button
                             variant="outline"
-                            size="sm"
                             onClick={() => setIsBookOpen(!isBookOpen)}
-                            className="bg-card text-muted-foreground shadow-sm"
-                            title="Toggle Achievers Book"
+                            className={cn(
+                                "bg-card h-11 px-5 rounded-xl border-border text-muted-foreground font-bold text-xs uppercase tracking-widest transition-all",
+                                "hover:border-accent/40 hover:text-accent shadow-soft",
+                                isBookOpen && "border-accent text-accent bg-accent-soft/30"
+                            )}
                         >
-                            {isBookOpen ? <PanelRightClose className="w-4 h-4 mr-2" /> : <PanelRightOpen className="w-4 h-4 mr-2" />}
-                            {isBookOpen ? "Close Book" : "Achievers Book"}
+                            <BookOpen className="w-4 h-4 mr-2" />
+                            {isBookOpen ? "Close Textbook" : "Digital Textbook"}
                         </Button>
                     </div>
 
                     {!showResult ? (
-                        <QuestionCard
-                            question={currentQuestion}
-                            currentAnswer={currentAnswer}
-                            onAnswerChange={setCurrentAnswer}
-                            onSubmit={handleSubmit}
-                            onSkip={handleSkip}
-                            onHintRequest={handleHintRequest}
-                            hintsRemaining={1}
-                            isSubmitting={submitAnswerMutation.isPending}
-                        />
+                        <div className="max-w-4xl mx-auto">
+                            <QuestionCard
+                                question={currentQuestion}
+                                currentAnswer={currentAnswer}
+                                onAnswerChange={setCurrentAnswer}
+                                onSubmit={handleSubmit}
+                                onSkip={handleSkip}
+                                onHintRequest={handleHintRequest}
+                                hintsRemaining={1}
+                                isSubmitting={submitAnswerMutation.isPending}
+                            />
+                        </div>
                     ) : (
-                        <Card className="w-full max-w-3xl mx-auto mt-10 shadow-sm border-primary/20">
-                            <CardContent className="pt-8 pb-8 text-center space-y-6">
-                                <div>
-                                    <h3 className={`text-2xl font-bold ${lastResult?.isCorrect ? 'text-green-600' : 'text-amber-600'}`}>
-                                        {lastResult?.isCorrect ? "Correct!" : "Not quite right"}
+                        <Card className="w-full max-w-3xl mx-auto mt-12 shadow-modal border border-border bg-card rounded-[2rem] overflow-hidden animate-fade-in">
+                            <CardContent className="p-10 text-center space-y-8">
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className={cn(
+                                        "w-20 h-20 rounded-full flex items-center justify-center shadow-soft border",
+                                        lastResult?.isCorrect
+                                            ? "bg-progress-soft border-progress/10 text-progress"
+                                            : "bg-energy-soft border-energy/10 text-energy"
+                                    )}>
+                                        {lastResult?.isCorrect ? <CheckCircle className="w-10 h-10" /> : <AlertCircle className="w-10 h-10" />}
+                                    </div>
+                                    <h3 className={cn(
+                                        "text-4xl font-display tracking-tight leading-none",
+                                        lastResult?.isCorrect ? "text-progress" : "text-energy"
+                                    )}>
+                                        {lastResult?.isCorrect ? "Perfectly stated!" : "A learning opportunity"}
                                     </h3>
                                 </div>
 
-                                <div className="bg-muted p-6 rounded-xl text-left space-y-4">
-                                    <div>
-                                        <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Model Answer</span>
-                                        <p className="text-foreground font-medium text-lg">{lastResult?.answer}</p>
+                                <div className="grid gap-6">
+                                    <div className="bg-muted/50 border border-border p-8 rounded-3xl text-left shadow-sm">
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-3">Model Solution</span>
+                                        <p className="text-foreground font-display text-xl leading-relaxed">{lastResult?.answer}</p>
                                     </div>
                                     {lastResult?.explanation && (
-                                        <div className="pt-4 border-t">
-                                            <span className="text-sm font-semibold text-muted-foreground uppercase tracking-wider block mb-1">Explanation</span>
-                                            <p className="text-muted-foreground">{lastResult.explanation}</p>
+                                        <div className="p-8 rounded-3xl border border-border border-dashed text-left bg-background/50">
+                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest block mb-3">Tutor Insight</span>
+                                            <p className="text-muted-foreground font-body text-base leading-relaxed">{lastResult.explanation}</p>
                                         </div>
                                     )}
                                 </div>
 
                                 <div className="flex justify-center pt-4">
-                                    <Button onClick={handleNextQuestion} size="lg" className="px-8">
-                                        {currentQuestionIndex < questions.length - 1 ? "Next Question" : "Finish Test"}
-                                        <ArrowRight className="w-4 h-4 ml-2" />
+                                    <Button
+                                        onClick={handleNextQuestion}
+                                        size="lg"
+                                        className="h-14 px-12 rounded-full bg-accent text-white hover:bg-accent-hover shadow-modal font-bold text-base transition-all group"
+                                    >
+                                        {currentQuestionIndex < questions.length - 1 ? "Next Problem" : "Finalize Assessment"}
+                                        <ArrowRight className="w-5 h-5 ml-3 transition-transform group-hover:translate-x-1" />
                                     </Button>
                                 </div>
                             </CardContent>
                         </Card>
                     )}
 
-                    {/* Mobile floating button for Achievers Book */}
-                    <div className="fixed bottom-6 right-6 md:hidden z-10">
+                    <div className="fixed bottom-6 right-6 md:hidden z-[70]">
                         <Button
                             size="icon"
-                            className="rounded-full shadow-lg h-14 w-14"
+                            className="rounded-full shadow-card h-14 w-14 bg-accent text-white"
                             onClick={() => setIsBookOpen(!isBookOpen)}
                         >
-                            {isBookOpen ? <PanelRightClose /> : <PanelRightOpen />}
+                            {isBookOpen ? <X className="w-6 h-6" /> : <BookOpen className="w-6 h-6" />}
                         </Button>
                     </div>
                 </div>
@@ -330,18 +395,15 @@ export default function TestPage() {
                 summary={mockAchieversData.summary}
                 pyqs={mockAchieversData.pyqs}
                 isOpen={isBookOpen}
+                onChange={setIsBookOpen}
             />
 
-            {/* Overlay for mobile when book is open */}
             {isBookOpen && (
                 <div
-                    className="md:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-10"
+                    className="md:hidden fixed inset-0 bg-background/80 backdrop-blur-sm z-50"
                     onClick={() => setIsBookOpen(false)}
                 />
             )}
         </div>
     );
 }
-
-// Ensure lucide-react imports are present above
-import { CheckCircle, Lightbulb } from "lucide-react";

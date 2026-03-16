@@ -43,7 +43,8 @@ type IncomingEventType =
     | "mark_read"
     | "mark_delivered"
     | "answer_doubt"
-    | "pin_message";
+    | "pin_message"
+    | "live_class_event";
 
 interface IncomingEvent {
     type: IncomingEventType;
@@ -55,6 +56,9 @@ interface IncomingEvent {
     senderRole?: string;
     replyTo?: number;
     mentions?: string[];
+    // Live class fields
+    classId?: number;
+    action?: "started" | "ended";
 }
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -176,6 +180,13 @@ async function resolveUserId(
             });
         });
     });
+}
+
+// ─── Global Broadcasting Helper ─────────────────────────────────────────────────
+export function broadcastGlobal(data: object) {
+    for (const client of Array.from(clientMeta.keys())) {
+        send(client, data);
+    }
 }
 
 // ─── Main setup function ───────────────────────────────────────────────────────
@@ -558,6 +569,26 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
                         messageId,
                         pinnedBy: { userId, firebaseUid, displayName: meta.displayName },
                         channelId,
+                    });
+                    break;
+                }
+
+                // ── live_class_event ──────────────────────────────────────────────
+                case "live_class_event": {
+                    const { classId, action } = event;
+                    if (!classId || !action) return;
+
+                    if (meta.role !== "teacher" && meta.role !== "principal" && meta.role !== "admin") {
+                        send(ws, { type: "error", message: "Only teachers can trigger live class events." });
+                        return;
+                    }
+
+                    // For now, broadcast this event globally so any student who is online knows
+                    broadcastGlobal({
+                        type: "live_class_event",
+                        classId,
+                        action,
+                        triggeredBy: { userId, firebaseUid, displayName: meta.displayName }
                     });
                     break;
                 }

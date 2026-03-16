@@ -45,6 +45,43 @@ async function getProfileWithTimeout(uid: string): Promise<UserProfile | null> {
   return Promise.race([getUserProfile(uid), timeout]);
 }
 
+/** 
+ * Build a minimal profile directly from a Firebase Auth user when Firestore is unavailable.
+ * This prevents infinite loading if Firestore is blocked/offline, at least showing a default student role.
+ */
+function buildFallbackProfile(user: import("firebase/auth").User): UserProfile | null {
+  if (!user.email) return null;
+  return {
+    uid: user.uid,
+    email: user.email,
+    displayName: user.displayName || user.email.split("@")[0],
+    role: "student", // Safe default; user can be re-authenticated properly later
+    status: "active",
+    photoURL: user.photoURL || undefined,
+    createdAt: null,
+    lastLogin: null,
+  };
+}
+
+/**
+ * After a successful Firebase login, post the ID token to the backend so the
+ * Express session is established for subsequent API calls.
+ */
+async function syncFirebaseSession(user: import("firebase/auth").User) {
+  try {
+    const idToken = await user.getIdToken();
+    await fetch("/api/auth/firebase", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ idToken }),
+    });
+  } catch (e) {
+    console.warn("[auth] Failed to sync Firebase session to backend:", e);
+  }
+}
+
+
 // ── Provider ──────────────────────────────────────────────────────────────────
 
 export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -74,11 +111,51 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
         try {
           const profile = await getProfileWithTimeout(user.uid);
-          setCurrentUser({ user, profile });
+          // If Firestore is offline/blocked, build a minimal fallback profile
+          // so the user doesn't get stuck on the login screen indefinitely
+          setCurrentUser({ user, profile: profile ?? buildFallbackProfile(user) });
         } catch {
-          setCurrentUser({ user, profile: null });
+          setCurrentUser({ user, profile: buildFallbackProfile(user) });
         }
       } else {
+        // No Firebase user — check if there's a backend JWT in localStorage
+        const storedToken = localStorage.getItem("auth_token");
+        const storedUser = localStorage.getItem("auth_user");
+        if (storedToken && storedUser) {
+          try {
+            const userData = JSON.parse(storedUser);
+            // Verify token is still valid by fetching /api/auth/me
+            const res = await fetch("/api/auth/me", {
+              headers: { Authorization: `Bearer ${storedToken}` },
+              credentials: "include",
+            });
+            if (res.ok) {
+              const backendUser = await res.json();
+              // Create a minimal profile from backend user data
+              const backendProfile: UserProfile = {
+                uid: `backend_${backendUser.id}`,
+                email: backendUser.email,
+                displayName: backendUser.displayName || backendUser.name,
+                role: backendUser.role,
+                status: backendUser.status || "active",
+                photoURL: backendUser.avatar || undefined,
+                createdAt: null,
+                lastLogin: null,
+              };
+              // Use a synthetic "user" shell so the rest of the app works
+              setCurrentUser({ user: null as any, profile: backendProfile });
+              setIsLoading(false);
+              return;
+            } else {
+              // Token expired or invalid — clear it
+              localStorage.removeItem("auth_token");
+              localStorage.removeItem("auth_user");
+            }
+          } catch {
+            localStorage.removeItem("auth_token");
+            localStorage.removeItem("auth_user");
+          }
+        }
         setCurrentUser({ user: null, profile: null });
       }
       setIsLoading(false);
@@ -95,20 +172,27 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       // Fetch profile ourselves so the dashboard renders immediately and
       // onAuthStateChanged doesn't do a double Firestore read.
       const profile = await getProfileWithTimeout(user.uid);
+      const resolvedProfile = profile ?? buildFallbackProfile(user);
       skipNextAuthStateProfile.current = true;
-      setCurrentUser({ user, profile });
+      setCurrentUser({ user, profile: resolvedProfile });
+
+      // Bridge Firebase session to backend for protected API calls
+      syncFirebaseSession(user).catch(() => { });
 
       toast({
         title: "Login successful",
-        description: `Welcome back, ${profile?.displayName || user.displayName || email}!`,
+        description: `Welcome back, ${resolvedProfile?.displayName || user.displayName || email}!`,
       });
     } catch (error: any) {
       setIsLoading(false);
-      toast({
-        title: "Login failed",
-        description: error.message || "Please check your credentials and try again",
-        variant: "destructive",
-      });
+      const code = error.code || "";
+      if (code !== "auth/operation-not-allowed" && error.message !== "Firebase is not configured") {
+        toast({
+          title: "Login failed",
+          description: error.message || "Please check your credentials and try again",
+          variant: "destructive",
+        });
+      }
       throw error;
     }
     // NOTE: do NOT call setIsLoading(false) here — onAuthStateChanged will do it
@@ -144,11 +228,14 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       });
     } catch (error: any) {
       setIsLoading(false);
-      toast({
-        title: "Registration failed",
-        description: error.message || "Please check your information and try again",
-        variant: "destructive",
-      });
+      const code = error.code || "";
+      if (code !== "auth/operation-not-allowed" && error.message !== "Firebase is not configured") {
+        toast({
+          title: "Registration failed",
+          description: error.message || "Please check your information and try again",
+          variant: "destructive",
+        });
+      }
       throw error;
     }
   };
@@ -167,6 +254,9 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
       skipNextAuthStateProfile.current = true;
       setCurrentUser({ user: result.user, profile: result.profile });
+
+      // Bridge Firebase session to backend for protected API calls
+      syncFirebaseSession(result.user).catch(() => { });
 
       toast({
         title: "Login successful",
@@ -205,6 +295,9 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       skipNextAuthStateProfile.current = true;
       setCurrentUser({ user, profile: userData });
 
+      // Bridge Firebase session to backend for protected API calls
+      syncFirebaseSession(user).catch(() => { });
+
       toast({
         title: "Registration successful",
         description: `Welcome, ${userData.displayName}!`,
@@ -223,7 +316,15 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // ── logout ────────────────────────────────────────────────────────────────
   const logout = async () => {
     try {
-      await logoutUser();
+      // Clear backend JWT auth (for backend-only users)
+      localStorage.removeItem("auth_token");
+      localStorage.removeItem("auth_user");
+      document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
+      // Clear Firebase auth
+      if (firebaseEnabled && auth) {
+        await logoutUser();
+      }
       setCurrentUser({ user: null, profile: null });
       toast({ title: "Logged out", description: "You have been successfully logged out." });
     } catch (error: any) {
@@ -235,6 +336,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
       throw error;
     }
   };
+
 
   // ── resetUserPassword ─────────────────────────────────────────────────────
   const resetUserPassword = async (email: string) => {

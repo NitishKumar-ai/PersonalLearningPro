@@ -1,22 +1,44 @@
-# Master Plan - AI-Powered Personalized Learning Platform
+# Master Plan — AI-Powered Personalized Learning Platform
 
-An AI-powered personalized learning platform designed to enhance educational experiences through intelligent test creation, comprehensive performance analytics, and adaptive learning tools for both students and teachers.
+> An open-source, AI-powered learning platform built for schools — featuring intelligent test creation, real-time messaging, OCR scanning, adaptive AI tutoring, and role-based dashboards for students, teachers, principals, admins, and parents.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](docs/CHANGELOG.md)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18-green.svg)](https://nodejs.org)
+[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](Dockerfile)
+
+---
 
 ## ✨ Features
 
-### AI-Powered Capabilities
-- **AI Tutor** — Interactive learning assistant with chat-based help
-- **Test Creation** — AI-assisted question generation
-- **Answer Evaluation** — Automatic evaluation of subjective answers
-- **Performance Analysis** — AI insights into student performance patterns
+### 🤖 AI-Powered Capabilities
+| Feature | Description |
+|---|---|
+| **AI Tutor** | Interactive chat-based tutor with markdown & math rendering |
+| **AI Test Generation** | Automatically generate questions from any topic |
+| **Answer Evaluation** | AI grades subjective answers with feedback |
+| **Performance Analysis** | AI insights into student progress patterns |
+| **Study Plan Generator** | Personalized study schedules |
 
-### Core Functionality
-- **User Management** — Role-based access control (Teacher, Student, Principal, Admin, Parent)
+### 💬 Real-Time Messaging (MessagePal)
+- WebSocket-based live chat with typing indicators
+- Message history persistence via **Apache Cassandra**
+- File/image attachments with `multer`
+- Firebase Auth token verification per message
+- REST fallback API for history and uploads
+
+### 🏫 Core Platform Features
+- **Role-Based Access Control** — Student, Teacher, Principal, Admin, Parent
+- **Multi-Dashboard System** — Tailored UI for every role
 - **Test Management** — Create, distribute, and evaluate tests
-- **OCR Test Scanning** — Convert physical test papers to digital format
-- **Student Directory** — Browse students organized by standards (nursery to 12th grade)
-- **Analytics Dashboard** — Visual representation of performance metrics
+- **OCR Test Scanning** — Convert physical test papers via Tesseract.js
+- **Student Directory** — Browse by grade (Nursery → 12th)
+- **Analytics Dashboard** — Charts and performance metrics via Recharts
 - **Learning Progress Tracking** — Monitor improvement over time
+- **Firebase Authentication** — Google and email/password sign-in
+- **Dark Mode** — Full dark/light theme support
+
+---
 
 ## 🚀 Quick Start
 
@@ -27,7 +49,7 @@ No Node.js install required — just [Docker](https://docs.docker.com/get-docker
 ```bash
 git clone https://github.com/StarkNitish/PersonalLearningPro.git
 cd PersonalLearningPro
-cp .env.example .env       # edit with your credentials
+cp .env.example .env       # fill in your credentials
 docker compose build
 docker compose up
 ```
@@ -41,87 +63,126 @@ Requires **Node.js v18+** and **npm**.
 ```bash
 git clone https://github.com/StarkNitish/PersonalLearningPro.git
 cd PersonalLearningPro
-cp .env.example .env       # edit with your credentials
+cp .env.example .env       # fill in your credentials
 npm install
 npm run dev
 ```
 
 Open **[http://localhost:5001](http://localhost:5001)** in your browser.
 
-> See [LOCAL_SETUP.md](LOCAL_SETUP.md) for detailed manual setup instructions.
+> See [LOCAL_SETUP.md](docs/LOCAL_SETUP.md) for detailed setup instructions including database configuration.
+
+---
 
 ## ⚙️ Environment Variables
 
-Copy `.env.example` to `.env` and fill in your values. All variables are **optional** — the app runs without them but with reduced functionality:
+Copy `.env.example` to `.env`. All variables are **optional** — the app runs without them but with reduced functionality:
 
-| Variable | Required | Purpose |
-|----------|----------|---------|
-| `VITE_FIREBASE_API_KEY` | Optional | Firebase authentication |
-| `VITE_FIREBASE_PROJECT_ID` | Optional | Firebase project identifier |
-| `VITE_FIREBASE_APP_ID` | Optional | Firebase app identifier |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Optional | Firebase Cloud Messaging |
-| `VITE_FIREBASE_MEASUREMENT_ID` | Optional | Firebase Analytics |
-| `OPENAI_API_KEY` | Optional | AI tutor, test generation, answer evaluation |
-| `SESSION_SECRET` | Optional | Session cookie signing (auto-generated in dev) |
+| Variable | Purpose |
+|---|---|
+| `VITE_FIREBASE_API_KEY` | Firebase authentication |
+| `VITE_FIREBASE_PROJECT_ID` | Firebase project identifier |
+| `VITE_FIREBASE_APP_ID` | Firebase app identifier |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase Cloud Messaging |
+| `VITE_FIREBASE_MEASUREMENT_ID` | Firebase Analytics |
+| `OPENAI_API_KEY` | AI tutor, test generation, and answer evaluation |
+| `MONGODB_URI` | MongoDB Atlas connection string (session + user storage) |
+| `CASSANDRA_*` | Cassandra cluster config for message persistence |
+| `SESSION_SECRET` | Session cookie signing (auto-generated in dev) |
 
-> **Without Firebase:** The app loads but auth features are disabled.
-> **Without OpenAI:** The app loads but AI features won't work.
+> **Without Firebase:** Auth features are disabled.  
+> **Without OpenAI:** AI features are unavailable.  
+> **Without MongoDB/Cassandra:** Falls back to in-memory storage.
+
+---
 
 ## 📁 Project Structure
 
 ```
-├── client/                # React frontend (Vite)
-│   ├── src/
-│   │   ├── components/    # React components
-│   │   ├── contexts/      # Context providers (auth, theme)
-│   │   ├── hooks/         # Custom React hooks
-│   │   ├── lib/           # Utility functions & libraries
-│   │   ├── pages/         # Page components
-│   │   ├── App.tsx        # Main application component
-│   │   └── main.tsx       # Entry point
-│   └── index.html         # HTML template
-├── server/                # Express backend
-│   ├── lib/               # Server utilities (OpenAI integration)
-│   ├── index.ts           # Server entry point (port 5001)
-│   ├── routes.ts          # API routes
-<<<<<<< Updated upstream
-│   ├── storage.ts         # In-memory data storage
-│   └── vite.ts            # Vite dev middleware setup
-├── shared/                # Shared code (client ↔ server)
-│   └── schema.ts          # Database schema (Drizzle ORM)
-=======
-<<<<<<< Updated upstream
-│   ├── storage.ts         # In-memory data storage
-│   └── vite.ts            # Vite dev middleware setup
-├── shared/                # Shared code (client ↔ server)
-│   └── schema.ts          # Zod validation schemas
->>>>>>> Stashed changes
-├── Dockerfile             # Docker image definition
-├── docker-compose.yml     # Docker Compose services
-└── .env.example           # Environment variable template
+PersonalLearningPro/
+├── client/                    # React + Vite frontend
+│   └── src/
+│       ├── components/        # Reusable UI components
+│       │   ├── auth/          # Firebase auth dialogs
+│       │   ├── chat/          # Real-time messaging UI
+│       │   ├── dashboard/     # Role-specific dashboard widgets
+│       │   └── ui/            # shadcn/ui component library
+│       ├── contexts/          # Auth & theme context providers
+│       ├── hooks/             # Custom React hooks (WebSocket, auth, query)
+│       ├── lib/               # API clients, Firebase config, utilities
+│       ├── pages/             # Page-level components (one per route)
+│       ├── App.tsx            # Root router & layout
+│       └── main.tsx           # Vite entry point
+│
+├── server/                    # Express + Node.js backend
+│   ├── lib/                   # Integrations: OpenAI, Firebase Admin, Tesseract, Cassandra
+│   ├── message/               # Real-time messaging module
+│   │   ├── index.ts           # Message route handlers
+│   │   ├── routes.ts          # Express routes for messages
+│   │   ├── message-store.ts   # Abstract message storage interface
+│   │   └── cassandra-*.ts     # Cassandra-backed message persistence
+│   ├── messagepal/            # MessagePal feature module
+│   ├── chat-ws.ts             # WebSocket server (ws library)
+│   ├── routes.ts              # Main API routes
+│   ├── storage.ts             # MongoDB + in-memory storage layer
+│   ├── db.ts                  # MongoDB/Mongoose connection
+│   ├── middleware.ts          # Auth & session middleware
+│   └── index.ts               # Server entry point (port 5001)
+│
+├── shared/                    # Shared types & Zod validation schemas
+├── docs/                      # Project documentation
+│   ├── CHANGELOG.md
+│   ├── CONTRIBUTING.md
+│   ├── LOCAL_SETUP.md
+│   ├── CLA.md
+│   └── CODE_OF_CONDUCT.md
+├── Dockerfile                 # Docker image definition
+├── docker-compose.yml         # Multi-service Docker Compose
+└── .env.example               # Environment variable template
 ```
+
+---
 
 ## 📜 Available Scripts
 
 | Command | Description |
-|---------|-------------|
+|---|---|
 | `npm run dev` | Start the full app in development mode (port 5001) |
-| `npm run build` | Build for production |
+| `npm run build` | Build for production (Vite + esbuild) |
 | `npm run start` | Run the production build |
 | `npm run check` | Type-check TypeScript |
-| `npm run check` | Type-check TypeScript |
+
+---
 
 ## 🐳 Docker Reference
 
 ```bash
 docker compose build              # Build the image
 docker compose up                 # Start the container
-docker compose up -d              # Start in background
+docker compose up -d              # Start in background (detached)
 docker compose down               # Stop the container
 docker compose build --no-cache   # Rebuild after dependency changes
 ```
 
 Source files (`client/`, `server/`, `shared/`) are bind-mounted for **hot reload** — no rebuild needed for code changes.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technologies |
+|---|---|
+| **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion |
+| **Backend** | Node.js, Express, TypeScript, Passport.js |
+| **Database** | MongoDB (users/sessions), Apache Cassandra (messages) |
+| **Auth** | Firebase Auth, Firebase Admin SDK, express-session |
+| **AI** | OpenAI API (GPT-4), Tesseract.js (OCR) |
+| **Real-time** | WebSocket (`ws`), custom chat gateway |
+| **State** | TanStack Query (React Query) |
+| **Charts** | Recharts |
+| **File Upload** | Multer |
+
+---
 
 ## 📝 Contributor License Agreement (CLA)
 
@@ -129,11 +190,13 @@ We use a CLA to ensure contributions can be safely included in the project. When
 
 > I have read the CLA Document and I hereby sign the CLA
 
-You only need to do this once. See [CLA.md](CLA.md) for the full agreement.
+You only need to do this once. See [CLA.md](docs/CLA.md) for the full agreement.
+
+---
 
 ## 🤝 Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+We welcome contributions! See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
@@ -141,6 +204,8 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 4. Commit your changes (`git commit -m 'Add some amazing feature'`)
 5. Push to the branch (`git push origin feature/amazing-feature`)
 6. Open a Pull Request
+
+---
 
 ## 📄 License
 

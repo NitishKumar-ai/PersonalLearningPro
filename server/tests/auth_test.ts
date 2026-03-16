@@ -9,13 +9,19 @@ vi.mock('../lib/firebase-admin', () => ({
   verifyFirebaseToken: vi.fn(),
 }));
 
-vi.mock('../../shared/mongo-schema', () => ({
-  MongoUser: {
-    findOne: vi.fn(),
-    save: vi.fn(),
-  },
-  getNextSequenceValue: vi.fn().mockResolvedValue(1),
-}));
+vi.mock('../../shared/mongo-schema', () => {
+  const saveMock = vi.fn().mockResolvedValue(true);
+  function MockUser(this: any, data: any) {
+    Object.assign(this, data);
+    this.save = saveMock;
+  }
+  MockUser.findOne = vi.fn();
+
+  return {
+    MongoUser: MockUser,
+    getNextSequenceValue: vi.fn().mockResolvedValue(1),
+  };
+});
 
 vi.mock('../storage', () => ({
   storage: {
@@ -57,15 +63,15 @@ describe('Authentication Middleware', () => {
     expect(res.json).toHaveBeenCalledWith({ message: "Invalid or expired token" });
   });
 
-  it('should return 404 if user profile is not found', async () => {
+  it('should auto-create user and call next() if Firebase token is valid but no MongoDB user exists', async () => {
     req.headers!.authorization = 'Bearer valid-token';
-    const decodedToken = { uid: 'firebase-uid', email: 'test@example.com' };
+    const decodedToken = { uid: 'firebase-uid', email: 'test@example.com', name: 'Test User' };
     (verifyFirebaseToken as Mock).mockResolvedValue(decodedToken);
-    (MongoUser.findOne as Mock).mockResolvedValue(null);
+    (MongoUser as any).findOne = vi.fn().mockResolvedValue(null); // user doesn't exist
 
     await authenticateToken(req as Request, res as Response, next);
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ message: "User profile not found in database. Please complete registration." });
+    // New behavior: auto-creates the user and continues
+    expect(next).toHaveBeenCalled();
   });
 
   it('should call next() if token is valid and user exists', async () => {

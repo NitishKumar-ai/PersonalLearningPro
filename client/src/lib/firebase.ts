@@ -11,7 +11,7 @@ import {
   onAuthStateChanged,
   User
 } from "firebase/auth";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { initializeFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -43,13 +43,13 @@ if (!firebaseEnabled) {
 // Initialize Firebase only when credentials are present
 const app = firebaseEnabled ? initializeApp(firebaseConfig) : null;
 export const auth = app ? getAuth(app) : null;
-export const db = app ? getFirestore(app) : null;
+export const db = app ? initializeFirestore(app, { experimentalForceLongPolling: true }) : null;
 export const googleProvider = firebaseEnabled
   ? new GoogleAuthProvider()
   : null;
 
 // User role types
-export type UserRole = 'principal' | 'school_admin' | 'admin' | 'teacher' | 'student' | 'parent';
+export type UserRole = 'student' | 'teacher' | 'school_admin' | 'admin' | 'principal' | 'parent';
 
 // User profile interface
 export interface UserProfile {
@@ -57,11 +57,17 @@ export interface UserProfile {
   email: string;
   displayName: string;
   role: UserRole;
+  status: 'active' | 'pending' | 'suspended' | 'rejected';
   photoURL?: string;
+  // Role-specific fields
+  school_code?: string;
+  grade?: string; // Students
+  board?: string; // Students
+  subjects?: string[]; // Teachers
+  district?: string; // School Admins
   institutionId?: string;
   classId?: string;
   studentId?: string; // For parents
-  subjects?: string[]; // For teachers
   createdAt?: any;
   lastLogin?: any;
 }
@@ -100,7 +106,9 @@ export const loginWithEmail = async (email: string, password: string) => {
   } catch (error: any) {
     const friendlyMsg = mapFirebaseError(error);
     console.error("Error logging in with email:", error);
-    throw new Error(friendlyMsg);
+    const newErr = new Error(friendlyMsg) as any;
+    newErr.code = error.code;
+    throw newErr;
   }
 };
 
@@ -126,6 +134,7 @@ export const registerWithEmail = async (
       email: user.email || email,
       displayName,
       role,
+      status: role === 'student' ? 'active' : 'pending',
       photoURL: user.photoURL || "",
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
@@ -138,7 +147,9 @@ export const registerWithEmail = async (
   } catch (error: any) {
     const friendlyMsg = mapFirebaseError(error);
     console.error("Error registering with email:", error);
-    throw new Error(friendlyMsg);
+    const newErr = new Error(friendlyMsg) as any;
+    newErr.code = error.code;
+    throw newErr;
   }
 };
 
@@ -174,7 +185,9 @@ export const loginWithGoogle = async () => {
   } catch (error: any) {
     const friendlyMsg = mapFirebaseError(error);
     console.error("Error logging in with Google:", error);
-    throw new Error(friendlyMsg);
+    const newErr = new Error(friendlyMsg) as any;
+    newErr.code = error.code;
+    throw newErr;
   }
 };
 
@@ -190,6 +203,7 @@ export const completeGoogleSignUp = async (
       email: user.email || "",
       displayName: user.displayName || "",
       role,
+      status: role === 'student' ? 'active' : 'pending',
       photoURL: user.photoURL || "",
       createdAt: serverTimestamp(),
       lastLogin: serverTimestamp(),
