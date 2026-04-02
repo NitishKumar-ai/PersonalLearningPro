@@ -14,6 +14,8 @@ import {
   type LiveClass, type InsertLiveClass,
   type LiveSessionAttendance, type InsertLiveSessionAttendance,
   type FcmToken, type InsertFcmToken,
+  type Task, type InsertTask,
+  type Notification as AppNotification, type InsertNotification,
 } from "@shared/schema";
 import {
   MongoUser, MongoSession, MongoOtp,
@@ -21,6 +23,8 @@ import {
   MongoTestAssignment,
   MongoWorkspace, MongoChannel, MongoMessage,
   MongoLiveClass, MongoLiveSessionAttendance, MongoFcmToken,
+  MongoTask,
+  MongoNotification,
   getNextSequenceValue
 } from "@shared/mongo-schema";
 import { getCassandraClient } from "./lib/cassandra";
@@ -140,6 +144,19 @@ export interface IStorage {
   upsertFcmToken(token: InsertFcmToken): Promise<FcmToken>;
   getFcmTokensByUser(userId: number): Promise<FcmToken[]>;
   removeFcmToken(token: string): Promise<boolean>;
+
+  // Task operations
+  createTask(task: InsertTask): Promise<Task>;
+  getTasksByUser(userId: number): Promise<Task[]>;
+  updateTask(id: number, update: Partial<InsertTask>, userId: number): Promise<Task | undefined>;
+  deleteTask(id: number, userId: number): Promise<boolean>;
+
+  // Notification operations
+  createNotification(n: InsertNotification): Promise<AppNotification>;
+  getNotificationsByUser(userId: number): Promise<AppNotification[]>;
+  markNotificationRead(id: number, userId: number): Promise<AppNotification | undefined>;
+  dismissNotification(id: number, userId: number): Promise<boolean>;
+  markAllNotificationsRead(userId: number): Promise<boolean>;
 }
 
 
@@ -680,6 +697,71 @@ export class MongoStorage implements IStorage {
   async removeFcmToken(tokenStr: string): Promise<boolean> {
     const result = await MongoFcmToken.deleteMany({ token: tokenStr });
     return result.deletedCount > 0;
+  }
+
+  // ─── Task operations ─────────────────────────────────────────────────────
+
+  async createTask(task: InsertTask): Promise<Task> {
+    const id = await getNextSequenceValue("task_id");
+    const newTask = new MongoTask({ ...task, id });
+    await newTask.save();
+    return this.mapMongoDoc<Task>(newTask);
+  }
+
+  async getTasksByUser(userId: number): Promise<Task[]> {
+    const tasks = await MongoTask.find({ userId }).sort({ createdAt: -1 });
+    return tasks.map((t: any) => this.mapMongoDoc<Task>(t));
+  }
+
+  async updateTask(id: number, update: Partial<InsertTask>, userId: number): Promise<Task | undefined> {
+    const existing = await MongoTask.findOne({ id });
+    if (!existing) return undefined;
+    if (existing.userId !== userId) return undefined;
+    const updated = await MongoTask.findOneAndUpdate({ id }, update, { new: true });
+    return updated ? this.mapMongoDoc<Task>(updated) : undefined;
+  }
+
+  async deleteTask(id: number, userId: number): Promise<boolean> {
+    const existing = await MongoTask.findOne({ id });
+    if (!existing) return false;
+    if (existing.userId !== userId) return false;
+    const result = await MongoTask.deleteOne({ id });
+    return result.deletedCount > 0;
+  }
+
+  // ─── Notification operations ──────────────────────────────────────────────
+
+  async createNotification(n: InsertNotification): Promise<AppNotification> {
+    const id = await getNextSequenceValue("notification_id");
+    const newNotif = new MongoNotification({ ...n, id });
+    await newNotif.save();
+    return this.mapMongoDoc<AppNotification>(newNotif);
+  }
+
+  async getNotificationsByUser(userId: number): Promise<AppNotification[]> {
+    const notifs = await MongoNotification.find({ userId }).sort({ createdAt: -1 });
+    return notifs.map((n: any) => this.mapMongoDoc<AppNotification>(n));
+  }
+
+  async markNotificationRead(id: number, userId: number): Promise<AppNotification | undefined> {
+    const existing = await MongoNotification.findOne({ id });
+    if (!existing) return undefined;
+    if (existing.userId !== userId) return undefined;
+    const updated = await MongoNotification.findOneAndUpdate({ id }, { isRead: true }, { new: true });
+    return updated ? this.mapMongoDoc<AppNotification>(updated) : undefined;
+  }
+
+  async dismissNotification(id: number, userId: number): Promise<boolean> {
+    const existing = await MongoNotification.findOne({ id });
+    if (!existing) return false;
+    if (existing.userId !== userId) return false;
+    const result = await MongoNotification.deleteOne({ id });
+    return result.deletedCount > 0;
+  }
+
+  async markAllNotificationsRead(userId: number): Promise<boolean> {
+    await MongoNotification.updateMany({ userId, isRead: false }, { isRead: true });
+    return true;
   }
 }
 
