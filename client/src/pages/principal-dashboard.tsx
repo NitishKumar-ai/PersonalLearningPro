@@ -2,7 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { PageHeader } from "@/components/layout/page-header";
 import {
   Users,
@@ -44,11 +47,21 @@ import {
 export default function PrincipalDashboard() {
   const { currentUser } = useFirebaseAuth();
 
+  const { data: tests, isLoading: isLoadingTests } = useQuery<any[]>({
+    queryKey: ["/api/tests"],
+    queryFn: () => apiRequest("GET", "/api/tests").then(r => r.json()),
+  });
+
+  const { data: students, isLoading: isLoadingStudents, isError: isErrorStudents } = useQuery<any[]>({
+    queryKey: ["/api/users", { role: "student" }],
+    queryFn: () => apiRequest("GET", "/api/users?role=student").then(r => r.json()),
+  });
+
   const stats = [
-    { label: "Total Students", value: "1,245", icon: <GraduationCap className="h-5 w-5" />, trend: "+42 this term", gradient: "from-blue-500 to-indigo-600" },
-    { label: "Teachers", value: "87", icon: <Users className="h-5 w-5" />, trend: "3 new hires", gradient: "from-emerald-500 to-teal-600" },
-    { label: "Active Classes", value: "36", icon: <School className="h-5 w-5" />, trend: "All running", gradient: "from-amber-500 to-orange-600" },
-    { label: "Pass Rate", value: "94.2%", icon: <TrendingUp className="h-5 w-5" />, trend: "+2.1% vs last year", gradient: "from-purple-500 to-violet-600" },
+    { label: "Total Students", value: isLoadingStudents ? null : isErrorStudents ? "Error" : students?.length?.toLocaleString() || "0", icon: <GraduationCap className="h-5 w-5" />, trend: "+42 this term", gradient: "from-blue-500 to-indigo-600", isLoading: isLoadingStudents },
+    { label: "Teachers", value: "87", icon: <Users className="h-5 w-5" />, trend: "3 new hires", gradient: "from-emerald-500 to-teal-600", isLoading: false },
+    { label: "Active Classes", value: "36", icon: <School className="h-5 w-5" />, trend: "All running", gradient: "from-amber-500 to-orange-600", isLoading: false },
+    { label: "Pass Rate", value: "94.2%", icon: <TrendingUp className="h-5 w-5" />, trend: "+2.1% vs last year", gradient: "from-purple-500 to-violet-600", isLoading: false },
   ];
 
   const performanceData = [
@@ -117,7 +130,9 @@ export default function PrincipalDashboard() {
               <div className={`p-2.5 rounded-xl bg-gradient-to-br ${stat.gradient} text-white w-fit mb-3 shadow-sm`}>
                 {stat.icon}
               </div>
-              <div className="text-2xl font-bold tracking-tight">{stat.value}</div>
+              <div className="text-2xl font-bold tracking-tight">
+                {stat.isLoading ? <Skeleton className="h-7 w-16" /> : stat.value === "Error" ? <span className="text-sm text-red-500">Error</span> : stat.value}
+              </div>
               <div className="text-sm text-muted-foreground">{stat.label}</div>
               <div className="text-xs text-primary/70 mt-1 font-medium">{stat.trend}</div>
             </CardContent>
