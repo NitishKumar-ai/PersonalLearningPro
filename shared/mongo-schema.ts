@@ -252,4 +252,48 @@ const FcmTokenSchema = new mongoose.Schema({
 
 export const MongoFcmToken = mongoose.model("FcmToken", FcmTokenSchema);
 
+// ─── Task Schema ─────────────────────────────────────────────────────────────
+
+const TaskSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  userId: { type: Number, required: true, index: true },
+  title: { type: String, required: true },
+  status: { type: String, enum: ["backlog", "todo", "in-progress", "review", "done"], default: "todo" },
+  priority: { type: String, enum: ["low", "medium", "high", "urgent"], default: "medium" },
+  tags: [{ type: String }],
+  dueDate: { type: String, default: null },
+  comments: { type: Number, default: 0 },
+  attachments: { type: Number, default: 0 },
+  createdAt: { type: Date, default: Date.now },
+});
+export const MongoTask = mongoose.model("Task", TaskSchema);
+
+// ─── Notification Schema ──────────────────────────────────────────────────────
+
+const NotificationSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  userId: { type: Number, required: true, index: true },
+  type: { type: String, enum: ["test", "result", "announcement", "message", "achievement", "reminder"], required: true },
+  title: { type: String, required: true },
+  body: { type: String, required: true },
+  isRead: { type: Boolean, default: false },
+  meta: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now },
+});
+NotificationSchema.index({ userId: 1, createdAt: -1 });
+export const MongoNotification = mongoose.model("Notification", NotificationSchema);
+
+// ─── Focus Session Schema ─────────────────────────────────────────────────────
+
+const FocusSessionSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  userId: { type: Number, required: true, index: true },
+  subject: { type: String, required: true },
+  mode: { type: String, enum: ["work", "short", "long"], required: true },
+  durationSeconds: { type: Number, required: true },
+  completedAt: { type: Date, default: Date.now },
+});
+FocusSessionSchema.index({ userId: 1, completedAt: -1 });
+export const MongoFocusSession = mongoose.model("FocusSession", FocusSessionSchema);
+
 export { getNextSequenceValue };
