@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { TopStudents } from "@/components/dashboard/top-students";
+import { StudentAnalyticsCard, type StudentAnalyticsSummary } from "@/components/dashboard/student-analytics-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { apiRequest } from "@/lib/queryClient";
 import {
   PieChart,
   Pie,
@@ -22,6 +26,48 @@ import {
   Lightbulb,
   Target,
 } from "lucide-react";
+
+function IndividualStudentsTab() {
+  const { data: students, isLoading, isError } = useQuery<StudentAnalyticsSummary[]>({
+    queryKey: ["/api/analytics/students"],
+    queryFn: () => apiRequest("GET", "/api/analytics/students").then(r => r.json()),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-16 w-full rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  if (isError || !students) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 gap-2 text-center">
+        <p className="text-sm text-muted-foreground">Failed to load student analytics.</p>
+      </div>
+    );
+  }
+
+  if (students.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-10 gap-2 text-center">
+        <Users className="h-8 w-8 text-muted-foreground/50" />
+        <p className="text-sm text-muted-foreground">No student data available.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+      {students.map(student => (
+        <StudentAnalyticsCard key={student.studentId} student={student} />
+      ))}
+    </div>
+  );
+}
 
 export default function Analytics() {
   const [periodTab, setPeriodTab] = useState("monthly");
@@ -279,23 +325,7 @@ export default function Analytics() {
             </TabsContent>
 
             <TabsContent value="individuals" className="mt-4">
-              <div className="flex flex-col items-center justify-center py-14 text-center gap-4">
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary to-violet-600 opacity-10 blur-xl" />
-                  <div className="relative p-5 rounded-2xl bg-gradient-to-br from-primary/10 to-violet-500/10 border border-primary/20">
-                    <Brain className="h-8 w-8 text-primary" />
-                  </div>
-                </div>
-                <div>
-                  <Badge className="mb-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
-                    🚀 Coming Soon
-                  </Badge>
-                  <h3 className="font-semibold text-base">Individual Student Analytics</h3>
-                  <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-                    Personalised AI insights per student — including learning pace, weak areas, and improvement suggestions.
-                  </p>
-                </div>
-              </div>
+              <IndividualStudentsTab />
             </TabsContent>
           </Tabs>
         </CardContent>
