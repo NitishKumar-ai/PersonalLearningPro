@@ -1,7 +1,7 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertTestSchema, insertQuestionSchema, insertTestAttemptSchema, insertAnswerSchema, insertAnalyticsSchema, insertWorkspaceSchema, insertChannelSchema, insertMessageSchema, type Channel } from "@shared/schema";
+import { insertUserSchema, insertTestSchema, insertQuestionSchema, insertTestAttemptSchema, insertAnswerSchema, insertAnalyticsSchema, insertWorkspaceSchema, insertChannelSchema, insertMessageSchema, insertTaskSchema, insertNotificationSchema, type Channel } from "@shared/schema";
 import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat, generateStudyPlan, analyzeTestPerformance } from "./lib/openai";
@@ -1576,6 +1576,175 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("[api/school/teachers/approve] Error:", error);
       res.status(500).json({ message: "Failed to approve teacher" });
+    }
+  });
+
+  // ─── Task routes ─────────────────────────────────────────────────────────
+
+  app.post("/api/tasks", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const parseResult = insertTaskSchema.safeParse({ ...req.body, userId: req.session.userId });
+      if (!parseResult.success) {
+        return res.status(400).json({ message: "Invalid input data", errors: parseResult.error.errors });
+      }
+      const task = await storage.createTask(parseResult.data);
+      return res.status(201).json(task);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to create task" });
+    }
+  });
+
+  app.get("/api/tasks", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const tasks = await storage.getTasksByUser(req.session.userId);
+      return res.status(200).json(tasks);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get tasks" });
+    }
+  });
+
+  app.patch("/api/tasks/:id", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const taskId = parseInt(req.params.id);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+      const parseResult = insertTaskSchema.partial().safeParse(req.body);
+      if (!parseResult.success) {
+        return res.status(400).json({ message: "Invalid input data", errors: parseResult.error.errors });
+      }
+      // Fetch task to distinguish 404 vs 403
+      const allUserTasks = await storage.getTasksByUser(req.session.userId);
+      const ownedTask = allUserTasks.find(t => t.id === taskId);
+      if (!ownedTask) {
+        // Task not found for this user — could be non-existent or owned by someone else
+        // Either way, return 404 (don't leak existence of other users' tasks)
+        return res.status(404).json({ message: "Task not found" });
+      }
+      const updated = await storage.updateTask(taskId, parseResult.data, req.session.userId);
+      if (updated === undefined) {
+        return res.status(403).json({ message: "Forbidden: Not your task" });
+      }
+      return res.status(200).json(updated);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update task" });
+    }
+  });
+
+  app.delete("/api/tasks/:id", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const taskId = parseInt(req.params.id);
+      if (isNaN(taskId)) {
+        return res.status(400).json({ message: "Invalid task ID" });
+      }
+      // Fetch task to distinguish 404 vs 403
+      const allUserTasks = await storage.getTasksByUser(req.session.userId);
+      const ownedTask = allUserTasks.find(t => t.id === taskId);
+      if (!ownedTask) {
+        return res.status(404).json({ message: "Task not found" });
+      }
+      const deleted = await storage.deleteTask(taskId, req.session.userId);
+      if (!deleted) {
+        return res.status(403).json({ message: "Forbidden: Not your task" });
+      }
+      return res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete task" });
+    }
+  });
+
+  // ─── Notification routes ──────────────────────────────────────────────────
+
+  // GET /api/notifications — list notifications for current user, sorted desc
+  app.get("/api/notifications", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const notifications = await storage.getNotificationsByUser(req.session.userId);
+      return res.status(200).json(notifications);
+    } catch (error) {
+      return res.status(500).json({ message: "Failed to get notifications" });
+    }
+  });
+
+  // PATCH /api/notifications/read-all — mark all read (MUST be before /:id route)
+  app.patch("/api/notifications/read-all", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      await storage.markAllNotificationsRead(req.session.userId);
+      return res.status(200).json({ message: "All notifications marked as read" });
+    } catch (error) {
+      return res.status(500).json({ message: "Failed to mark all notifications as read" });
+    }
+  });
+
+  // PATCH /api/notifications/:id/read — mark one notification read
+  app.patch("/api/notifications/:id/read", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const notifId = parseInt(req.params.id);
+      if (isNaN(notifId)) {
+        return res.status(400).json({ message: "Invalid notification ID" });
+      }
+      const updated = await storage.markNotificationRead(notifId, req.session.userId);
+      if (updated === undefined) {
+        // Could be not found or not owned — check existence
+        const all = await storage.getNotificationsByUser(req.session.userId);
+        const owned = all.find(n => n.id === notifId);
+        if (!owned) {
+          return res.status(404).json({ message: "Notification not found" });
+        }
+        return res.status(403).json({ message: "Forbidden: Not your notification" });
+      }
+      return res.status(200).json(updated);
+    } catch (error) {
+      return res.status(500).json({ message: "Failed to mark notification as read" });
+    }
+  });
+
+  // DELETE /api/notifications/:id — dismiss/delete notification
+  app.delete("/api/notifications/:id", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const notifId = parseInt(req.params.id);
+      if (isNaN(notifId)) {
+        return res.status(400).json({ message: "Invalid notification ID" });
+      }
+      // Check existence first to distinguish 404 vs 403
+      const allNotifs = await storage.getNotificationsByUser(req.session.userId);
+      const owned = allNotifs.find(n => n.id === notifId);
+      if (!owned) {
+        // Could be non-existent or owned by someone else — check globally
+        // dismissNotification returns false for both; we need to distinguish
+        // We'll attempt dismiss and treat false as 404 (don't leak other users' data)
+        return res.status(404).json({ message: "Notification not found" });
+      }
+      const deleted = await storage.dismissNotification(notifId, req.session.userId);
+      if (!deleted) {
+        return res.status(403).json({ message: "Forbidden: Not your notification" });
+      }
+      return res.status(204).send();
+    } catch (error) {
+      return res.status(500).json({ message: "Failed to delete notification" });
     }
   });
 
