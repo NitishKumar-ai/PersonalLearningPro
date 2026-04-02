@@ -1,7 +1,7 @@
 import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertTestSchema, insertQuestionSchema, insertTestAttemptSchema, insertAnswerSchema, insertAnalyticsSchema, insertWorkspaceSchema, insertChannelSchema, insertMessageSchema, insertTaskSchema, insertNotificationSchema, type Channel } from "@shared/schema";
+import { insertUserSchema, insertTestSchema, insertQuestionSchema, insertTestAttemptSchema, insertAnswerSchema, insertAnalyticsSchema, insertWorkspaceSchema, insertChannelSchema, insertMessageSchema, insertTaskSchema, insertNotificationSchema, insertFocusSessionSchema, type Channel } from "@shared/schema";
 import { z } from "zod";
 import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat, generateStudyPlan, analyzeTestPerformance } from "./lib/openai";
@@ -1745,6 +1745,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(204).send();
     } catch (error) {
       return res.status(500).json({ message: "Failed to delete notification" });
+    }
+  });
+
+  // ─── Focus Session routes ─────────────────────────────────────────────────
+
+  app.post("/api/focus-sessions", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const parseResult = insertFocusSessionSchema.safeParse({ ...req.body, userId: req.session.userId });
+      if (!parseResult.success) {
+        return res.status(400).json({ message: "Invalid input data", errors: parseResult.error.errors });
+      }
+      const session = await storage.createFocusSession(parseResult.data);
+      return res.status(201).json(session);
+    } catch (error) {
+      return res.status(500).json({ message: "Failed to create focus session" });
+    }
+  });
+
+  app.get("/api/focus-sessions", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+      const sessions = await storage.getFocusSessionsByUser(req.session.userId);
+      return res.status(200).json(sessions);
+    } catch (error) {
+      return res.status(500).json({ message: "Failed to get focus sessions" });
+    }
+  });
+
+  // GET /api/analytics/students — per-student analytics aggregation
+  app.get("/api/analytics/students", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Get all students
+      const students = await storage.getUsers("student");
+      if (!students || students.length === 0) {
+        return res.status(200).json([]);
+      }
+
+      // For each student, aggregate their test attempts
+      const summaries = await Promise.all(
+        students.map(async (student) => {
+          const attempts = await storage.getTestAttemptsByStudent(student.id);
+          const completedAttempts = attempts.filter(a => a.status === "completed" && a.score !== null);
+
+          const averageScore = completedAttempts.length > 0
+            ? completedAttempts.reduce((sum, a) => sum + (a.score || 0), 0) / completedAttempts.length
+            : 0;
+
+          const completionRate = attempts.length > 0
+            ? completedAttempts.length / attempts.length
+            : 0;
+
+          // Get subject breakdown from tests
+          const subjectScores: Record<string, { total: number; count: number }> = {};
+          for (const attempt of completedAttempts) {
+            const test = await storage.getTest(attempt.testId);
+            if (test) {
+              if (!subjectScores[test.subject]) {
+                subjectScores[test.subject] = { total: 0, count: 0 };
+              }
+              subjectScores[test.subject].total += attempt.score || 0;
+              subjectScores[test.subject].count += 1;
+            }
+          }
+
+          const subjectBreakdown = Object.entries(subjectScores).map(([subject, data]) => ({
+            subject,
+            averageScore: data.total / data.count,
+          }));
+
+          const recentAttempts = completedAttempts.slice(0, 5).map(a => ({
+            testId: a.testId,
+            score: a.score || 0,
+            completedAt: a.endTime || new Date(),
+          }));
+
+          return {
+            studentId: student.id,
+            name: student.name,
+            avatar: student.avatar,
+            averageScore: Math.round(averageScore * 10) / 10,
+            completionRate: Math.round(completionRate * 100) / 100,
+            subjectBreakdown,
+            recentAttempts,
+          };
+        })
+      );
+
+      return res.status(200).json(summaries);
+    } catch (error) {
+      console.error("[api/analytics/students] Error:", error);
+      return res.status(500).json({ message: "Failed to get student analytics" });
     }
   });
 
