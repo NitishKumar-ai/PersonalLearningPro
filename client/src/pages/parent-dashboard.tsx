@@ -4,6 +4,9 @@ import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import {
   Users,
   TrendingUp,
@@ -36,7 +39,12 @@ import {
 export default function ParentDashboard() {
   const { currentUser } = useFirebaseAuth();
 
-  const children = [
+  const { data: childrenData, isLoading: isLoadingChildren } = useQuery<any[]>({
+    queryKey: ["/api/users/children"],
+    queryFn: () => apiRequest("GET", "/api/users/children").then(r => r.json()),
+  });
+
+  const fallbackChildren = [
     {
       name: "Sarah Johnson",
       grade: "10th Grade",
@@ -56,6 +64,18 @@ export default function ParentDashboard() {
       color: "emerald"
     }
   ];
+
+  const children = (childrenData && childrenData.length > 0)
+    ? childrenData.map((c: any) => ({
+        name: c.displayName || c.name || "Unknown",
+        grade: c.grade || "N/A",
+        attendance: c.attendance || "N/A",
+        avgGrade: c.avgGrade || "N/A",
+        progress: c.progress || 0,
+        status: c.status || "N/A",
+        color: c.color || "blue",
+      }))
+    : fallbackChildren;
 
   const performanceData = [
     { month: "Sep", sarah: 88, leo: 78 },
@@ -101,7 +121,19 @@ export default function ParentDashboard() {
           Children's Overview
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {children.map((child, i) => (
+          {isLoadingChildren ? (
+            Array.from({ length: 2 }).map((_, i) => (
+              <Card key={i} className="animate-fade-in-up">
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-12 w-full" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-24 w-full mb-4" />
+                  <Skeleton className="h-4 w-full" />
+                </CardContent>
+              </Card>
+            ))
+          ) : children.map((child, i) => (
             <Card key={child.name} className="animate-fade-in-up hover:shadow-md transition-all duration-300" style={{ animationDelay: `${i * 100}ms` }}>
               <CardHeader className="pb-2">
                 <div className="flex justify-between items-start">
