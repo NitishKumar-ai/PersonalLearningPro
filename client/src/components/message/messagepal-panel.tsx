@@ -14,9 +14,11 @@ import {
   Check,
   CheckCheck,
   Paperclip,
-  Smile
+  Smile,
+  Loader2
 } from "lucide-react";
 import { useMessagePalWebSocket } from "./use-messagepal-ws";
+import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 
 interface User {
   id: number;
@@ -52,13 +54,15 @@ interface Conversation {
 export function MessageSidebar() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null);
+  const { currentUser } = useFirebaseAuth();
+  const userId = (currentUser?.profile as any)?.id as number | undefined;
   const {
     conversations,
     activeConversation,
     setActiveConversation,
     subscribeToConversation,
     unsubscribeFromConversation
-  } = useMessagePalWebSocket();
+  } = useMessagePalWebSocket(userId);
 
   const filteredConversations = conversations.filter(conv => {
     if (!searchTerm) return true;
@@ -109,7 +113,11 @@ export function MessageSidebar() {
       {/* Conversations List */}
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
-          {filteredConversations.length === 0 ? (
+          {!userId ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : filteredConversations.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <MessageCircle className="h-12 w-12 mx-auto mb-2 opacity-50" />
               <p>No conversations yet</p>
@@ -117,7 +125,7 @@ export function MessageSidebar() {
             </div>
           ) : (
             filteredConversations.map((conversation) => {
-              const otherParticipant = conversation.participants.find(p => p.id !== 1); // TODO: Get current user ID
+              const otherParticipant = conversation.participants.find(p => p.id !== userId);
               const isActive = activeConversation === conversation.id;
               
               return (
@@ -169,19 +177,23 @@ export function MessageSidebar() {
 
 export function MessageChatWindow() {
   const [message, setMessage] = useState('');
+  const { currentUser } = useFirebaseAuth();
+  const userId = (currentUser?.profile as any)?.id as number | undefined;
   const {
     messages,
     activeConversation,
+    conversations,
     sendMessage,
     sendTyping,
     markMessageAsRead
-  } = useMessagePalWebSocket();
+  } = useMessagePalWebSocket(userId);
+
+  // Resolve recipient from active conversation participants
+  const activeConv = conversations.find(c => c.id === activeConversation);
+  const recipientId = activeConv?.participants.find(p => p.id !== userId)?.id ?? 0;
 
   const handleSend = () => {
     if (!message.trim() || !activeConversation) return;
-    
-    // TODO: Get recipient ID from active conversation
-    const recipientId = 2; // Placeholder
     
     if (sendMessage(recipientId, message.trim())) {
       setMessage('');
@@ -199,12 +211,12 @@ export function MessageChatWindow() {
   useEffect(() => {
     if (activeConversation) {
       messages.forEach(msg => {
-        if (!msg.isRead && msg.recipientId === 1) { // TODO: Current user ID
+        if (!msg.isRead && msg.recipientId === userId) {
           markMessageAsRead(msg.id);
         }
       });
     }
-  }, [activeConversation, messages, markMessageAsRead]);
+  }, [activeConversation, messages, markMessageAsRead, userId]);
 
   if (!activeConversation) {
     return (
@@ -242,16 +254,16 @@ export function MessageChatWindow() {
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${msg.senderId === 1 ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${msg.senderId === userId ? 'justify-end' : 'justify-start'}`}
             >
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-2 ${
-                  msg.senderId === 1
+                  msg.senderId === userId
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-muted'
                 }`}
               >
-                {msg.senderId !== 1 && (
+                {msg.senderId !== userId && (
                   <p className="text-xs font-medium mb-1">{msg.senderName}</p>
                 )}
                 <p className="text-sm">{msg.content}</p>
@@ -259,7 +271,7 @@ export function MessageChatWindow() {
                   <span className="text-xs opacity-70">
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
-                  {msg.senderId === 1 && (
+                  {msg.senderId === userId && (
                     msg.isRead ? (
                       <CheckCheck className="h-3 w-3" />
                     ) : (
@@ -305,6 +317,17 @@ export function MessageChatWindow() {
 }
 
 export function MessagePanel() {
+  const { currentUser } = useFirebaseAuth();
+  const userId = (currentUser?.profile as any)?.id as number | undefined;
+
+  if (!userId) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-full bg-background">
       <div className="w-80 flex-shrink-0">
