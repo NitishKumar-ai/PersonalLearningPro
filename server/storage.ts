@@ -16,6 +16,7 @@ import {
   type FcmToken, type InsertFcmToken,
   type Task, type InsertTask,
   type Notification as AppNotification, type InsertNotification,
+  type FocusSession, type InsertFocusSession,
 } from "@shared/schema";
 import {
   MongoUser, MongoSession, MongoOtp,
@@ -25,6 +26,7 @@ import {
   MongoLiveClass, MongoLiveSessionAttendance, MongoFcmToken,
   MongoTask,
   MongoNotification,
+  MongoFocusSession,
   getNextSequenceValue
 } from "@shared/mongo-schema";
 import { getCassandraClient } from "./lib/cassandra";
@@ -157,6 +159,10 @@ export interface IStorage {
   markNotificationRead(id: number, userId: number): Promise<AppNotification | undefined>;
   dismissNotification(id: number, userId: number): Promise<boolean>;
   markAllNotificationsRead(userId: number): Promise<boolean>;
+
+  // Focus Session operations
+  createFocusSession(session: InsertFocusSession): Promise<FocusSession>;
+  getFocusSessionsByUser(userId: number): Promise<FocusSession[]>;
 }
 
 
@@ -762,6 +768,20 @@ export class MongoStorage implements IStorage {
   async markAllNotificationsRead(userId: number): Promise<boolean> {
     await MongoNotification.updateMany({ userId, isRead: false }, { isRead: true });
     return true;
+  }
+
+  // ─── Focus Session operations ─────────────────────────────────────────────
+
+  async createFocusSession(sessionData: InsertFocusSession): Promise<FocusSession> {
+    const id = await getNextSequenceValue("focus_session_id");
+    const newSession = new MongoFocusSession({ ...sessionData, id });
+    await newSession.save();
+    return this.mapMongoDoc<FocusSession>(newSession);
+  }
+
+  async getFocusSessionsByUser(userId: number): Promise<FocusSession[]> {
+    const sessions = await MongoFocusSession.find({ userId }).sort({ completedAt: -1 });
+    return sessions.map((s: any) => this.mapMongoDoc<FocusSession>(s));
   }
 }
 
