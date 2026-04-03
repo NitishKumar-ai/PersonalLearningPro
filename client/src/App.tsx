@@ -1,10 +1,9 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/contexts/theme-context";
-import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
-import { PageHeader } from "@/components/layout/page-header";
+import { FirebaseAuthProvider, useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { Button } from "@/components/ui/button";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Loader2 } from "lucide-react";
@@ -24,7 +23,6 @@ import StudentDirectory from "@/pages/student-directory";
 import Messages from "@/pages/messages";
 import LiveClasses from "@/pages/live-classes";
 import LiveClassRoom from "@/pages/live-classroom";
-import AiClassroom from "@/pages/ai-classroom";
 import MyProgress from "@/pages/my-progress";
 import Tasks from "@/pages/tasks";
 import Notifications from "@/pages/notifications";
@@ -35,8 +33,16 @@ import AiStudyPlans from "./pages/ai-study-plans";
 import Focus from "@/pages/focus";
 import TestPage from "@/pages/test-page";
 import TestsList from "@/pages/tests-list";
+import Landing from "@/pages/landing";
+import LoginPage from "@/pages/login";
+import AcceptInvite from "@/pages/accept-invite";
+import SchoolSetup from "@/pages/onboarding/school-setup";
+import InviteTeachers from "@/pages/onboarding/invite-teachers";
+import TeacherClassSetup from "@/pages/onboarding/teacher-class-setup";
+import InviteStudents from "@/pages/onboarding/invite-students";
+import { useOnboardingGuard } from "@/hooks/use-onboarding-guard";
 
-function WrappedComingSoon() {
+function ComingSoon() {
   return (
     <div className="flex flex-col items-center justify-center p-8 mt-20 text-center space-y-4">
       <h2 className="text-2xl font-bold">Coming Soon</h2>
@@ -52,13 +58,9 @@ function Layout({ children, fullWidth = false }: { children: React.ReactNode; fu
       <Sidebar />
       <main className="flex-1 transition-all duration-300 ease-in-out" style={{ marginLeft: "var(--sidebar-width, 16rem)" }}>
         {fullWidth ? (
-          <div className="w-full h-screen overflow-hidden">
-            {children}
-          </div>
+          <div className="w-full h-screen overflow-hidden">{children}</div>
         ) : (
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">
-            {children}
-          </div>
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-6">{children}</div>
         )}
       </main>
     </div>
@@ -66,44 +68,46 @@ function Layout({ children, fullWidth = false }: { children: React.ReactNode; fu
 }
 
 const withLayout = (Component: React.ComponentType<any>, options?: { fullWidth?: boolean }) => {
-  const WrappedComponent = (props: any) => (
+  const Wrapped = (props: any) => (
     <Layout fullWidth={options?.fullWidth}>
       <Component {...props} />
     </Layout>
   );
-  WrappedComponent.displayName = `WithLayout(${Component.displayName || Component.name || "Component"})`;
-  return WrappedComponent;
+  Wrapped.displayName = `WithLayout(${Component.displayName || Component.name || "Component"})`;
+  return Wrapped;
 };
 
-const ProtectedRoute = ({ component: Component, allowedRoles, ...rest }: { component: React.ComponentType<any>, allowedRoles?: string[], [key: string]: any }) => {
-  const { currentUser: { user, profile } } = useFirebaseAuth();
+/** Wraps a component with role-based access control. */
+const withProtection = (Component: React.ComponentType<any>, allowedRoles?: string[]) => {
+  const Protected = (props: any) => {
+    const { currentUser: { profile } } = useFirebaseAuth();
 
-  if (!(user || profile)) {
-    return <WrappedComingSoon />; // Handled by App level redirect usually
-  }
+    if (!profile) {
+      return <Redirect to="/login" />;
+    }
 
-  if (profile && allowedRoles && !allowedRoles.includes(profile.role)) {
-    return (
-      <Layout>
-        <div className="flex flex-col items-center justify-center p-8 mt-20 text-center space-y-4">
-          <h2 className="text-2xl font-bold text-destructive">Access Denied</h2>
-          <p className="text-muted-foreground">You do not have permission to view this page.</p>
-          <Button onClick={() => window.history.back()}>Go Back</Button>
-        </div>
-      </Layout>
-    );
-  }
+    if (allowedRoles && !allowedRoles.includes(profile.role)) {
+      return (
+        <Layout>
+          <div className="flex flex-col items-center justify-center p-8 mt-20 text-center space-y-4">
+            <h2 className="text-2xl font-bold text-destructive">Access Denied</h2>
+            <p className="text-muted-foreground">You do not have permission to view this page.</p>
+            <Button onClick={() => window.history.back()}>Go Back</Button>
+          </div>
+        </Layout>
+      );
+    }
 
-  return <Component {...rest} />;
-};
-
-const er = (Component: React.ComponentType<any>, allowedRoles?: string[]) => {
-  const Protected = (props: any) => <ProtectedRoute component={Component} allowedRoles={allowedRoles} {...props} />;
+    return <Component {...props} />;
+  };
+  Protected.displayName = `Protected(${Component.displayName || Component.name || "Component"})`;
   return Protected;
 };
 
 function App() {
-  const { currentUser: { user, profile }, isLoading, logout } = useFirebaseAuth();
+  const { currentUser: { profile }, isLoading, logout } = useFirebaseAuth();
+  useOnboardingGuard();
+  const [currentPath] = useLocation();
 
   if (isLoading) {
     return (
@@ -116,8 +120,15 @@ function App() {
     );
   }
 
+  // Unauthenticated — show landing/login
   if (!profile) {
-    return <Switch><Route component={WrappedComingSoon} /></Switch>;
+    return (
+      <Switch>
+        <Route path="/" component={Landing} />
+        <Route path="/login" component={LoginPage} />
+        <Route component={() => <Redirect to="/" />} />
+      </Switch>
+    );
   }
 
   if (profile.status === "pending") {
@@ -129,7 +140,7 @@ function App() {
             Your account has been created successfully but is currently awaiting approval from an administrator.
             You will be able to access the platform once your account is activated.
           </p>
-          <Button onClick={() => logout && logout()} variant="default" className="w-full">
+          <Button onClick={() => logout()} variant="default" className="w-full">
             Sign Out
           </Button>
         </div>
@@ -150,52 +161,63 @@ function App() {
     }
   };
 
+  const protect = withProtection;
+
   return (
     <Switch>
       <Route path="/" component={getDashboard()} />
-      <Route path="/dashboard" component={withLayout(er(Dashboard, ["teacher"]))} />
-      <Route path="/principal-dashboard" component={withLayout(er(PrincipalDashboard, ["principal"]))} />
-      <Route path="/school-admin-dashboard" component={withLayout(er(SchoolAdminDashboard, ["school_admin"]))} />
-      <Route path="/admin-dashboard" component={withLayout(er(AdminDashboard, ["admin"]))} />
-      <Route path="/student-dashboard" component={withLayout(er(StudentDashboard, ["student"]))} />
-      <Route path="/parent-dashboard" component={withLayout(er(ParentDashboard, ["parent"]))} />
+      <Route path="/dashboard" component={withLayout(protect(Dashboard, ["teacher"]))} />
+      <Route path="/principal-dashboard" component={withLayout(protect(PrincipalDashboard, ["principal"]))} />
+      <Route path="/school-admin-dashboard" component={withLayout(protect(SchoolAdminDashboard, ["school_admin"]))} />
+      <Route path="/admin-dashboard" component={withLayout(protect(AdminDashboard, ["admin"]))} />
+      <Route path="/student-dashboard" component={withLayout(protect(StudentDashboard, ["student"]))} />
+      <Route path="/parent-dashboard" component={withLayout(protect(ParentDashboard, ["parent"]))} />
 
-      <Route path="/create-test" component={withLayout(er(CreateTest, ["teacher"]))} />
-      <Route path="/ocr-scan" component={withLayout(er(OcrScan, ["teacher", "student", "parent"]))} />
-      <Route path="/analytics" component={withLayout(er(Analytics))} />
-      <Route path="/ai-tutor" component={withLayout(er(AiTutor, ["student"]))} />
-      <Route path="/student-directory" component={withLayout(er(StudentDirectory, ["teacher", "principal", "admin"]))} />
-      <Route path="/messages" component={withLayout(er(Messages), { fullWidth: true })} />
-      <Route path="/test/:id" component={withLayout(er(TestPage, ["student", "teacher", "admin"]), { fullWidth: true })} />
-      <Route path="/resources" component={withLayout(er(WrappedComingSoon, ["student"]), { fullWidth: true })} />
-      <Route path="/study-arena" component={withLayout(er(WrappedComingSoon, ["student"]), { fullWidth: true })} />
-      <Route path="/tasks" component={withLayout(er(Tasks))} />
+      <Route path="/create-test" component={withLayout(protect(CreateTest, ["teacher"]))} />
+      <Route path="/ocr-scan" component={withLayout(protect(OcrScan, ["teacher", "student", "parent"]))} />
+      <Route path="/analytics" component={withLayout(protect(Analytics))} />
+      <Route path="/ai-tutor" component={withLayout(protect(AiTutor, ["student"]))} />
+      <Route path="/student-directory" component={withLayout(protect(StudentDirectory, ["teacher", "principal", "admin"]))} />
+      <Route path="/messages" component={withLayout(protect(Messages), { fullWidth: true })} />
+      <Route path="/test/:id" component={withLayout(protect(TestPage, ["student", "teacher", "admin"]), { fullWidth: true })} />
+      <Route path="/resources" component={withLayout(protect(ComingSoon, ["student"]), { fullWidth: true })} />
+      <Route path="/study-arena" component={withLayout(protect(ComingSoon, ["student"]), { fullWidth: true })} />
+      <Route path="/tasks" component={withLayout(protect(Tasks))} />
 
-      <Route path="/institution" component={withLayout(WrappedComingSoon)} />
-      <Route path="/staff" component={withLayout(WrappedComingSoon)} />
-      <Route path="/students" component={withLayout(WrappedComingSoon)} />
+      <Route path="/institution" component={withLayout(ComingSoon)} />
+      <Route path="/staff" component={withLayout(ComingSoon)} />
+      <Route path="/students" component={withLayout(ComingSoon)} />
 
-      <Route path="/notifications" component={withLayout(er(Notifications))} />
-      <Route path="/tests" component={withLayout(er(TestsList, ["student"]))} />
-      <Route path="/calendar" component={withLayout(er(AcademicCalendar))} />
-      <Route path="/focus" component={withLayout(er(Focus, ["student"]))} />
-      <Route path="/achievements" component={withLayout(er(Achievements, ["student"]))} />
+      <Route path="/notifications" component={withLayout(protect(Notifications))} />
+      <Route path="/tests" component={withLayout(protect(TestsList, ["student"]))} />
+      <Route path="/calendar" component={withLayout(protect(AcademicCalendar))} />
+      <Route path="/focus" component={withLayout(protect(Focus, ["student"]))} />
+      <Route path="/achievements" component={withLayout(protect(Achievements, ["student"]))} />
 
-      <Route path="/infrastructure" component={withLayout(WrappedComingSoon)} />
-      <Route path="/live-classes" component={withLayout(er(LiveClasses, ["teacher", "student", "admin", "principal"]))} />
-      <Route path="/live/:id" component={withLayout(er(LiveClassRoom), { fullWidth: true })} />
-      <Route path="/progress" component={withLayout(er(MyProgress, ["student", "parent"]), { fullWidth: true })} />
-      <Route path="/study-groups" component={withLayout(WrappedComingSoon)} />
-      <Route path="/settings" component={withLayout(er(Settings))} />
-      <Route path="/system-settings" component={withLayout(WrappedComingSoon)} />
-      <Route path="/users" component={withLayout(WrappedComingSoon)} />
-      <Route path="/classes" component={withLayout(WrappedComingSoon)} />
-      <Route path="/partners" component={withLayout(WrappedComingSoon)} />
-      <Route path="/children" component={withLayout(WrappedComingSoon)} />
-      <Route path="/meetings" component={withLayout(WrappedComingSoon)} />
-      <Route path="/reports" component={withLayout(WrappedComingSoon)} />
-      <Route path="/ai-study-plans" component={withLayout(er(AiStudyPlans, ["student"]))} />
-      <Route path="/test-results" component={withLayout(WrappedComingSoon)} />
+      <Route path="/infrastructure" component={withLayout(ComingSoon)} />
+      <Route path="/live-classes" component={withLayout(protect(LiveClasses, ["teacher", "student", "admin", "principal"]))} />
+      <Route path="/live/:id" component={withLayout(protect(LiveClassRoom), { fullWidth: true })} />
+      <Route path="/progress" component={withLayout(protect(MyProgress, ["student", "parent"]), { fullWidth: true })} />
+      <Route path="/study-groups" component={withLayout(ComingSoon)} />
+      <Route path="/settings" component={withLayout(protect(Settings))} />
+      <Route path="/system-settings" component={withLayout(ComingSoon)} />
+      <Route path="/users" component={withLayout(ComingSoon)} />
+      <Route path="/classes" component={withLayout(ComingSoon)} />
+      <Route path="/partners" component={withLayout(ComingSoon)} />
+      <Route path="/children" component={withLayout(ComingSoon)} />
+      <Route path="/meetings" component={withLayout(ComingSoon)} />
+      <Route path="/reports" component={withLayout(ComingSoon)} />
+      <Route path="/ai-study-plans" component={withLayout(protect(AiStudyPlans, ["student"]))} />
+      <Route path="/test-results" component={withLayout(ComingSoon)} />
+
+      {/* Public invite acceptance — no auth required */}
+      <Route path="/accept-invite" component={AcceptInvite} />
+
+      {/* Onboarding flows */}
+      <Route path="/onboarding/school" component={withLayout(protect(SchoolSetup, ["school_admin"]))} />
+      <Route path="/onboarding/invite-teachers" component={withLayout(protect(InviteTeachers, ["school_admin"]))} />
+      <Route path="/onboarding/teacher" component={withLayout(protect(TeacherClassSetup, ["teacher"]))} />
+      <Route path="/onboarding/invite-students" component={withLayout(protect(InviteStudents, ["teacher"]))} />
 
       <Route component={NotFound} />
     </Switch>
@@ -206,8 +228,10 @@ export default function Root() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="system">
-        <App />
-        <Toaster />
+        <FirebaseAuthProvider>
+          <App />
+          <Toaster />
+        </FirebaseAuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
