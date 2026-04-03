@@ -212,7 +212,7 @@ export function Sidebar({ className }: SidebarProps) {
         >
           {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
         </button>
-        +
+
         {/* Logo and title */}
         <div className="py-6 px-6 flex items-center">
           {!isCollapsed && (
@@ -267,15 +267,18 @@ export function Sidebar({ className }: SidebarProps) {
                     className={cn(
                       "flex items-center py-2.5 rounded-xl transition-all duration-150 group relative text-sm font-medium",
                       isActive
-                        ? "bg-muted text-foreground shadow-soft"
+                        ? "bg-accent-soft text-accent font-semibold"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground",
                       isCollapsed ? "justify-center px-2" : "px-3"
                     )}
                     title={isCollapsed ? item.title : undefined}
                   >
+                    {isActive && !isCollapsed && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-accent rounded-r-full" />
+                    )}
                     <span
                       className={cn(
-                        "flex items-center justify-center w-5 h-5 transition-colors",
+                        "flex items-center justify-center w-5 h-5 transition-colors flex-shrink-0",
                         isActive ? "text-accent" : "text-muted-foreground group-hover:text-foreground",
                         !isCollapsed && "mr-3"
                       )}
