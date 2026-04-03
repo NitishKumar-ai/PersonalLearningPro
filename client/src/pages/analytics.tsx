@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest } from "@/lib/queryClient";
+import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import {
   PieChart,
   Pie,
@@ -15,6 +16,11 @@ import {
   ResponsiveContainer,
   Legend,
   Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from "recharts";
 import {
   TrendingUp,
@@ -25,6 +31,7 @@ import {
   Sparkles,
   Lightbulb,
   Target,
+  AlertCircle,
 } from "lucide-react";
 
 function IndividualStudentsTab() {
@@ -70,7 +77,15 @@ function IndividualStudentsTab() {
 }
 
 export default function Analytics() {
-  const [periodTab, setPeriodTab] = useState("monthly");
+  const { currentUser } = useFirebaseAuth();
+  const studentId = currentUser?.profile?.uid;
+
+  // Fetch real analytics data
+  const { data: analyticsData, isLoading: isLoadingAnalytics, isError: isErrorAnalytics } = useQuery<Array<{ subject: string; avgScore: number }>>({
+    queryKey: ["/api/analytics/student", studentId],
+    queryFn: () => apiRequest("GET", `/api/analytics/student/${studentId}`).then(r => r.json()),
+    enabled: !!studentId && currentUser?.profile?.role === "student",
+  });
 
   const testCompletionData = [
     { name: "Completed", value: 85, color: "hsl(var(--chart-1))" },
@@ -129,6 +144,20 @@ export default function Analytics() {
     },
   ];
 
+  // Prepare chart data from real analytics
+  const chartData = analyticsData?.map(item => ({
+    subject: item.subject,
+    score: item.avgScore
+  })) || [];
+
+  const COLORS = [
+    "hsl(var(--chart-1))",
+    "hsl(var(--chart-2))",
+    "hsl(var(--chart-3))",
+    "hsl(var(--chart-4))",
+    "hsl(var(--chart-5))",
+  ];
+
   return (
     <>
       {/* Page Header */}
@@ -167,6 +196,54 @@ export default function Analytics() {
           </Card>
         ))}
       </section>
+
+      {/* Real Analytics Chart */}
+      {currentUser?.profile?.role === "student" && (
+        <Card className="mb-6 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-indigo-500/10">
+                <BarChart3 className="h-4 w-4 text-indigo-500" />
+              </div>
+              <CardTitle className="text-base font-semibold">Your Performance by Subject</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="h-80">
+            {isLoadingAnalytics ? (
+              <div className="flex items-center justify-center h-full">
+                <Skeleton className="h-64 w-full" />
+              </div>
+            ) : isErrorAnalytics ? (
+              <div className="flex flex-col items-center justify-center h-full gap-2">
+                <AlertCircle className="h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground">Failed to load analytics data</p>
+              </div>
+            ) : chartData.length === 0 ? (
+              <div className="flex flex-col items-center justify-center h-full gap-2">
+                <BookOpen className="h-8 w-8 text-muted-foreground/50" />
+                <p className="text-sm text-muted-foreground">No results yet to analyse.</p>
+                <p className="text-xs text-muted-foreground">Complete some tests to see your performance</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="subject" className="text-xs" />
+                  <YAxis domain={[0, 100]} className="text-xs" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--background))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar dataKey="score" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Performance chart + Top students */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">

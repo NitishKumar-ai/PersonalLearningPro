@@ -40,6 +40,18 @@ interface User {
 export default function AdminDashboard() {
   const { currentUser } = useFirebaseAuth();
 
+  // Fetch real admin stats
+  const { data: adminStats, isLoading: isLoadingStats, isError: isErrorStats } = useQuery<{
+    totalStudents: number;
+    totalTeachers: number;
+    testsThisMonth: number;
+    submissionsThisMonth: number;
+  }>({
+    queryKey: ["/api/admin/stats"],
+    queryFn: () => apiRequest("GET", "/api/admin/stats").then(r => r.json()),
+    enabled: !!currentUser && ["admin", "principal", "school_admin"].includes(currentUser?.profile?.role || ""),
+  });
+
   const { data: principalUsers, isLoading: isLoadingPrincipals, isError: isErrorPrincipals } = useQuery<User[]>({
     queryKey: ["/api/users", { role: "principal" }],
     queryFn: () => apiRequest("GET", "/api/users?role=principal").then(r => r.json()),
@@ -90,6 +102,40 @@ export default function AdminDashboard() {
           </Button>
         </div>
       </PageHeader>
+
+      {/* Real-time Stats Cards */}
+      {["admin", "principal", "school_admin"].includes(currentUser?.profile?.role || "") && (
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <Card className="p-4 flex flex-col items-center">
+            <UsersRound className="h-8 w-8 mb-2 text-amber-500" />
+            <p className="font-medium text-2xl">
+              {isLoadingStats ? <Skeleton className="h-7 w-16" /> : isErrorStats ? <span className="text-xs text-red-500">Error</span> : adminStats?.totalStudents || 0}
+            </p>
+            <p className="text-xs text-center text-muted-foreground">Total Students</p>
+          </Card>
+          <Card className="p-4 flex flex-col items-center">
+            <BookOpen className="h-8 w-8 mb-2 text-green-500" />
+            <p className="font-medium text-2xl">
+              {isLoadingStats ? <Skeleton className="h-7 w-16" /> : isErrorStats ? <span className="text-xs text-red-500">Error</span> : adminStats?.totalTeachers || 0}
+            </p>
+            <p className="text-xs text-center text-muted-foreground">Total Teachers</p>
+          </Card>
+          <Card className="p-4 flex flex-col items-center">
+            <FileSpreadsheet className="h-8 w-8 mb-2 text-blue-500" />
+            <p className="font-medium text-2xl">
+              {isLoadingStats ? <Skeleton className="h-7 w-16" /> : isErrorStats ? <span className="text-xs text-red-500">Error</span> : adminStats?.testsThisMonth || 0}
+            </p>
+            <p className="text-xs text-center text-muted-foreground">Tests This Month</p>
+          </Card>
+          <Card className="p-4 flex flex-col items-center">
+            <BarChart3 className="h-8 w-8 mb-2 text-purple-500" />
+            <p className="font-medium text-2xl">
+              {isLoadingStats ? <Skeleton className="h-7 w-16" /> : isErrorStats ? <span className="text-xs text-red-500">Error</span> : adminStats?.submissionsThisMonth || 0}
+            </p>
+            <p className="text-xs text-center text-muted-foreground">Submissions This Month</p>
+          </Card>
+        </div>
+      )}
 
       <Tabs defaultValue="users">
         <TabsList className="grid grid-cols-4 mb-4">
