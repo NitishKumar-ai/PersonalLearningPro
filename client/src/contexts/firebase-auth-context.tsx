@@ -143,7 +143,7 @@ export const FirebaseAuthProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 lastLogin: null,
               };
               // Use a synthetic "user" shell so the rest of the app works
-              setCurrentUser({ user: null as any, profile: backendProfile });
+              setCurrentUser({ user: null, profile: backendProfile });
               setIsLoading(false);
               return;
             } else {
