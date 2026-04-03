@@ -13,6 +13,7 @@ import { logger } from "./lib/logger";
 import messageRoutes from "./message/routes";
 import { liveRouter } from "./routes/live";
 import aiClassroomRoutes from "./routes/ai-classroom";
+import onboardingRoutes from "./routes/onboarding";
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
