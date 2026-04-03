@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { 
   Check, 
@@ -16,7 +15,6 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
 
 interface Test {
@@ -24,60 +22,23 @@ interface Test {
   title: string;
   subject: string;
   class: string;
-  testDate: string;
+  testDate: string | Date;
   status: string;
   completionRate?: number;
   averageScore?: number;
 }
 
-export function RecentTestsTable() {
-  const { data: tests, isLoading } = useQuery<Test[]>({
-    queryKey: ["/api/tests"],
-  });
+interface RecentTestsTableProps {
+  data?: Test[];
+}
 
-  if (isLoading) {
-    return <TestsTableSkeleton />;
-  }
-
-  // Mock data for UI demonstration
-  const mockTests: Test[] = [
-    {
-      id: 1,
-      title: "Periodic Table Quiz",
-      subject: "Chemistry",
-      class: "10-A",
-      testDate: "2023-04-02",
-      status: "completed",
-      completionRate: 100,
-      averageScore: 82,
-    },
-    {
-      id: 2,
-      title: "Equations & Inequalities",
-      subject: "Mathematics",
-      class: "9-B",
-      testDate: "2023-04-03",
-      status: "in-progress",
-      completionRate: 65,
-    },
-    {
-      id: 3,
-      title: "Photosynthesis",
-      subject: "Biology",
-      class: "10-A",
-      testDate: "2023-04-05",
-      status: "scheduled",
-    },
-  ];
-
-  const displayTests = tests || mockTests;
-
-  if (!displayTests || displayTests.length === 0) {
+export function RecentTestsTable({ data }: RecentTestsTableProps) {
+  if (!data || data.length === 0) {
     return (
-      <div className="bg-card rounded-lg shadow p-6 text-center">
-        <p className="text-muted-foreground">No tests available</p>
+      <div className="bg-card rounded-lg shadow p-8 text-center border border-dashed">
+        <p className="text-muted-foreground mb-4">No tests available</p>
         <Link href="/create-test">
-          <Button className="mt-4">Create your first test</Button>
+          <Button>Create your first test</Button>
         </Link>
       </div>
     );
@@ -97,7 +58,7 @@ export function RecentTestsTable() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {displayTests.map((test) => (
+          {data.map((test) => (
             <TableRow key={test.id}>
               <TableCell>
                 <div className="font-medium">{test.title}</div>
@@ -115,19 +76,19 @@ export function RecentTestsTable() {
                 <TestStatusBadge status={test.status} />
               </TableCell>
               <TableCell>
-                {test.status !== "scheduled" ? (
+                {test.status !== "scheduled" && test.status !== "draft" ? (
                   <div className="w-full max-w-[100px]">
                     <div className="flex justify-between items-center mb-1">
                       <span className="text-xs">
-                        {test.completionRate}%
+                        {test.completionRate || 0}%
                       </span>
                       {test.status === "completed" && (
                         <span className="text-xs">
-                          Avg: {test.averageScore}%
+                          Avg: {test.averageScore || 0}%
                         </span>
                       )}
                     </div>
-                    <Progress value={test.completionRate} className="h-2" />
+                    <Progress value={test.completionRate || 0} className="h-2" />
                   </div>
                 ) : (
                   <span className="text-xs text-muted-foreground">Not started</span>
@@ -158,6 +119,7 @@ function TestStatusBadge({ status }: { status: string }) {
           Completed
         </Badge>
       );
+    case "published":
     case "in-progress":
       return (
         <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800">
@@ -182,53 +144,4 @@ function TestStatusBadge({ status }: { status: string }) {
     default:
       return <Badge variant="outline">{status}</Badge>;
   }
-}
-
-function TestsTableSkeleton() {
-  return (
-    <div className="bg-card rounded-lg border shadow-sm overflow-hidden">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Test</TableHead>
-            <TableHead>Class</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Completion</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {[1, 2, 3].map((i) => (
-            <TableRow key={i}>
-              <TableCell>
-                <div className="space-y-2">
-                  <Skeleton className="h-4 w-32" />
-                  <Skeleton className="h-3 w-24" />
-                </div>
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-16" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-4 w-24" />
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-6 w-24 rounded-full" />
-              </TableCell>
-              <TableCell>
-                <div className="space-y-2">
-                  <Skeleton className="h-3 w-12" />
-                  <Skeleton className="h-2 w-full" />
-                </div>
-              </TableCell>
-              <TableCell>
-                <Skeleton className="h-9 w-20 rounded" />
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
 }

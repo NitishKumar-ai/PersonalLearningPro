@@ -74,6 +74,7 @@ interface UseChatWsOptions {
 export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
     const { currentUser } = useFirebaseAuth();
     const wsRef = useRef<WebSocket | null>(null);
+    const pendingQueue = useRef<object[]>([]);
     const onEventRef = useRef(onEvent);
     const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
     const reconnectDelay = useRef(1000);
@@ -96,8 +97,12 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
             ws.send(JSON.stringify(data));
             return true;
         }
+        // Buffer if not connected
+        if (state.status !== 'idle') {
+            pendingQueue.current.push(data);
+        }
         return false;
-    }, []);
+    }, [state.status]);
 
     // ── Connect ─────────────────────────────────────────────────────────────────
     const connect = useCallback(async () => {
@@ -139,6 +144,11 @@ export function useChatWs({ onEvent, activeChannelId }: UseChatWsOptions) {
                     // Join channel if one is already active
                     if (activeChannelRef.current) {
                         sendRaw({ type: 'join_channel', channelId: activeChannelRef.current });
+                    }
+                    // Flush pending messages
+                    while (pendingQueue.current.length > 0) {
+                        const msg = pendingQueue.current.shift();
+                        if (msg) sendRaw(msg);
                     }
                 }
 
