@@ -30,7 +30,9 @@ const UserSchema = new mongoose.Schema({
   firebaseUid: { type: String, default: null, sparse: true },
   displayName: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
-  lastLoginAt: { type: Date, default: null },
+  lastLoginAt:        { type: Date, default: null },
+  schoolId:           { type: mongoose.Schema.Types.ObjectId, ref: "School", default: null },
+  onboardingComplete: { type: Boolean, default: false },
 });
 
 // ─── Authentication Schemas ──────────────────────────────────────────────────
