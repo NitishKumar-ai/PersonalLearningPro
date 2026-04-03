@@ -46,6 +46,14 @@ const PerformanceAnalysisSchema = z.object({
   recommendations: z.string(),
 });
 
+
+// ── OpenAI error normaliser ───────────────────────────────────────────────────
+function handleOpenAIError(err: any): never {
+  if (err?.status === 429) throw Object.assign(new Error("AI rate limit reached, try again shortly"), { status: 503 });
+  if (err?.status === 503 || err?.code === "ECONNREFUSED") throw Object.assign(new Error("AI is unavailable right now"), { status: 503 });
+  throw Object.assign(new Error("AI is unavailable right now"), { status: 503 });
+}
+
 export async function aiChat(messages: ChatMessage[], systemPrompt?: string): Promise<ChatResponse> {
   try {
     // Use provided system prompt or default
@@ -74,7 +82,7 @@ export async function aiChat(messages: ChatMessage[], systemPrompt?: string): Pr
     };
   } catch (error) {
     logger.error("AI chat error:", error);
-    throw new Error("Failed to generate response. Please try again later.");
+    handleOpenAIError(error);
   }
 }
 
