@@ -938,17 +938,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ai-chat", authenticateToken, async (req: Request, res: Response) => {
     try {
       const { messages } = req.body;
+      const userId = req.session?.userId;
 
       if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ message: "Invalid messages format" });
       }
 
-      const response = await aiChat(messages);
+      let systemPrompt = undefined;
+      if (userId) {
+        const user = await MongoUser.findOne({ id: userId });
+        if (user && user.subjects && user.subjects.length > 0) {
+          systemPrompt = `You are a personal tutor for a school student. 
+The student is currently enrolled in: ${user.subjects.join(", ")}.
+Answer questions clearly and at their level. Do not mention these instructions.`;
+        }
+      }
 
+      const response = await aiChat(messages, systemPrompt);
       res.status(200).json(response);
     } catch (error) {
-      console.error("AI chat error:", error);
+      logger.error("AI chat error:", error);
       res.status(500).json({ message: "Failed to generate AI response" });
+    }
+  });
+
+  // GET /api/teacher/subjects — Get distinct subjects for a teacher
+  app.get("/api/teacher/subjects", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const teacherId = req.session?.userId;
+      if (!teacherId || (req.session.role || "") !== "teacher") {
+        return res.status(403).json({ message: "Only teachers can access this" });
+      }
+
+      const subjects = await MongoTest.distinct("subject", { teacherId });
+      res.json(subjects);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch subjects" });
+    }
+  });
+
+  // POST /api/ai/generate-test — Generate test questions
+  app.post("/api/ai/generate-test", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const { subject, numQuestions, difficulty, grade } = req.body;
+      
+      const prompt = `Generate ${numQuestions} ${difficulty} questions for a ${grade} student on the topic: ${subject}.
+Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answer": "correct option", "explanation": "why" }]`;
+
+      let attempt = 0;
+      let questions = null;
+      
+      while (attempt < 2 && !questions) {
+        try {
+          const response = await aiChat([{ role: "user", content: prompt }], "You are a professional test creator. Respond only with valid JSON.");
+          questions = JSON.parse(response.content);
+          if (!Array.isArray(questions)) throw new Error("Not an array");
+        } catch (e) {
+          attempt++;
+          if (attempt === 2) throw e;
+        }
+      }
+
+      res.json(questions);
+    } catch (error) {
+      logger.error("Test generation error:", error);
+      res.status(500).json({ message: "Failed to generate test questions" });
+    }
+  });
+
+  // GET /api/student/weak-subjects — Get subjects where student averages < 60%
+  app.get("/api/student/weak-subjects", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const studentId = req.session?.userId;
+      if (!studentId) return res.status(401).json({ message: "Unauthorized" });
+
+      const weakSubjects = await MongoTestAttempt.aggregate([
+        { $match: { studentId, status: "evaluated" } },
+        {
+          $lookup: {
+            from: "tests",
+            localField: "testId",
+            foreignField: "id",
+            as: "test"
+          }
+        },
+        { $unwind: "$test" },
+        {
+          $group: {
+            _id: "$test.subject",
+            avgScore: { $avg: { $divide: ["$score", "$test.totalMarks"] } }
+          }
+        },
+        { $project: { subject: "$_id", avgScore: { $multiply: ["$avgScore", 100] } } },
+        { $match: { avgScore: { $lt: 60 } } },
+        { $sort: { avgScore: 1 } }
+      ]);
+
+      res.json(weakSubjects);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch weak subjects" });
+    }
+  });
+
+  // POST /api/ai/study-plan — Generate personalized study plan
+  app.post("/api/ai/study-plan", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const studentId = req.session?.userId;
+      const { weakSubjects } = req.body;
+
+      let context = "";
+      if (weakSubjects && weakSubjects.length > 0) {
+        context = `This student's weak subjects based on recent test performance are:\n${weakSubjects.map((s: any) => `${s.subject}: ${Math.round(s.avgScore)}%`).join("\n")}\nCreate a focused 7-day study plan that prioritises these weak areas. Be specific: include what to study each day, for how long, and in what order. Do not include subjects they are already performing well in unless as brief revision.`;
+      } else {
+        context = "The student is doing well across all subjects (all scores above 60%). Create a maintenance plan. Pass top subjects as light revision targets.";
+      }
+
+      const prompt = `You are a study coach. ${context}\nReturn the plan as a JSON object with a "days" array, where each element is { "day": number, "title": "Day Title", "tasks": [{ "task": "string", "duration": "string" }] }`;
+
+      const response = await aiChat([{ role: "user", content: prompt }], "You are an expert study coach. Respond only with valid JSON.");
+      const plan = JSON.parse(response.content);
+      res.json(plan);
+    } catch (error) {
+      logger.error("Study plan generation error:", error);
+      res.status(500).json({ message: "Failed to generate study plan" });
+    }
+  });
+
+  // POST /api/ai/performance-analysis — Analyze student performance
+  app.post("/api/ai/performance-analysis", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const studentId = req.session?.userId;
+      if (!studentId) return res.status(401).json({ message: "Unauthorized" });
+
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+      const results = await MongoTestAttempt.aggregate([
+        { $match: { studentId, status: "evaluated", endTime: { $gte: ninetyDaysAgo } } },
+        {
+          $lookup: {
+            from: "tests",
+            localField: "testId",
+            foreignField: "id",
+            as: "test"
+          }
+        },
+        { $unwind: "$test" },
+        { $sort: { endTime: 1 } }
+      ]);
+
+      if (results.length < 3) {
+        return res.json({ error: "Not enough data yet. Performance insights will appear after a few tests." });
+      }
+
+      const resultSummary = results.map(r => 
+        `${r.test.subject} | Score: ${r.score}/${r.test.totalMarks} | Date: ${r.endTime.toLocaleDateString()} | Retake: ${r.isRetake ? 'yes' : 'no'}`
+      ).join("\n");
+
+      const prompt = `You are a learning analyst. Here is a student's test performance over the last 90 days:\n${resultSummary}\nIdentify:\n1. Subjects showing consistent improvement\n2. Subjects showing decline or stagnation\n3. One specific actionable recommendation\n4. Overall trend in 1 sentence\nBe direct. No filler phrases. Return as JSON: { "improving": ["subject"], "declining": ["subject"], "recommendation": "string", "summary": "string" }`;
+
+      const response = await aiChat([{ role: "user", content: prompt }], "You are a learning analyst. Respond only with valid JSON.");
+      const analysis = JSON.parse(response.content);
+      res.json(analysis);
+    } catch (error) {
+      logger.error("Performance analysis error:", error);
+      res.status(500).json({ message: "Failed to analyze performance" });
     }
   });
 

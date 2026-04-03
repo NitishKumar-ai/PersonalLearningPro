@@ -46,10 +46,18 @@ const PerformanceAnalysisSchema = z.object({
   recommendations: z.string(),
 });
 
-export async function aiChat(messages: ChatMessage[]): Promise<ChatResponse> {
+export async function aiChat(messages: ChatMessage[], systemPrompt?: string): Promise<ChatResponse> {
   try {
-    // Ensure there's a system message if not provided
-    if (!messages.some(msg => msg.role === "system")) {
+    // Use provided system prompt or default
+    if (systemPrompt) {
+      // Check if system message already exists, if so update it, otherwise unshift
+      const existingSystemIndex = messages.findIndex(msg => msg.role === "system");
+      if (existingSystemIndex !== -1) {
+        messages[existingSystemIndex].content = systemPrompt;
+      } else {
+        messages.unshift({ role: "system", content: systemPrompt });
+      }
+    } else if (!messages.some(msg => msg.role === "system")) {
       messages.unshift({
         role: "system",
         content: "You are an AI tutor for high school students. You're knowledgeable about physics, chemistry, mathematics, biology, and computer science. Provide clear, concise explanations. Include examples when helpful. For math problems, show step-by-step solutions. Keep explanations appropriate for high school level understanding. Be encouraging and supportive."
