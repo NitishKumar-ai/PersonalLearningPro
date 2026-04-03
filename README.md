@@ -65,11 +65,17 @@ npm run dev
 
 ## 📂 Project Structure
 
-- `client/` — 🎨 React + Vite frontend
-- `server/` — 🖥️ Node.js + Express backend
-- `shared/` — 🧩 Shared types & Zod validation schemas
-- `docs/` — 📖 Project documentation
-- `.agent/` — 🤖 Modular agent-specific context & workflows
+- `client/` — 🎨 **React + Vite Frontend** | Modern UI built with Tailwind CSS, shadcn/ui, and Framer Motion. 🖥️✨
+- `server/` — 🖥️ **Node.js + Express Backend** | Robust API, WebSockets (MessagePal), and AI integration layer. ⚙️🚀
+- `shared/` — 🧩 **Shared Schema & Types** | Zod schemas and TypeScript interfaces shared across the stack. 🤝💎
+- `docs/` — 📖 **Project Documentation** | System designs, changelogs, and contributor guides. 📜📚
+- `.agent/` — 🤖 **AI Agent Workspace** | Modular context, rules, and workflows for AI-driven development. 🧠🛠️
+- `assets/` — 🖼️ **Static Assets** | High-quality illustrations and brand assets used throughout the app. 🎨📸
+- `config/` — ⚙️ **Platform Config** | Secure connection certificates and database environment setup. 🔒📂
+- `scripts/` — 🛠️ **Utility Scripts** | Tools for seeding test data, setting up OpenMAIC, and CI/CD. 📜⚡
+- `terraform/` — ☁️ **Infrastructure (IaC)** | Terraform modules for automated cloud deployment. 🏗️🌍
+- `k8s/` — ☸️ **Orchestration** | Kubernetes manifests for scaling and observability in production. 🚢🔭
+- `signatures/` — ✍️ **CLA Signatures** | Repository of signed Contributor License Agreements. ⚖️📝
 
 ---
 
