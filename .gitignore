@@ -11,3 +11,8 @@ AGENTS.md
 GEMINI.md
 .vscode/
 .env.example
+
+# Environment files
+.env.staging
+.env.production
+.env.development
