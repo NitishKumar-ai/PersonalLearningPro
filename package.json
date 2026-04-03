@@ -12,7 +12,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "setup:openmaic": "./scripts/setup-openmaic.sh"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.87.0",

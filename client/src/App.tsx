@@ -33,6 +33,7 @@ import LandingPage from "@/pages/landing";
 import SettingsPage from "@/pages/settings";
 import LiveClassesPage from "@/pages/live-classes";
 import LiveClassroomPage from "@/pages/live-classroom";
+import AIClassroomPage from "@/pages/ai-classroom";
 import { ThemeProvider } from "./contexts/theme-context";
 import { useLiveClassNotifications } from "@/hooks/live/useLiveClassNotifications";
 
@@ -117,6 +118,7 @@ const WrappedFocus = withLayout(FocusPage);
 const WrappedAchievements = withLayout(AchievementsPage);
 const WrappedSettings = withLayout(SettingsPage);
 const WrappedLiveClasses = withLayout(LiveClassesPage);
+const WrappedAIClassroom = withLayout(AIClassroomPage);
 
 /**
  * Render application routes and handle authentication and loading states.
@@ -345,6 +347,7 @@ function Router() {
       <Route path="/infrastructure" component={WrappedComingSoon} />
       <Route path="/live-classes" component={withProtection(WrappedLiveClasses, ["teacher", "student", "admin", "principal"])} />
       <Route path="/live/:id" component={ProtectedLiveClassroom} />
+      <Route path="/ai-classroom" component={withProtection(WrappedAIClassroom, ["teacher", "student", "admin"])} />
       <Route path="/progress" component={withProtection(WrappedMyProgress, ["student", "parent"])} />
       <Route path="/study-groups" component={WrappedComingSoon} />
       <Route path="/settings" component={withProtection(WrappedSettings)} />

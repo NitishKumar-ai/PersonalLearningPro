@@ -279,7 +279,7 @@ export default function PrincipalDashboard() {
                     <span className="text-sm text-muted-foreground">{item.label}</span>
                   </div>
                   <div className="text-2xl font-bold">{item.value}</div>
-                  <Badge variant="secondary" className="mt-2 text-xs">{item.status}</Badge>
+                  <Badge variant="default" className="mt-2 text-xs">{item.status}</Badge>
                 </CardContent>
               </Card>
             ))}

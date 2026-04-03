@@ -1,14 +1,15 @@
 import "dotenv/config";
+import { logger } from "./lib/logger";
 
 // Prevent unhandled promise rejections from crashing the server
 process.on('unhandledRejection', (reason: any) => {
-  console.error('[unhandledRejection] non-fatal:', reason?.message ?? reason);
+  logger.error('[unhandledRejection] non-fatal:', reason);
 });
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
 import path from "path";
 import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
+import { setupVite, serveStatic } from "./vite";
 import { storage } from "./storage";
 import { WebSocketServer, WebSocket } from "ws";
 import { connectMongoDB } from "./db";
@@ -43,35 +44,7 @@ app.use(session({
   store: storage.sessionStore
 }));
 
-app.use((req, res, next) => {
-  const start = Date.now();
-  const path = req.path;
-  let capturedJsonResponse: Record<string, any> | undefined = undefined;
-
-  const originalResJson = res.json;
-  res.json = function (bodyJson, ...args) {
-    capturedJsonResponse = bodyJson;
-    return originalResJson.apply(res, [bodyJson, ...args]);
-  };
-
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
-      let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-      }
-
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
-      }
-
-      log(logLine);
-    }
-  });
-
-  next();
-});
+app.use(logger.requestLogger);
 
 (async () => {
   const server = await registerRoutes(app);
@@ -96,7 +69,7 @@ app.use((req, res, next) => {
       await setupVite(app, server);
     } catch (error) {
       if (error && (error as any).code === 'ERR_MODULE_NOT_FOUND') {
-        log("Vite not found. Assuming production mode and falling back to static serving.");
+        logger.info("Vite not found. Assuming production mode and falling back to static serving.");
         serveStatic(app);
       } else {
         throw error;
@@ -114,6 +87,6 @@ app.use((req, res, next) => {
     port,
     host: "0.0.0.0",
   }, () => {
-    log(`serving on port ${port}`);
+    logger.info(`serving on port ${port}`);
   });
 })();

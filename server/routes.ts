@@ -11,6 +11,7 @@ import { MongoUser, MongoWorkspace, MongoChannel } from "@shared/mongo-schema";
 import { getNextSequenceValue } from "@shared/mongo-schema";
 import messageRoutes from "./message/routes";
 import { liveRouter } from "./routes/live";
+import aiClassroomRoutes from "./routes/ai-classroom";
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -74,6 +75,12 @@ export async function authenticateToken(req: Request, res: Response, next: expre
         console.log(`[auth] Auto-created MongoDB user for Firebase UID: ${decodedToken.uid}`);
       }
 
+      // Sync role to Firebase Custom Claims if they don't match
+      if (user && (!decodedToken.role || decodedToken.role !== user.role)) {
+        await setCustomUserClaims(decodedToken.uid, { role: user.role });
+        console.log(`[auth] Synced role '${user.role}' to Firebase for ${user.email}`);
+      }
+
       req.session = req.session || ({} as any);
       req.session!.userId = user.id;
       req.session!.role = user.role;
@@ -112,6 +119,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Mount New Daily.co Live Classes API routes
   app.use("/api/live", authenticateToken, liveRouter);
+
+  // Mount AI Classroom routes (OpenMAIC integration)
+  app.use("/api/ai-classroom", authenticateToken, aiClassroomRoutes);
 
   // Health check endpoint
   app.get("/api/health", (_req, res) => {

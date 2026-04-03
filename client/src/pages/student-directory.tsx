@@ -333,7 +333,7 @@ function StudentCard({ student }: { student: Student }) {
         )}
         
         <div className="flex flex-wrap gap-2 mt-2">
-          <Badge variant="secondary" className="mr-1">{student.city}</Badge>
+          <Badge variant="default" className="mr-1">{student.city}</Badge>
           <Badge variant="outline" className="bg-primary/10">{student.state}</Badge>
         </div>
         

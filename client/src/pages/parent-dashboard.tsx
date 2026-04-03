@@ -146,7 +146,7 @@ export default function ParentDashboard() {
                       <CardDescription>{child.grade}</CardDescription>
                     </div>
                   </div>
-                  <Badge variant={child.status === "Excellent" ? "default" : "secondary"}>
+                  <Badge variant={child.status === "Excellent" ? "default" : "default"}>
                     {child.status}
                   </Badge>
                 </div>
