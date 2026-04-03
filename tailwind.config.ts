@@ -90,6 +90,7 @@ export default {
       },
       fontFamily: {
         display: ["Crimson Pro", "Georgia", "serif"],
+        heading: ["DM Sans", "system-ui", "sans-serif"],
         body: ["DM Sans", "system-ui", "sans-serif"],
         sans: ["DM Sans", "system-ui", "sans-serif"],
       },
