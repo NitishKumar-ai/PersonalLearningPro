@@ -1,9 +1,11 @@
-import { useState } from "react";
 import type { ReactNode } from "react";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Bell,
   BellRing,
@@ -18,94 +20,21 @@ import {
   Zap,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
 
 type NotificationType = "test" | "result" | "announcement" | "message" | "achievement" | "reminder";
 
-interface Notification {
-  id: string;
+interface AppNotification {
+  id: number;
   type: NotificationType;
   title: string;
   body: string;
-  timestamp: string;
   isRead: boolean;
   meta?: string;
+  createdAt: string;
 }
 
-const MOCK_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    type: "test",
-    title: "New Test Assigned",
-    body: "Mrs. Sharma assigned you a Physics quiz on Electromagnetic Waves.",
-    timestamp: "5 minutes ago",
-    isRead: false,
-    meta: "Due Tomorrow",
-  },
-  {
-    id: "2",
-    type: "result",
-    title: "Test Result Published",
-    body: "Your Mathematics — Trigonometry result is now available. You scored 92/100.",
-    timestamp: "2 hours ago",
-    isRead: false,
-    meta: "92%",
-  },
-  {
-    id: "3",
-    type: "achievement",
-    title: "Achievement Unlocked! 🏆",
-    body: "You earned the 'Perfect Score' badge for getting 100% on the CS quiz.",
-    timestamp: "Yesterday",
-    isRead: false,
-    meta: "Badge",
-  },
-  {
-    id: "4",
-    type: "announcement",
-    title: "School Announcement",
-    body: "Annual Sports Day is scheduled for March 15th. All students must participate.",
-    timestamp: "Yesterday",
-    isRead: true,
-    meta: "Admin",
-  },
-  {
-    id: "5",
-    type: "message",
-    title: "New Message from Teacher",
-    body: "Mr. Rao sent you a message: 'Great work on your project! Can you submit the final copy?'",
-    timestamp: "2 days ago",
-    isRead: true,
-  },
-  {
-    id: "6",
-    type: "reminder",
-    title: "Study Reminder",
-    body: "You haven't studied Chemistry today. Your exam is in 3 days — stay on track!",
-    timestamp: "2 days ago",
-    isRead: true,
-  },
-  {
-    id: "7",
-    type: "test",
-    title: "Test Graded",
-    body: "Biology — Photosynthesis test has been graded by your teacher. Click to view feedback.",
-    timestamp: "3 days ago",
-    isRead: true,
-    meta: "78%",
-  },
-  {
-    id: "8",
-    type: "achievement",
-    title: "Streak Milestone!",
-    body: "You've studied 7 days in a row! Keep going to unlock the '14-Day Warrior' badge.",
-    timestamp: "4 days ago",
-    isRead: true,
-    meta: "7-Day Streak",
-  },
-];
-
 const typeConfig: Record<NotificationType, { icon: ReactNode; color: string; bg: string; label: string }> = {
-
   test: {
     icon: <BookOpen className="h-5 w-5" />,
     color: "text-blue-500",
@@ -147,16 +76,36 @@ const typeConfig: Record<NotificationType, { icon: ReactNode; color: string; bg:
 type TabFilter = "all" | "unread" | NotificationType;
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>(MOCK_NOTIFICATIONS);
+  const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabFilter>("all");
 
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
+  // ── Fetch ──────────────────────────────────────────────────────────────
+  const { data: notifications = [], isLoading, isError, error, refetch } = useQuery<AppNotification[]>({
+    queryKey: ["/api/notifications"],
+  });
 
-  const markAllRead = () => setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-  const markRead = (id: string) =>
-    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
-  const dismiss = (id: string) =>
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  // ── Mark single read ───────────────────────────────────────────────────
+  const markReadMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest("PATCH", `/api/notifications/${id}/read`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/notifications"] }),
+  });
+
+  // ── Dismiss ────────────────────────────────────────────────────────────
+  const dismissMutation = useMutation({
+    mutationFn: (id: number) =>
+      apiRequest("DELETE", `/api/notifications/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/notifications"] }),
+  });
+
+  // ── Mark all read ──────────────────────────────────────────────────────
+  const markAllReadMutation = useMutation({
+    mutationFn: () =>
+      apiRequest("PATCH", "/api/notifications/read-all"),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/notifications"] }),
+  });
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const tabs: { id: TabFilter; label: string }[] = [
     { id: "all", label: "All" },
@@ -172,6 +121,62 @@ export default function NotificationsPage() {
     return n.type === activeTab;
   });
 
+  // ── Loading state ──────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <>
+        <PageHeader
+          title="Notifications"
+          subtitle="Stay up to date with your tests, results, and announcements."
+          className="animate-fade-in-up"
+          breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Notifications" }]}
+        />
+        <div className="space-y-3 mt-6">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-4 flex items-start gap-4">
+                <Skeleton className="h-10 w-10 rounded-xl flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-2/3" />
+                  <Skeleton className="h-3 w-1/4" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  // ── Error state ────────────────────────────────────────────────────────
+  if (isError) {
+    return (
+      <>
+        <PageHeader
+          title="Notifications"
+          subtitle="Stay up to date with your tests, results, and announcements."
+          className="animate-fade-in-up"
+          breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Notifications" }]}
+        />
+        <Card className="mt-6">
+          <CardContent className="p-16 flex flex-col items-center justify-center gap-3 text-center">
+            <div className="p-4 rounded-2xl bg-destructive/10">
+              <AlertCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <p className="font-semibold">Failed to load notifications</p>
+            <p className="text-sm text-muted-foreground">
+              {error instanceof Error ? error.message : "Something went wrong."}
+            </p>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              Try again
+            </Button>
+          </CardContent>
+        </Card>
+      </>
+    );
+  }
+
   return (
     <>
       <PageHeader
@@ -181,7 +186,13 @@ export default function NotificationsPage() {
         breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Notifications" }]}
       >
         {unreadCount > 0 && (
-          <Button variant="outline" size="sm" onClick={markAllRead} className="gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => markAllReadMutation.mutate()}
+            disabled={markAllReadMutation.isPending}
+            className="gap-2"
+          >
             <CheckCheck className="h-4 w-4" />
             Mark all read
           </Button>
@@ -244,7 +255,7 @@ export default function NotificationsPage() {
           </Card>
         ) : (
           filtered.map((notification) => {
-            const cfg = typeConfig[notification.type];
+            const cfg = typeConfig[notification.type] ?? typeConfig["reminder"];
             return (
               <Card
                 key={notification.id}
@@ -254,7 +265,7 @@ export default function NotificationsPage() {
                     ? "border-primary/20 bg-primary/3 dark:bg-primary/5"
                     : "border-border/60 bg-card"
                 )}
-                onClick={() => markRead(notification.id)}
+                onClick={() => !notification.isRead && markReadMutation.mutate(notification.id)}
               >
                 <CardContent className="p-4 flex items-start gap-4">
                   {/* Unread dot */}
@@ -285,7 +296,10 @@ export default function NotificationsPage() {
                           </Badge>
                         )}
                         <button
-                          onClick={(e) => { e.stopPropagation(); dismiss(notification.id); }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            dismissMutation.mutate(notification.id);
+                          }}
                           className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground"
                         >
                           <X className="h-3.5 w-3.5" />
@@ -297,7 +311,9 @@ export default function NotificationsPage() {
                       <span className={cn("text-xs font-medium px-2 py-0.5 rounded-full", cfg.bg, cfg.color)}>
                         {cfg.label}
                       </span>
-                      <span className="text-xs text-muted-foreground">{notification.timestamp}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(notification.createdAt).toLocaleDateString()}
+                      </span>
                       {!notification.isRead && (
                         <span className="text-xs text-primary font-semibold">• New</span>
                       )}

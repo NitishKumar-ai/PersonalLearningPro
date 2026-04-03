@@ -1,11 +1,12 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import { useLocation } from "wouter";
+import { useEffect } from "react";
 
 import {
   Form,
@@ -46,12 +47,16 @@ export function TestDetailsForm() {
   const { currentUser } = useFirebaseAuth();
   const [_, setLocation] = useLocation();
 
+  const { data: teacherSubjects = [] } = useQuery<string[]>({
+    queryKey: ["/api/teacher/subjects"],
+  });
+
   const form = useForm<TestFormValues>({
     resolver: zodResolver(testSchema),
     defaultValues: {
       title: "",
       description: "",
-      subject: currentUser?.profile?.subjects?.[0] || "",
+      subject: "",
       class: "",
       testDate: new Date().toISOString().split("T")[0],
       duration: 60,
@@ -60,6 +65,13 @@ export function TestDetailsForm() {
       status: "draft",
     },
   });
+
+  // Set default subject once subjects are loaded
+  useEffect(() => {
+    if (teacherSubjects.length > 0 && !form.getValues("subject")) {
+      form.setValue("subject", teacherSubjects[0]);
+    }
+  }, [teacherSubjects, form]);
 
   const createTestMutation = useMutation({
     mutationFn: async (data: TestFormValues) => {
@@ -152,11 +164,13 @@ export function TestDetailsForm() {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="Physics">Physics</SelectItem>
-                    <SelectItem value="Chemistry">Chemistry</SelectItem>
-                    <SelectItem value="Mathematics">Mathematics</SelectItem>
-                    <SelectItem value="Biology">Biology</SelectItem>
-                    <SelectItem value="Computer Science">Computer Science</SelectItem>
+                    {teacherSubjects.length > 0 ? (
+                      teacherSubjects.map((s) => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>No subjects found</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />

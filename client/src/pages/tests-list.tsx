@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
     FileQuestion,
     Clock,
@@ -17,8 +19,10 @@ import {
     Timer,
     Play,
     Eye,
+    RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Test } from "@shared/schema";
 
 type TestStatus = "upcoming" | "available" | "completed" | "overdue";
 
@@ -36,95 +40,58 @@ interface StudentTest {
     questionsCount: number;
 }
 
-const MOCK_TESTS: StudentTest[] = [
-    {
-        id: "1",
-        title: "Electromagnetic Waves Quiz",
-        subject: "Physics",
-        teacher: "Mrs. Sharma",
-        status: "available",
-        dueDate: "Tomorrow, 11:59 PM",
-        duration: 30,
-        totalMarks: 50,
-        type: "Quiz",
-        questionsCount: 15,
-    },
-    {
-        id: "2",
-        title: "Calculus — Integration",
-        subject: "Mathematics",
-        teacher: "Mr. Rao",
-        status: "upcoming",
-        dueDate: "Mar 11, 2026",
-        duration: 60,
-        totalMarks: 100,
-        type: "Unit Test",
-        questionsCount: 25,
-    },
-    {
-        id: "3",
-        title: "Organic Chemistry Mid-term",
-        subject: "Chemistry",
-        teacher: "Dr. Mehta",
-        status: "upcoming",
-        dueDate: "Mar 15, 2026",
-        duration: 90,
-        totalMarks: 100,
-        type: "Mid-term",
-        questionsCount: 40,
-    },
-    {
-        id: "4",
-        title: "Data Structures & Algorithms",
-        subject: "Computer Science",
-        teacher: "Mr. Kapoor",
-        status: "completed",
-        dueDate: "Mar 3, 2026",
-        duration: 45,
-        totalMarks: 100,
-        score: 95,
-        type: "Quiz",
-        questionsCount: 20,
-    },
-    {
-        id: "5",
-        title: "Trigonometry Unit Test",
-        subject: "Mathematics",
-        teacher: "Mr. Rao",
-        status: "completed",
-        dueDate: "Feb 28, 2026",
-        duration: 60,
-        totalMarks: 100,
-        score: 92,
-        type: "Unit Test",
-        questionsCount: 30,
-    },
-    {
-        id: "6",
-        title: "Kinematics — Chapter Review",
-        subject: "Physics",
-        teacher: "Mrs. Sharma",
-        status: "completed",
-        dueDate: "Feb 24, 2026",
-        duration: 30,
-        totalMarks: 50,
-        score: 39,
-        type: "Chapter Test",
-        questionsCount: 15,
-    },
-    {
-        id: "7",
-        title: "English Comprehension",
-        subject: "English",
-        teacher: "Mr. D'Souza",
-        status: "overdue",
-        dueDate: "Mar 5, 2026",
-        duration: 45,
-        totalMarks: 50,
-        type: "Assignment",
-        questionsCount: 10,
-    },
-];
+// Server-side Test type alias for clarity
+type ServerTest = Test;
+
+export function mapServerTest(t: ServerTest): StudentTest {
+    let status: TestStatus;
+    switch (t.status) {
+        case "published":
+            status = "available";
+            break;
+        case "completed":
+            status = "completed";
+            break;
+        case "draft":
+        default:
+            status = "upcoming";
+            break;
+    }
+
+    return {
+        id: String(t.id),
+        title: t.title,
+        subject: t.subject,
+        teacher: String(t.teacherId),
+        status,
+        dueDate: t.testDate ? new Date(t.testDate).toLocaleDateString() : "TBD",
+        duration: t.duration,
+        totalMarks: t.totalMarks,
+        type: t.questionTypes?.[0] || "Test",
+        questionsCount: 0,
+    };
+}
+
+export function computeStats(tests: StudentTest[]): {
+    available: number;
+    upcoming: number;
+    completed: number;
+    overdue: number;
+    avgScore: number;
+} {
+    const available = tests.filter((t) => t.status === "available").length;
+    const upcoming = tests.filter((t) => t.status === "upcoming").length;
+    const completed = tests.filter((t) => t.status === "completed").length;
+    const overdue = tests.filter((t) => t.status === "overdue").length;
+
+    const scoredTests = tests.filter((t) => t.score !== undefined);
+    const avgScore =
+        scoredTests.length > 0
+            ? scoredTests.reduce((acc, t) => acc + (t.score! / t.totalMarks) * 100, 0) / scoredTests.length
+            : 0;
+
+    return { available, upcoming, completed, overdue, avgScore };
+}
 
 const subjectColors: Record<string, { gradient: string; badge: string; text: string }> = {
     Physics: { gradient: "from-blue-500 to-indigo-600", badge: "bg-blue-500/10 text-blue-600 dark:text-blue-400", text: "text-blue-500" },
@@ -147,20 +114,79 @@ type TabId = "all" | TestStatus;
 export default function TestsListPage() {
     const [activeTab, setActiveTab] = useState<TabId>("all");
 
+    const { data: serverTests, isLoading, isError, refetch } = useQuery<ServerTest[]>({
+        queryKey: ["/api/tests"],
+    });
+
+    const tests: StudentTest[] = (serverTests ?? []).map(mapServerTest);
+    const stats = computeStats(tests);
+
     const tabs: { id: TabId; label: string; count: number }[] = [
-        { id: "all", label: "All Tests", count: MOCK_TESTS.length },
-        { id: "available", label: "Available", count: MOCK_TESTS.filter((t) => t.status === "available").length },
-        { id: "upcoming", label: "Upcoming", count: MOCK_TESTS.filter((t) => t.status === "upcoming").length },
-        { id: "completed", label: "Completed", count: MOCK_TESTS.filter((t) => t.status === "completed").length },
-        { id: "overdue", label: "Overdue", count: MOCK_TESTS.filter((t) => t.status === "overdue").length },
+        { id: "all", label: "All Tests", count: tests.length },
+        { id: "available", label: "Available", count: stats.available },
+        { id: "upcoming", label: "Upcoming", count: stats.upcoming },
+        { id: "completed", label: "Completed", count: stats.completed },
+        { id: "overdue", label: "Overdue", count: stats.overdue },
     ];
 
-    const filtered = MOCK_TESTS.filter((t) => activeTab === "all" || t.status === activeTab);
+    const filtered = tests.filter((t) => activeTab === "all" || t.status === activeTab);
 
-    const avgScore = MOCK_TESTS.filter((t) => t.score !== undefined).reduce((acc, t) => acc + (t.score! / t.totalMarks) * 100, 0) /
-        (MOCK_TESTS.filter((t) => t.score !== undefined).length || 1);
+    if (isLoading) {
+        return (
+            <>
+                <PageHeader
+                    title="Tests & Assessments"
+                    subtitle="View all your upcoming, available, and completed tests."
+                    className="animate-fade-in-up"
+                    breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Tests" }]}
+                />
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <Card key={i}>
+                            <CardContent className="p-4">
+                                <Skeleton className="h-10 w-full" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+                <div className="space-y-3">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <Card key={i}>
+                            <CardContent className="p-5">
+                                <Skeleton className="h-20 w-full" />
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </>
+        );
+    }
 
-    const completedCount = MOCK_TESTS.filter((t) => t.status === "completed").length;
+    if (isError) {
+        return (
+            <>
+                <PageHeader
+                    title="Tests & Assessments"
+                    subtitle="View all your upcoming, available, and completed tests."
+                    className="animate-fade-in-up"
+                    breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Tests" }]}
+                />
+                <Card>
+                    <CardContent className="p-16 flex flex-col items-center gap-4 text-center">
+                        <div className="p-4 rounded-2xl bg-destructive/10">
+                            <AlertTriangle className="h-8 w-8 text-destructive" />
+                        </div>
+                        <p className="font-semibold">Failed to load tests</p>
+                        <p className="text-sm text-muted-foreground">Something went wrong while fetching your tests.</p>
+                        <Button onClick={() => refetch()} variant="outline" className="gap-2">
+                            <RefreshCw className="h-4 w-4" />
+                            Retry
+                        </Button>
+                    </CardContent>
+                </Card>
+            </>
+        );
+    }
 
     return (
         <>
@@ -174,10 +200,10 @@ export default function TestsListPage() {
             {/* Summary stats */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6 animate-fade-in-up" style={{ animationDelay: "50ms" }}>
                 {[
-                    { label: "Available Now", value: MOCK_TESTS.filter((t) => t.status === "available").length, icon: <Play className="h-4 w-4" />, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-                    { label: "Upcoming", value: MOCK_TESTS.filter((t) => t.status === "upcoming").length, icon: <Calendar className="h-4 w-4" />, color: "text-blue-500", bg: "bg-blue-500/10" },
-                    { label: "Completed", value: completedCount, icon: <CheckCircle2 className="h-4 w-4" />, color: "text-violet-500", bg: "bg-violet-500/10" },
-                    { label: "Avg Score", value: `${Math.round(avgScore)}%`, icon: <Trophy className="h-4 w-4" />, color: "text-amber-500", bg: "bg-amber-500/10" },
+                    { label: "Available Now", value: stats.available, icon: <Play className="h-4 w-4" />, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+                    { label: "Upcoming", value: stats.upcoming, icon: <Calendar className="h-4 w-4" />, color: "text-blue-500", bg: "bg-blue-500/10" },
+                    { label: "Completed", value: stats.completed, icon: <CheckCircle2 className="h-4 w-4" />, color: "text-violet-500", bg: "bg-violet-500/10" },
+                    { label: "Avg Score", value: `${Math.round(stats.avgScore)}%`, icon: <Trophy className="h-4 w-4" />, color: "text-amber-500", bg: "bg-amber-500/10" },
                 ].map((stat, i) => (
                     <Card key={i} className="hover:shadow-md transition-all">
                         <CardContent className="p-4 flex items-center gap-3">

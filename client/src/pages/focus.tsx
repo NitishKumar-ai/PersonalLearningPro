@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -97,6 +100,40 @@ export default function FocusPage() {
     const [logs, setLogs] = useState<SessionLog[]>([]);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+    const qc = useQueryClient();
+    const { toast } = useToast();
+
+    // Fetch today's sessions on mount
+    const { data: serverSessions } = useQuery<any[]>({
+        queryKey: ["/api/focus-sessions"],
+    });
+
+    // Persist session mutation
+    const createSessionMutation = useMutation({
+        mutationFn: (data: { subject: string; mode: string; durationSeconds: number }) =>
+            apiRequest("POST", "/api/focus-sessions", data).then(r => r.json()),
+        onSuccess: () => qc.invalidateQueries({ queryKey: ["/api/focus-sessions"] }),
+        onError: () => {
+            toast({ title: "Session not saved", description: "Your session was completed but couldn't be saved.", variant: "destructive" });
+        },
+    });
+
+    // Populate logs from server sessions on mount
+    useEffect(() => {
+        if (serverSessions && serverSessions.length > 0) {
+            const mapped: SessionLog[] = serverSessions.slice(0, 10).map((s: any) => ({
+                id: String(s.id),
+                subject: s.subject as Subject,
+                mode: s.mode as Mode,
+                duration: s.durationSeconds,
+                completedAt: new Date(s.completedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            }));
+            setLogs(mapped);
+            const workSessions = serverSessions.filter((s: any) => s.mode === "work").length;
+            setSessionCount(workSessions);
+        }
+    }, [serverSessions]);
+
     const currentMode = MODES.find((m) => m.id === mode)!;
     const progress = timeLeft / currentMode.duration;
 
@@ -119,6 +156,11 @@ export default function FocusPage() {
                             },
                             ...prev.slice(0, 9),
                         ]);
+                        createSessionMutation.mutate({
+                            subject,
+                            mode,
+                            durationSeconds: currentMode.duration,
+                        });
                         return 0;
                     }
                     return t - 1;

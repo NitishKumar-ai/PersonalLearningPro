@@ -4,7 +4,18 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, GraduationCap, Building2, BarChart3, School, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 interface User {
     id: number;
@@ -21,6 +32,11 @@ export default function SchoolAdminDashboard() {
 
     const { data: teachers, isLoading } = useQuery<User[]>({
         queryKey: ["/api/school/teachers"],
+    });
+
+    const { data: students, isLoading: isLoadingStudents, isError: isErrorStudents } = useQuery<User[]>({
+        queryKey: ["/api/users", { role: "student" }],
+        queryFn: () => apiRequest("GET", "/api/users?role=student").then(r => r.json()),
     });
 
     const approveMutation = useMutation({
@@ -75,7 +91,9 @@ export default function SchoolAdminDashboard() {
                         <GraduationCap className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">1,845</div>
+                        <div className="text-2xl font-bold">
+                            {isLoadingStudents ? <Skeleton className="h-7 w-16" /> : isErrorStudents ? <span className="text-sm text-red-500">Error</span> : students?.length?.toLocaleString() || "0"}
+                        </div>
                         <p className="text-xs text-muted-foreground">+12 from last month</p>
                     </CardContent>
                 </Card>
@@ -174,19 +192,76 @@ export default function SchoolAdminDashboard() {
                 <Card className="col-span-4">
                     <CardHeader>
                         <CardTitle>School Performance Overview</CardTitle>
-                        <CardDescription>Academic trends for the current academic year.</CardDescription>
+                        <CardDescription>Teacher active vs pending status breakdown.</CardDescription>
                     </CardHeader>
-                    <CardContent className="h-[300px] flex items-center justify-center border-t">
-                        <p className="text-muted-foreground">Performance charts will appear here</p>
+                    <CardContent className="h-[300px] border-t pt-4">
+                        {isLoading ? (
+                            <div className="flex items-center justify-center h-full">
+                                <Skeleton className="h-full w-full" />
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart
+                                    data={[
+                                        { name: "Active", count: activeTeachers },
+                                        { name: "Pending", count: pendingTeachers },
+                                        { name: "Other", count: Math.max(0, (teachers?.length || 0) - activeTeachers - pendingTeachers) },
+                                    ]}
+                                    margin={{ top: 10, right: 20, left: 0, bottom: 5 }}
+                                >
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
+                                    <XAxis dataKey="name" tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} stroke="hsl(var(--muted-foreground))" />
+                                    <Tooltip
+                                        contentStyle={{
+                                            backgroundColor: "hsl(var(--card))",
+                                            border: "1px solid hsl(var(--border))",
+                                            borderRadius: "8px",
+                                            fontSize: "13px",
+                                        }}
+                                    />
+                                    <Legend wrapperStyle={{ fontSize: "12px" }} />
+                                    <Bar dataKey="count" name="Teachers" fill="hsl(var(--chart-1))" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        )}
                     </CardContent>
                 </Card>
                 <Card className="col-span-3">
                     <CardHeader>
                         <CardTitle>Recent Activity</CardTitle>
-                        <CardDescription>Latest administrative actions and alerts.</CardDescription>
+                        <CardDescription>Latest teacher approvals and pending items.</CardDescription>
                     </CardHeader>
-                    <CardContent className="h-[300px] flex items-center justify-center border-t">
-                        <p className="text-muted-foreground">Activity feed will appear here</p>
+                    <CardContent className="h-[300px] overflow-y-auto border-t pt-4">
+                        {isLoading ? (
+                            <div className="space-y-3">
+                                {Array.from({ length: 4 }).map((_, i) => (
+                                    <Skeleton key={i} className="h-10 w-full" />
+                                ))}
+                            </div>
+                        ) : teachers && teachers.length > 0 ? (
+                            <div className="space-y-2">
+                                {teachers.slice(0, 8).map((teacher) => (
+                                    <div key={teacher.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/50 transition-colors">
+                                        <div className="flex items-center gap-2">
+                                            {teacher.status === "active" ? (
+                                                <CheckCircle2 className="h-4 w-4 text-green-500 flex-shrink-0" />
+                                            ) : teacher.status === "pending" ? (
+                                                <Clock className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                                            ) : (
+                                                <XCircle className="h-4 w-4 text-red-500 flex-shrink-0" />
+                                            )}
+                                            <span className="text-sm font-medium truncate max-w-[140px]">{teacher.name}</span>
+                                        </div>
+                                        <span className="text-xs text-muted-foreground capitalize">{teacher.status}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center h-full">
+                                <p className="text-muted-foreground text-sm">No recent activity</p>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

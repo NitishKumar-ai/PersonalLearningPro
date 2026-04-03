@@ -1,0 +1,51 @@
+name: Gemini Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: ["main"]
+
+jobs:
+  review:
+    name: AI Code Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR diff
+        id: diff
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          DIFF=$(git diff origin/${{ github.base_ref }}...HEAD -- \
+            '*.ts' '*.tsx' '*.js' '*.jsx' \
+            ':!*.lock' ':!dist/**' ':!node_modules/**' \
+            | head -c 30000)
+          echo "diff<<EOF" >> $GITHUB_OUTPUT
+          echo "$DIFF" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Gemini Code Review
+        uses: google-github-actions/gemini-code-review@v1
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          pull_request_number: ${{ github.event.pull_request.number }}
+          model: "gemini-2.0-flash"
+          prompt: |
+            You are a senior software engineer reviewing a pull request for a TypeScript/React + Express application.
+
+            Review the following diff and provide actionable feedback on:
+            1. **Bugs & Logic errors** — anything that could break at runtime
+            2. **Security issues** — XSS, injection, exposed secrets, auth flaws
+            3. **Code style** — naming, readability, unnecessary complexity
+            4. **Performance** — unnecessary re-renders, N+1 queries, memory leaks
+            5. **Best practices** — React hooks rules, TypeScript strictness, error handling
+
+            Be concise. Group feedback by file. Use inline code references.
+            If the code looks good, say so briefly. Don't nitpick minor style issues already handled by linters.

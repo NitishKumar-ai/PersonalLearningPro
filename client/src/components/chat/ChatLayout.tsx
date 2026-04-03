@@ -1,13 +1,13 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Conversation, ConversationCategory } from '@/types/chat';
-import { getConversationsForRole } from '@/data/mockData';
 import { useRole, ChatRoleProvider } from '@/contexts/chat-role-context';
 import { fetchWorkspaces, fetchChannels, fetchDMs, ApiChannel } from '@/lib/chat-api';
 import { useChatWs } from '@/hooks/use-chat-ws';
 import ConversationList from './ConversationList';
 import ChatThread from './ChatThread';
 import { MessageSquare } from 'lucide-react';
+import { WsReconnectBanner } from './WsReconnectBanner';
 
 // ─── Convert a server ApiChannel into the UI Conversation shape ───────────────
 
@@ -105,28 +105,22 @@ const ChatLayoutInner = () => {
       });
     }
 
-    // If server returned data, use it; otherwise fall back to mock data
-    if (serverConvs.length > 0) return serverConvs;
-    return getConversationsForRole(currentRole);
+    return serverConvs;
   }, [channelsByWs, dms, currentRole]);
 
   // ── Reset active conversation when conversations change ───────────────────
-  const [prevConvIds, setPrevConvIds] = useState<string>('');
-  const convIdsKey = conversations.map((c) => c.id).join(',');
-  if (prevConvIds !== convIdsKey && conversations.length > 0) {
-    setPrevConvIds(convIdsKey);
+  useEffect(() => {
+    if (conversations.length === 0) return;
     if (!activeConv || !conversations.find((c) => c.id === activeConv.id)) {
-      // Re-assignment inside render is OK here — same pattern as the original component
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      Promise.resolve().then(() => setActiveConv(conversations[0] ?? null));
+      setActiveConv(conversations[0] ?? null);
     }
-  }
+  }, [conversations]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Shared WebSocket (connected for the duration of the layout) ───────────
   const activeChannelIdArg = activeConv ? Number(activeConv.id) : undefined;
-  useChatWs({
+  const { status: wsStatus } = useChatWs({
     activeChannelId: isNaN(activeChannelIdArg!) ? undefined : activeChannelIdArg,
-    onEvent: () => { } // Layout only cares about being connected, not receiving messages
+    onEvent: () => { }
   });
 
   const handleSelect = useCallback((conv: Conversation) => {
@@ -139,7 +133,9 @@ const ChatLayoutInner = () => {
   }, []);
 
   return (
-    <div className="flex flex-1 overflow-hidden h-full">
+    <div className="flex flex-col flex-1 overflow-hidden h-full">
+      <WsReconnectBanner status={wsStatus} />
+      <div className="flex flex-1 overflow-hidden">
       {/* Conversation sidebar */}
       <div
         className={`${showList ? 'flex' : 'hidden'
@@ -174,6 +170,7 @@ const ChatLayoutInner = () => {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 };
