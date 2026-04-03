@@ -76,6 +76,7 @@ npm run dev
 - `terraform/` — ☁️ **Infrastructure (IaC)** | Terraform modules for automated cloud deployment. 🏗️🌍
 - `k8s/` — ☸️ **Orchestration** | Kubernetes manifests for scaling and observability in production. 🚢🔭
 - `signatures/` — ✍️ **CLA Signatures** | Repository of signed Contributor License Agreements. ⚖️📝
+- `tests/` — 🧪 **End-to-End Testing** | Automated test suites for auth, AI, and real-time features. 🤖✅
 
 ---
 
