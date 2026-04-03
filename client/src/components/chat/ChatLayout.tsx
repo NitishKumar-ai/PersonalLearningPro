@@ -7,6 +7,7 @@ import { useChatWs } from '@/hooks/use-chat-ws';
 import ConversationList from './ConversationList';
 import ChatThread from './ChatThread';
 import { MessageSquare } from 'lucide-react';
+import { WsReconnectBanner } from './WsReconnectBanner';
 
 // ─── Convert a server ApiChannel into the UI Conversation shape ───────────────
 
@@ -117,9 +118,9 @@ const ChatLayoutInner = () => {
 
   // ── Shared WebSocket (connected for the duration of the layout) ───────────
   const activeChannelIdArg = activeConv ? Number(activeConv.id) : undefined;
-  useChatWs({
+  const { status: wsStatus } = useChatWs({
     activeChannelId: isNaN(activeChannelIdArg!) ? undefined : activeChannelIdArg,
-    onEvent: () => { } // Layout only cares about being connected, not receiving messages
+    onEvent: () => { }
   });
 
   const handleSelect = useCallback((conv: Conversation) => {
@@ -132,7 +133,9 @@ const ChatLayoutInner = () => {
   }, []);
 
   return (
-    <div className="flex flex-1 overflow-hidden h-full">
+    <div className="flex flex-col flex-1 overflow-hidden h-full">
+      <WsReconnectBanner status={wsStatus} />
+      <div className="flex flex-1 overflow-hidden">
       {/* Conversation sidebar */}
       <div
         className={`${showList ? 'flex' : 'hidden'
@@ -167,6 +170,7 @@ const ChatLayoutInner = () => {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 };
