@@ -74,13 +74,13 @@ export async function authenticateToken(req: Request, res: Response, next: expre
           password: 'firebase_managed',
         });
         await user.save();
-        console.log(`[auth] Auto-created MongoDB user for Firebase UID: ${decodedToken.uid}`);
+        logger.info(`[auth] Auto-created MongoDB user`, { uid: decodedToken.uid });
       }
 
       // Sync role to Firebase Custom Claims if they don't match
       if (user && (!decodedToken.role || decodedToken.role !== user.role)) {
         await setCustomUserClaims(decodedToken.uid, { role: user.role });
-        console.log(`[auth] Synced role '${user.role}' to Firebase for ${user.email}`);
+        logger.info(`[auth] Synced role to Firebase`, { uid: decodedToken.uid, role: user.role });
       }
 
       req.session = req.session || ({} as any);
@@ -184,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role,
           status: user.status
         });
-        console.log(`[auth/sync-profile] Set custom claims for ${firebaseUid}: role=${user.role}, status=${user.status}`);
+        logger.info(`[auth/sync-profile] Set custom claims`, { role: user.role, status: user.status });
       } catch (claimErr) {
         console.error("[auth/sync-profile] Failed to set custom claims:", claimErr);
       }
@@ -329,7 +329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
-      console.log(`[auth/register] Created new user ${normalizedEmail} (id=${numericId}) with role ${newUser.role}`);
+      logger.info(`[auth/register] Created new user`, { id: numericId, role: newUser.role });
 
       return res.status(201).json({
         token: accessToken,
@@ -1608,7 +1608,7 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         }
 
         const url = diskPathToUrl(req.file.path);
-        console.log(`[upload] User ${req.session!.userId} uploaded ${req.file.originalname} → ${url}`);
+        logger.info(`[upload] file uploaded`, { userId: req.session!.userId });
 
         return res.status(200).json({
           url,
@@ -1664,7 +1664,7 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
           status: (role === "teacher") ? "pending" : "active",
         });
         await mongoUser.save();
-        console.log(`[auth/firebase] Created new user ${email} (id=${id}) with role ${mongoUser.role}`);
+        logger.info(`[auth/firebase] Created new user`, { id, role: mongoUser.role });
       } else if (!mongoUser.firebaseUid) {
         mongoUser.firebaseUid = uid;
         if (picture && !mongoUser.avatar) mongoUser.avatar = picture;
@@ -1738,7 +1738,7 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
         }
 
         workspaces = await storage.getWorkspaces(userId);
-        console.log(`[chat/conversations] Seeded workspace for user ${userId}`);
+        logger.info(`[chat/conversations] Seeded workspace`, { userId });
       }
 
       // Gather all channels across workspaces
