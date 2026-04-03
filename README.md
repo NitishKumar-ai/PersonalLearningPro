@@ -70,15 +70,17 @@ npm run dev
 - `shared/` — 🧩 **Shared Schema & Types** | Zod schemas and TypeScript interfaces shared across the stack. 🤝💎
 - `docs/` — 📖 **Project Documentation** | System designs, changelogs, and contributor guides. 📜📚
 - `.agent/` — 🤖 **AI Agent Workspace** | Modular context, rules, and workflows for AI-driven development. 🧠🛠️
+- `.github/` — 🤖 **CI/CD & Workflows** | GitHub Actions for automation, testing, and deployment. ⚙️🚀
+- `.vscode/` — 💻 **Editor Config** | Development environment settings and workspace optimizations. 🛠️🔧
 - `assets/` — 🖼️ **Static Assets** | High-quality illustrations and brand assets used throughout the app. 🎨📸
 - `config/` — ⚙️ **Platform Config** | Secure connection certificates and database environment setup. 🔒📂
 - `scripts/` — 🛠️ **Utility Scripts** | Tools for seeding test data, setting up OpenMAIC, and CI/CD. 📜⚡
 - `terraform/` — ☁️ **Infrastructure (IaC)** | Terraform modules for automated cloud deployment. 🏗️🌍
 - `k8s/` — ☸️ **Orchestration** | Kubernetes manifests for scaling and observability in production. 🚢🔭
 - `signatures/` — ✍️ **CLA Signatures** | Repository of signed Contributor License Agreements. ⚖️📝
-- `tests/` — 🧪 **End-to-End Testing** | Automated test suites for auth, AI, and real-time features. 🤖✅
 
 ---
+
 
 ## 🤝 Contributing
 
