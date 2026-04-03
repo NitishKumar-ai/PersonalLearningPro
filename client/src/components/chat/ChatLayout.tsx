@@ -1,7 +1,6 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Conversation, ConversationCategory } from '@/types/chat';
-import { getConversationsForRole } from '@/data/mockData';
 import { useRole, ChatRoleProvider } from '@/contexts/chat-role-context';
 import { fetchWorkspaces, fetchChannels, fetchDMs, ApiChannel } from '@/lib/chat-api';
 import { useChatWs } from '@/hooks/use-chat-ws';
@@ -105,22 +104,16 @@ const ChatLayoutInner = () => {
       });
     }
 
-    // If server returned data, use it; otherwise fall back to mock data
-    if (serverConvs.length > 0) return serverConvs;
-    return getConversationsForRole(currentRole);
+    return serverConvs;
   }, [channelsByWs, dms, currentRole]);
 
   // ── Reset active conversation when conversations change ───────────────────
-  const [prevConvIds, setPrevConvIds] = useState<string>('');
-  const convIdsKey = conversations.map((c) => c.id).join(',');
-  if (prevConvIds !== convIdsKey && conversations.length > 0) {
-    setPrevConvIds(convIdsKey);
+  useEffect(() => {
+    if (conversations.length === 0) return;
     if (!activeConv || !conversations.find((c) => c.id === activeConv.id)) {
-      // Re-assignment inside render is OK here — same pattern as the original component
-      // eslint-disable-next-line @typescript-eslint/no-floating-promises
-      Promise.resolve().then(() => setActiveConv(conversations[0] ?? null));
+      setActiveConv(conversations[0] ?? null);
     }
-  }
+  }, [conversations]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Shared WebSocket (connected for the duration of the layout) ───────────
   const activeChannelIdArg = activeConv ? Number(activeConv.id) : undefined;
