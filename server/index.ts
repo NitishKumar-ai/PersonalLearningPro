@@ -6,6 +6,9 @@ process.on('unhandledRejection', (reason: any) => {
   logger.error('[unhandledRejection] non-fatal:', reason);
 });
 import express, { type Request, Response, NextFunction } from "express";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import session from "express-session";
 import path from "path";
 import { registerRoutes } from "./routes";
@@ -20,6 +23,23 @@ import { initCassandra } from "./lib/cassandra";
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// ── Security headers ──────────────────────────────────────────────────────────
+app.use(helmet({ contentSecurityPolicy: false })); // CSP handled by Vite in dev
+
+// ── CORS ──────────────────────────────────────────────────────────────────────
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5001").split(",");
+app.use(cors({
+  origin: (origin, cb) => {
+    if (!origin || allowedOrigins.includes(origin)) cb(null, true);
+    else cb(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+}));
+
+// ── Rate limiting ─────────────────────────────────────────────────────────────
+app.use("/api/ai", rateLimit({ windowMs: 60_000, max: 20, message: { error: "Too many requests, slow down" } }));
+app.use("/api/auth", rateLimit({ windowMs: 60_000, max: 10, message: { error: "Too many auth attempts" } }));
 
 // Serve uploaded files
 app.use("/uploads", express.static(path.resolve("public", "uploads")));
@@ -46,6 +66,10 @@ app.use(session({
 
 app.use(logger.requestLogger);
 
+// ── DB health guard ───────────────────────────────────────────────────────────
+import { requireDb } from "./middleware";
+app.use("/api", requireDb);
+
 (async () => {
   const server = await registerRoutes(app);
 
@@ -56,12 +80,13 @@ app.use(logger.requestLogger);
   // Start Message HTTP server
   startMessagePalServer();
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-
-    res.status(status).json({ message });
-    throw err;
+    const message = process.env.NODE_ENV === "production" && status === 500
+      ? "Something went wrong"
+      : err.message || "Internal Server Error";
+    logger.error(`[${status}] ${req.method} ${req.path} — ${err.message}`);
+    res.status(status).json({ error: message, code: err.code || null });
   });
 
   if (app.get("env") === "development") {
