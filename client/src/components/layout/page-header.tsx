@@ -51,15 +51,15 @@ export function PageHeader({ title, subtitle, children, className, breadcrumbs }
                     </BreadcrumbList>
                 </Breadcrumb>
             )}
-            <div className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                    <h1 className="text-3xl font-display text-foreground tracking-tight leading-tight">{title}</h1>
+                    <h1 className="text-2xl font-display text-foreground tracking-tight leading-tight">{title}</h1>
                     {subtitle && (
-                        <p className="text-lg font-body text-muted-foreground mt-1 max-w-2xl">{subtitle}</p>
+                        <p className="text-sm font-body text-muted-foreground mt-0.5 max-w-2xl">{subtitle}</p>
                     )}
                 </div>
                 {children && (
-                    <div className="flex items-center gap-2 mt-3 sm:mt-0">
+                    <div className="flex items-center gap-2 mt-3 sm:mt-0 flex-shrink-0">
                         {children}
                     </div>
                 )}

@@ -1,11 +1,13 @@
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
-import { Plus, GripVertical, MoreHorizontal, Calendar, MessageSquare, Paperclip, ChevronDown, Filter } from "lucide-react";
+import { Plus, GripVertical, MoreHorizontal, Calendar, MessageSquare, Paperclip, ChevronDown, Filter, Loader2, AlertCircle } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { apiRequest } from "@/lib/queryClient";
 
 type TaskStatus = "backlog" | "todo" | "in-progress" | "review" | "done";
 type TaskPriority = "low" | "medium" | "high" | "urgent";
@@ -21,60 +23,6 @@ interface Task {
     comments: number;
     attachments: number;
 }
-
-const MOCK_TASKS: Task[] = [
-    {
-        id: "PRO-101",
-        title: "Research Calculus integration techniques",
-        status: "backlog",
-        priority: "medium",
-        assignee: { name: "Alice" },
-        tags: ["Math", "Research"],
-        comments: 2,
-        attachments: 0,
-    },
-    {
-        id: "PRO-102",
-        title: "Complete Physics Mechanics assignment",
-        status: "todo",
-        priority: "high",
-        assignee: { name: "Bob", avatar: "https://i.pravatar.cc/150?u=bob" },
-        tags: ["Physics", "Assignment"],
-        dueDate: "Tomorrow",
-        comments: 5,
-        attachments: 2,
-    },
-    {
-        id: "PRO-103",
-        title: "Prepare presentation on Quantum Entanglement",
-        status: "in-progress",
-        priority: "urgent",
-        assignee: { name: "You" },
-        tags: ["Presentation", "Science"],
-        dueDate: "Today",
-        comments: 1,
-        attachments: 4,
-    },
-    {
-        id: "PRO-104",
-        title: "Review peers' essays",
-        status: "review",
-        priority: "medium",
-        tags: ["English", "Review"],
-        comments: 0,
-        attachments: 1,
-    },
-    {
-        id: "PRO-105",
-        title: "Read Chapter 4 of History textbook",
-        status: "done",
-        priority: "low",
-        assignee: { name: "You" },
-        tags: ["Reading"],
-        comments: 0,
-        attachments: 0,
-    }
-];
 
 const STATUSES: { id: TaskStatus; label: string; icon: React.ReactNode; color: string }[] = [
     { id: "backlog", label: "Backlog", icon: <div className="w-3 h-3 rounded-full border-2 border-dashed border-zinc-500" />, color: "text-zinc-400" },
@@ -92,9 +40,57 @@ const PRIORITY_ICONS: Record<TaskPriority, React.ReactNode> = {
 };
 
 export default function TasksPage() {
-    const [tasks, setTasks] = useState<Task[]>(MOCK_TASKS);
+    const qc = useQueryClient();
     const [draggedTask, setDraggedTask] = useState<string | null>(null);
 
+    // ── Fetch ──────────────────────────────────────────────────────────────
+    const { data: tasks = [], isLoading, isError, error } = useQuery<Task[]>({
+        queryKey: ["/api/tasks"],
+    });
+
+    // ── Create ─────────────────────────────────────────────────────────────
+    const createMutation = useMutation({
+        mutationFn: (newTask: Omit<Task, "id">) =>
+            apiRequest("POST", "/api/tasks", newTask).then(r => r.json()),
+        onMutate: async (newTask) => {
+            await qc.cancelQueries({ queryKey: ["/api/tasks"] });
+            const previous = qc.getQueryData<Task[]>(["/api/tasks"]);
+            const optimistic: Task = { ...newTask, id: `temp-${Date.now()}` };
+            qc.setQueryData<Task[]>(["/api/tasks"], old => [...(old ?? []), optimistic]);
+            return { previous };
+        },
+        onError: (_err, _vars, ctx) => {
+            if (ctx?.previous) qc.setQueryData(["/api/tasks"], ctx.previous);
+        },
+        onSettled: () => qc.invalidateQueries({ queryKey: ["/api/tasks"] }),
+    });
+
+    // ── Status update (drag-and-drop) ──────────────────────────────────────
+    const updateStatusMutation = useMutation({
+        mutationFn: ({ id, status }: { id: string; status: TaskStatus }) =>
+            apiRequest("PATCH", `/api/tasks/${id}`, { status }).then(r => r.json()),
+        onMutate: async ({ id, status }) => {
+            await qc.cancelQueries({ queryKey: ["/api/tasks"] });
+            const previous = qc.getQueryData<Task[]>(["/api/tasks"]);
+            qc.setQueryData<Task[]>(["/api/tasks"], old =>
+                (old ?? []).map(t => t.id === id ? { ...t, status } : t)
+            );
+            return { previous };
+        },
+        onError: (_err, _vars, ctx) => {
+            if (ctx?.previous) qc.setQueryData(["/api/tasks"], ctx.previous);
+        },
+        onSettled: () => qc.invalidateQueries({ queryKey: ["/api/tasks"] }),
+    });
+
+    // ── Delete ─────────────────────────────────────────────────────────────
+    const deleteMutation = useMutation({
+        mutationFn: (id: string) =>
+            apiRequest("DELETE", `/api/tasks/${id}`),
+        onSettled: () => qc.invalidateQueries({ queryKey: ["/api/tasks"] }),
+    });
+
+    // ── Drag handlers ──────────────────────────────────────────────────────
     const handleDragStart = (e: React.DragEvent, id: string) => {
         setDraggedTask(id);
         e.dataTransfer.setData("taskId", id);
@@ -109,12 +105,32 @@ export default function TasksPage() {
     const handleDrop = (e: React.DragEvent, newStatus: TaskStatus) => {
         e.preventDefault();
         const taskId = e.dataTransfer.getData("taskId");
-
         if (taskId) {
-            setTasks(prev => prev.map(t => t.id === taskId ? { ...t, status: newStatus } : t));
+            updateStatusMutation.mutate({ id: taskId, status: newStatus });
         }
         setDraggedTask(null);
     };
+
+    // ── Loading / error states ─────────────────────────────────────────────
+    if (isLoading) {
+        return (
+            <div className="flex flex-col h-[calc(100vh-2rem)] bg-[#0e0e0e] text-zinc-100 rounded-xl border border-zinc-800/60 shadow-2xl items-center justify-center gap-3">
+                <Loader2 className="w-8 h-8 text-indigo-400 animate-spin" />
+                <p className="text-sm text-zinc-400">Loading tasks…</p>
+            </div>
+        );
+    }
+
+    if (isError) {
+        return (
+            <div className="flex flex-col h-[calc(100vh-2rem)] bg-[#0e0e0e] text-zinc-100 rounded-xl border border-zinc-800/60 shadow-2xl items-center justify-center gap-3">
+                <AlertCircle className="w-8 h-8 text-rose-400" />
+                <p className="text-sm text-zinc-400">
+                    {error instanceof Error ? error.message : "Failed to load tasks"}
+                </p>
+            </div>
+        );
+    }
 
     return (
         <div className="flex flex-col h-[calc(100vh-2rem)] bg-[#0e0e0e] text-zinc-100 font-sans selection:bg-indigo-500/30 overflow-hidden rounded-xl border border-zinc-800/60 shadow-2xl">
@@ -196,14 +212,19 @@ export default function TasksPage() {
                                                     <p className="text-sm font-medium text-zinc-200 leading-snug group-hover:text-white transition-colors">
                                                         {task.title}
                                                     </p>
-                                                    <Button variant="ghost" size="icon" className="h-5 w-5 rounded opacity-0 group-hover:opacity-100 transition-opacity -mr-1 -mt-1 text-zinc-500 hover:bg-white/5">
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-5 w-5 rounded opacity-0 group-hover:opacity-100 transition-opacity -mr-1 -mt-1 text-zinc-500 hover:bg-white/5"
+                                                        onClick={() => deleteMutation.mutate(task.id)}
+                                                    >
                                                         <MoreHorizontal className="w-3 h-3" />
                                                     </Button>
                                                 </div>
 
                                                 <div className="flex flex-wrap gap-1.5 mb-3">
                                                     {task.tags.map(tag => (
-                                                        <Badge key={tag} variant="secondary" className="bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 font-medium text-[10px] px-1.5 py-0 border-white/5 rounded">
+                                                        <Badge key={tag} variant="outline" className="bg-zinc-800/50 hover:bg-zinc-800 text-zinc-400 font-medium text-[10px] px-1.5 py-0 border-white/5 rounded">
                                                             {tag}
                                                         </Badge>
                                                     ))}

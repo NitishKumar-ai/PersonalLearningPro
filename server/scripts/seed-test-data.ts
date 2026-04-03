@@ -1,3 +1,8 @@
+// ── Production guard ─────────────────────────────────────────────────────────
+if (process.env.NODE_ENV === "production") {
+  throw new Error("Never run the seed script in production. Exiting.");
+}
+
 import "dotenv/config";
 import mongoose from "mongoose";
 import { connectMongoDB } from "../db";
@@ -15,7 +20,7 @@ async function seedData() {
         console.log("No teacher found, creating a dummy teacher...");
         const dummyTeacher = await storage.createUser({
             username: "dummy_teacher_" + Date.now(),
-            password: "password123",
+            password: "Seed@TestOnly1",
             email: "teacher" + Date.now() + "@school.com",
             name: "Dummy Teacher",
             role: "teacher",

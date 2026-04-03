@@ -29,7 +29,7 @@ interface WebSocketMessage {
     timestamp: string;
 }
 
-export function useMessagePalWebSocket() {
+export function useMessagePalWebSocket(currentUserId?: number) {
     const [isConnected, setIsConnected] = useState(false);
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeConversation, setActiveConversation] = useState<string | null>(null);
@@ -272,8 +272,9 @@ export function useMessagePalWebSocket() {
         }
     }, [isConnected]);
 
-    // Connect on mount, disconnect on unmount
+    // Connect on mount (once userId is resolved), disconnect on unmount
     useEffect(() => {
+        if (!currentUserId) return; // wait until userId is resolved
         connect();
 
         return () => {
@@ -282,7 +283,7 @@ export function useMessagePalWebSocket() {
                 clearTimeout(typingTimeoutRef.current);
             }
         };
-    }, [connect, disconnect]);
+    }, [connect, disconnect, currentUserId]);
 
     return {
         isConnected,

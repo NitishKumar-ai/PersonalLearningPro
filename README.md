@@ -1,212 +1,251 @@
-# Master Plan — AI-Powered Personalized Learning Platform
+<div align="center">
 
-> An open-source, AI-powered learning platform built for schools — featuring intelligent test creation, real-time messaging, OCR scanning, adaptive AI tutoring, and role-based dashboards for students, teachers, principals, admins, and parents.
+<img src="assets/generated-icon.png" alt="EduAI Logo" width="96" />
+
+# EduAI — AI-Powered School Management Platform
+
+**The complete school operating system.** AI tutoring, live classes, real-time messaging, OCR grading, and role-based dashboards — all in one open-source platform.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](docs/CHANGELOG.md)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-green.svg)](https://nodejs.org)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](Dockerfile)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](docs/CONTRIBUTING.md)
+
+[**Live Demo**](https://eduai.app) · [**Docs**](docs/) · [**Report Bug**](https://github.com/StarkNitish/PersonalLearningPro/issues) · [**Request Feature**](https://github.com/StarkNitish/PersonalLearningPro/issues)
+
+</div>
 
 ---
 
-## ✨ Features
+## 📽️ Demo
 
-### 🤖 AI-Powered Capabilities
-| Feature | Description |
+> **Video walkthrough coming soon** — star the repo to get notified.
+
+<!-- Replace the src below with your actual demo GIF or video thumbnail + link -->
+<div align="center">
+  <a href="https://youtu.be/your-demo-link">
+    <img src="https://img.shields.io/badge/▶_Watch_Demo-FF0000?style=for-the-badge&logo=youtube&logoColor=white" alt="Watch Demo" />
+  </a>
+</div>
+
+| 🎓 Student Dashboard | 🧑‍🏫 Teacher Dashboard | 💬 MessagePal |
+|---|---|---|
+| *(screenshot)* | *(screenshot)* | *(screenshot)* |
+
+> Drop screenshots into `assets/screenshots/` and update the table above.
+
+---
+
+## ✨ What makes this different?
+
+Most school platforms are either too simple or too expensive. EduAI is **open-source**, **AI-first**, and designed for the realities of modern schools — from Nursery to Grade 12, across CBSE, ICSE, IB, and State boards.
+
+---
+
+## 🚀 Features at a Glance
+
+### 🤖 AI-Powered Learning
+| Feature | What it does |
 |---|---|
-| **AI Tutor** | Interactive chat-based tutor with markdown & math rendering |
-| **AI Test Generation** | Automatically generate questions from any topic |
-| **Answer Evaluation** | AI grades subjective answers with feedback |
-| **Performance Analysis** | AI insights into student progress patterns |
-| **Study Plan Generator** | Personalized study schedules |
+| **AI Tutor** | Subject-aware chat tutor with markdown & LaTeX math rendering |
+| **Test Generation** | Auto-generate MCQ, short-answer, and essay questions from any topic |
+| **Answer Evaluation** | AI grades subjective answers with detailed feedback |
+| **Performance Analysis** | Identifies weak topics and recommends resources per student |
+| **Study Plan Generator** | Builds a personalized weekly study schedule |
 
-### 💬 Real-Time Messaging (MessagePal)
-- WebSocket-based live chat with typing indicators
-- Message history persistence via **Apache Cassandra**
-- File/image attachments with `multer`
-- Firebase Auth token verification per message
-- REST fallback API for history and uploads
+### 💬 Real-Time Messaging — MessagePal
+- ⚡ WebSocket-based live chat with typing indicators and read receipts
+- 🗄️ Message history persisted in **Apache Cassandra** for scale
+- 📎 File & image attachments via `multer`
+- 🔐 Firebase Auth token verified on every message
+- 🌐 REST fallback API for history and uploads
 
-### 🏫 Core Platform Features
-- **Role-Based Access Control** — Student, Teacher, Principal, Admin, Parent
-- **Multi-Dashboard System** — Tailored UI for every role
-- **Test Management** — Create, distribute, and evaluate tests
-- **OCR Test Scanning** — Convert physical test papers via Tesseract.js
-- **Student Directory** — Browse by grade (Nursery → 12th)
-- **Analytics Dashboard** — Charts and performance metrics via Recharts
-- **Learning Progress Tracking** — Monitor improvement over time
-- **Firebase Authentication** — Google and email/password sign-in
-- **Dark Mode** — Full dark/light theme support
+### 🏫 School Management
+- **👥 Role-Based Access** — Student, Teacher, Principal, School Admin, Platform Admin, Parent
+- **🧭 Onboarding Wizard** — School setup → invite teachers → invite students, fully guided
+- **📋 Test Management** — Create, distribute, auto-grade, and review tests
+- **📷 OCR Scanning** — Digitize physical answer sheets via Tesseract.js
+- **📂 Student Directory** — Browse and filter by grade (Nursery → Grade 12)
+- **📊 Analytics Dashboard** — Class-wide and per-student performance charts
+- **📅 Academic Calendar** — Schedule and track school events
+- **🎯 Focus Mode** — Distraction-free study timer for students
+- **🏆 Achievements** — XP, streaks, and badges to keep students motivated
+- **🌓 Dark Mode** — Full dark/light theme with system preference detection
 
----
-
-## 🚀 Quick Start
-
-### Option 1: Docker (Recommended)
-
-No Node.js install required — just [Docker](https://docs.docker.com/get-docker/).
-
-```bash
-git clone https://github.com/StarkNitish/PersonalLearningPro.git
-cd PersonalLearningPro
-cp .env.example .env       # fill in your credentials
-docker compose build
-docker compose up
-```
-
-Open **[http://localhost:5001](http://localhost:5001)** in your browser.
-
-### Option 2: Manual Setup
-
-Requires **Node.js v18+** and **npm**.
-
-```bash
-git clone https://github.com/StarkNitish/PersonalLearningPro.git
-cd PersonalLearningPro
-cp .env.example .env       # fill in your credentials
-npm install
-npm run dev
-```
-
-Open **[http://localhost:5001](http://localhost:5001)** in your browser.
-
-> See [LOCAL_SETUP.md](docs/LOCAL_SETUP.md) for detailed setup instructions including database configuration.
-
----
-
-## ⚙️ Environment Variables
-
-Copy `.env.example` to `.env`. All variables are **optional** — the app runs without them but with reduced functionality:
-
-| Variable | Purpose |
-|---|---|
-| `VITE_FIREBASE_API_KEY` | Firebase authentication |
-| `VITE_FIREBASE_PROJECT_ID` | Firebase project identifier |
-| `VITE_FIREBASE_APP_ID` | Firebase app identifier |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase Cloud Messaging |
-| `VITE_FIREBASE_MEASUREMENT_ID` | Firebase Analytics |
-| `OPENAI_API_KEY` | AI tutor, test generation, and answer evaluation |
-| `MONGODB_URI` | MongoDB Atlas connection string (session + user storage) |
-| `CASSANDRA_*` | Cassandra cluster config for message persistence |
-| `SESSION_SECRET` | Session cookie signing (auto-generated in dev) |
-
-> **Without Firebase:** Auth features are disabled.  
-> **Without OpenAI:** AI features are unavailable.  
-> **Without MongoDB/Cassandra:** Falls back to in-memory storage.
-
----
-
-## 📁 Project Structure
-
-```
-PersonalLearningPro/
-├── client/                    # React + Vite frontend
-│   └── src/
-│       ├── components/        # Reusable UI components
-│       │   ├── auth/          # Firebase auth dialogs
-│       │   ├── chat/          # Real-time messaging UI
-│       │   ├── dashboard/     # Role-specific dashboard widgets
-│       │   └── ui/            # shadcn/ui component library
-│       ├── contexts/          # Auth & theme context providers
-│       ├── hooks/             # Custom React hooks (WebSocket, auth, query)
-│       ├── lib/               # API clients, Firebase config, utilities
-│       ├── pages/             # Page-level components (one per route)
-│       ├── App.tsx            # Root router & layout
-│       └── main.tsx           # Vite entry point
-│
-├── server/                    # Express + Node.js backend
-│   ├── lib/                   # Integrations: OpenAI, Firebase Admin, Tesseract, Cassandra
-│   ├── message/               # Real-time messaging module
-│   │   ├── index.ts           # Message route handlers
-│   │   ├── routes.ts          # Express routes for messages
-│   │   ├── message-store.ts   # Abstract message storage interface
-│   │   └── cassandra-*.ts     # Cassandra-backed message persistence
-│   ├── messagepal/            # MessagePal feature module
-│   ├── chat-ws.ts             # WebSocket server (ws library)
-│   ├── routes.ts              # Main API routes
-│   ├── storage.ts             # MongoDB + in-memory storage layer
-│   ├── db.ts                  # MongoDB/Mongoose connection
-│   ├── middleware.ts          # Auth & session middleware
-│   └── index.ts               # Server entry point (port 5001)
-│
-├── shared/                    # Shared types & Zod validation schemas
-├── docs/                      # Project documentation
-│   ├── CHANGELOG.md
-│   ├── CONTRIBUTING.md
-│   ├── LOCAL_SETUP.md
-│   ├── CLA.md
-│   └── CODE_OF_CONDUCT.md
-├── Dockerfile                 # Docker image definition
-├── docker-compose.yml         # Multi-service Docker Compose
-└── .env.example               # Environment variable template
-```
-
----
-
-## 📜 Available Scripts
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start the full app in development mode (port 5001) |
-| `npm run build` | Build for production (Vite + esbuild) |
-| `npm run start` | Run the production build |
-| `npm run check` | Type-check TypeScript |
-
----
-
-## 🐳 Docker Reference
-
-```bash
-docker compose build              # Build the image
-docker compose up                 # Start the container
-docker compose up -d              # Start in background (detached)
-docker compose down               # Stop the container
-docker compose build --no-cache   # Rebuild after dependency changes
-```
-
-Source files (`client/`, `server/`, `shared/`) are bind-mounted for **hot reload** — no rebuild needed for code changes.
+### 🎥 Live Classrooms
+- Video sessions powered by **Daily.co** / **BigBlueButton**
+- In-session chat panel, participant list, and screen sharing
+- Session recording and replay support
 
 ---
 
 ## 🛠️ Tech Stack
 
-| Layer | Technologies |
+| Layer | Technology |
 |---|---|
 | **Frontend** | React 18, Vite, TypeScript, Tailwind CSS, shadcn/ui, Framer Motion |
-| **Backend** | Node.js, Express, TypeScript, Passport.js |
-| **Database** | MongoDB (users/sessions), Apache Cassandra (messages) |
-| **Auth** | Firebase Auth, Firebase Admin SDK, express-session |
-| **AI** | OpenAI API (GPT-4), Tesseract.js (OCR) |
-| **Real-time** | WebSocket (`ws`), custom chat gateway |
-| **State** | TanStack Query (React Query) |
-| **Charts** | Recharts |
-| **File Upload** | Multer |
+| **Backend** | Node.js, Express, TypeScript |
+| **Auth** | Firebase Authentication (Google + email/password) |
+| **Primary DB** | MongoDB Atlas + Mongoose |
+| **Message Store** | Apache Cassandra |
+| **AI** | OpenAI GPT-4o |
+| **OCR** | Tesseract.js |
+| **Real-time** | WebSockets (ws) |
+| **Email** | Nodemailer (SMTP) |
+| **Video** | Daily.co / BigBlueButton |
+| **DevOps** | Docker, Kubernetes, Terraform, GitHub Actions |
 
 ---
 
-## 📝 Contributor License Agreement (CLA)
+## ⚡ Quick Start
 
-We use a CLA to ensure contributions can be safely included in the project. When you open your first Pull Request, the CLA Assistant bot will ask you to sign by commenting:
+### 🐳 Option 1: Docker (Recommended — no Node.js needed)
 
-> I have read the CLA Document and I hereby sign the CLA
+```bash
+git clone https://github.com/StarkNitish/PersonalLearningPro.git
+cd PersonalLearningPro
+cp .env.example .env        # fill in your credentials
+docker compose up
+```
 
-You only need to do this once. See [CLA.md](docs/CLA.md) for the full agreement.
+Open [http://localhost:5001](http://localhost:5001)
+
+### 💻 Option 2: Local Development
+
+**Prerequisites:** Node.js ≥ 18, MongoDB, (optional) Cassandra
+
+```bash
+git clone https://github.com/StarkNitish/PersonalLearningPro.git
+cd PersonalLearningPro
+cp .env.example .env        # fill in your credentials
+npm install
+npm run dev
+```
+
+Open [http://localhost:5001](http://localhost:5001)
+
+### 🔑 Required Environment Variables
+
+```env
+# MongoDB
+MONGODB_URL=mongodb+srv://...
+
+# Firebase
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_APP_ID=
+FIREBASE_SERVICE_ACCOUNT_JSON=   # base64-encoded service account
+
+# OpenAI
+OPENAI_API_KEY=
+
+# Email (for invite system)
+SMTP_HOST=smtp.gmail.com
+SMTP_USER=
+SMTP_PASS=
+APP_URL=http://localhost:5001
+```
+
+See [`.env.example`](.env.example) for the full list.
+
+---
+
+## 🗺️ Onboarding Flow
+
+```
+Super Admin creates school account
+         ↓
+School Admin completes school setup wizard  →  /onboarding/school
+         ↓
+Admin invites teachers via email            →  /onboarding/invite-teachers
+         ↓
+Teachers accept invite → set password       →  /accept-invite?token=...
+         ↓
+Teachers create their classes               →  /onboarding/teacher
+         ↓
+Teachers invite students (or bulk CSV)      →  /onboarding/invite-students
+         ↓
+Students accept invite → enrolled           →  Dashboard ✅
+```
+
+Every role sees their onboarding wizard until their stage is complete — then lands directly on their dashboard.
+
+---
+
+## 👥 Role Dashboards
+
+| Role | Dashboard | Key Capabilities |
+|---|---|---|
+| 🎓 **Student** | `/student-dashboard` | AI Tutor, Tests, Progress, Achievements, Focus Mode |
+| 🧑‍🏫 **Teacher** | `/dashboard` | Create Tests, OCR Scan, Analytics, Live Classes, MessagePal |
+| 🏫 **Principal** | `/principal-dashboard` | School-wide analytics, Student Directory, Staff overview |
+| 🔧 **School Admin** | `/school-admin-dashboard` | School setup, Teacher/Student management, Reports |
+| ⚙️ **Platform Admin** | `/admin-dashboard` | All-school oversight, User management |
+| 👨‍👩‍👧 **Parent** | `/parent-dashboard` | Child progress, Teacher messages, Calendar |
+
+---
+
+## 📂 Project Structure
+
+```
+├── client/          # React + Vite frontend
+│   └── src/
+│       ├── pages/       # Route-level page components
+│       ├── components/  # Reusable UI components
+│       ├── contexts/    # React context providers (auth, theme)
+│       ├── hooks/       # Custom hooks
+│       └── lib/         # API client, Firebase, utilities
+├── server/          # Node.js + Express backend
+│   ├── routes/      # Express route handlers
+│   ├── lib/         # Firebase Admin, OpenAI, mailer, upload
+│   └── message/     # MessagePal WebSocket + Cassandra layer
+├── shared/          # Zod schemas + Mongoose models (shared)
+├── docs/            # Architecture docs, API reference, changelogs
+├── k8s/             # Kubernetes manifests
+├── terraform/       # Infrastructure as Code
+└── scripts/         # Seed scripts, CI utilities
+```
+
+---
+
+## 🧪 Development Commands
+
+```bash
+npm run dev      # Start frontend + backend (Vite + Express)
+npm run check    # TypeScript type check
+npm test         # Run Vitest test suite
+npm run lint     # ESLint
+npm run build    # Production build
+```
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines.
+Contributions from humans and AI agents are welcome! 🌍
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Sign the CLA on your first PR (one-time)
-4. Commit your changes (`git commit -m 'Add some amazing feature'`)
-5. Push to the branch (`git push origin feature/amazing-feature`)
-6. Open a Pull Request
+1. Fork the repo
+2. Create a branch: `git checkout -b feature/your-feature`
+3. Sign the CLA on your first PR (one-time, automated)
+4. Commit: `git commit -m "feat: your feature"`
+5. Push & open a Pull Request
+
+See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for full guidelines, coding conventions, and the spec-first development workflow.
+
+**Using an AI agent?** Initialize your `.agent` workspace and follow the `AGENTS.md` format for structured spec → design → implementation workflows.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+Made with ❤️ for schools everywhere · [⭐ Star this repo](https://github.com/StarkNitish/PersonalLearningPro) if it helped you!
+
+</div>

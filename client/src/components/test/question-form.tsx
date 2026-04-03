@@ -5,7 +5,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { PlusCircle, X, Trash2 } from "lucide-react";
+import { PlusCircle, X, Trash2, Sparkles, Brain, Loader2 } from "lucide-react";
 
 import {
   Form,
@@ -55,12 +55,66 @@ interface QuestionFormProps {
 export function QuestionForm({ testId, order, onSuccess }: QuestionFormProps) {
   const { toast } = useToast();
   const [questionType, setQuestionType] = useState<string>("mcq");
+  const [showAiGen, setShowAiGen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [aiParams, setAiParams] = useState({ num: 5, diff: "medium", grade: "10th" });
+
   const [options, setOptions] = useState<Array<{ id: string; text: string; isCorrect: boolean }>>([
     { id: "1", text: "", isCorrect: false },
     { id: "2", text: "", isCorrect: false },
     { id: "3", text: "", isCorrect: false },
     { id: "4", text: "", isCorrect: false },
   ]);
+
+  const generateAiQuestions = async () => {
+    setIsGenerating(true);
+    try {
+      // Fetch test details to get subject
+      const testRes = await fetch(`/api/tests/${testId}`);
+      const test = await testRes.json();
+
+      const response = await fetch("/api/ai/generate-test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subject: test.subject,
+          numQuestions: aiParams.num,
+          difficulty: aiParams.diff,
+          grade: aiParams.grade
+        }),
+      });
+
+      if (!response.ok) throw new Error("Failed to generate");
+      const questions = await response.json();
+
+      // Add each question to the test
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        await apiRequest("POST", "/api/questions", {
+          testId,
+          type: "mcq",
+          text: q.question,
+          options: q.options.map((opt: string, idx: number) => ({
+            text: opt,
+            isCorrect: idx.toString() === q.answer || opt === q.answer
+          })),
+          correctAnswer: q.answer,
+          marks: 1,
+          order: order + i,
+          aiRubric: q.explanation
+        });
+      }
+
+      toast({ title: "AI Questions Generated", description: `${questions.length} questions added to test.` });
+      queryClient.invalidateQueries({ queryKey: [`/api/tests/${testId}/questions`] });
+      if (onSuccess) onSuccess();
+      setShowAiGen(false);
+    } catch (error) {
+      toast({ title: "Generation Failed", description: "Could not generate valid questions. Try again.", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const form = useForm<QuestionFormValues>({
     resolver: zodResolver(questionSchema),
@@ -204,163 +258,168 @@ export function QuestionForm({ testId, order, onSuccess }: QuestionFormProps) {
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Question Type</FormLabel>
-                    <Select
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        handleTypeChange(value);
-                      }}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select question type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="mcq">Multiple Choice</SelectItem>
-                        <SelectItem value="short">Short Answer</SelectItem>
-                        <SelectItem value="long">Long Answer</SelectItem>
-                        <SelectItem value="numerical">Numerical</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="marks"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Marks</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        min={1}
-                        {...field}
-                        onChange={(e) => field.onChange(parseInt(e.target.value))}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <FormField
-              control={form.control}
-              name="text"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Question Text</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Enter your question here..."
-                      className="min-h-24"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {questionType === "mcq" && (
-              <div className="mt-4">
-                <FormLabel className="block mb-2">Options</FormLabel>
-                <div className="space-y-3">
-                  {options.map((option) => (
-                    <div
-                      key={option.id}
-                      className="flex items-start space-x-2"
-                    >
-                      <RadioGroup
-                        value={
-                          options.find((opt) => opt.isCorrect)?.id || ""
-                        }
-                        onValueChange={handleCorrectOptionChange}
-                        className="flex items-center mt-2"
-                      >
-                        <RadioGroupItem
-                          value={option.id}
-                          id={`option-${option.id}`}
-                          className="mt-1"
-                        />
-                      </RadioGroup>
-                      <div className="flex-1">
-                        <Input
-                          value={option.text}
-                          onChange={(e) =>
-                            handleOptionChange(option.id, e.target.value)
-                          }
-                          placeholder={`Option ${option.id}`}
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => removeOption(option.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+    <div className="space-y-6">
+      <Card className="border-accent/20 bg-accent-soft/30 overflow-hidden">
+        <CardContent className="p-0">
+          {!showAiGen ? (
+            <div className="p-6 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-accent text-white shadow-soft">
+                  <Sparkles className="h-5 w-5" />
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="mt-2"
-                  onClick={addOption}
-                >
-                  <PlusCircle className="h-4 w-4 mr-2" />
-                  Add Option
+                <div>
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-accent">AI Question Generator</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Let EduAI draft questions based on your test subject</p>
+                </div>
+              </div>
+              <Button onClick={() => setShowAiGen(true)} variant="outline" className="border-accent/30 text-accent hover:bg-accent hover:text-white transition-all rounded-full font-bold text-[10px] uppercase tracking-widest px-6 h-10 shadow-soft">
+                Generate Questions
+              </Button>
+            </div>
+          ) : (
+            <div className="p-6 space-y-6">
+              <div className="flex items-center justify-between border-b border-accent/10 pb-4 mb-2">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-accent" />
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-accent">Generator Settings</h3>
+                </div>
+                <Button variant="ghost" size="icon" onClick={() => setShowAiGen(false)} className="h-8 w-8 text-accent/60 hover:text-accent rounded-full">
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
-            )}
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Questions</label>
+                  <Select value={aiParams.num.toString()} onValueChange={(v) => setAiParams({...aiParams, num: parseInt(v)})}>
+                    <SelectTrigger className="rounded-xl border-accent/20 bg-background focus:ring-accent/5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[3, 5, 10, 15].map(n => <SelectItem key={n} value={n.toString()}>{n} Questions</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Difficulty</label>
+                  <Select value={aiParams.diff} onValueChange={(v) => setAiParams({...aiParams, diff: v})}>
+                    <SelectTrigger className="rounded-xl border-accent/20 bg-background focus:ring-accent/5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["easy", "medium", "hard"].map(d => <SelectItem key={d} value={d} className="capitalize">{d}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground ml-1">Target Grade</label>
+                  <Select value={aiParams.grade} onValueChange={(v) => setAiParams({...aiParams, grade: v})}>
+                    <SelectTrigger className="rounded-xl border-accent/20 bg-background focus:ring-accent/5">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {["9th", "10th", "11th", "12th"].map(g => <SelectItem key={g} value={g}>{g} Grade</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
 
-            {questionType === "numerical" && (
+              <div className="flex justify-end gap-3 pt-2">
+                <Button onClick={() => setShowAiGen(false)} variant="ghost" className="rounded-full text-[10px] font-bold uppercase tracking-widest h-10 px-6">
+                  Cancel
+                </Button>
+                <Button onClick={generateAiQuestions} disabled={isGenerating} className="bg-accent hover:bg-accent-hover text-white rounded-full text-[10px] font-bold uppercase tracking-widest h-10 px-8 shadow-card disabled:opacity-70">
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-3.5 w-3.5 mr-2" />
+                      Generate Now
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="relative py-4">
+        <div className="absolute inset-0 flex items-center">
+          <span className="w-full border-t border-border" />
+        </div>
+        <div className="relative flex justify-center text-[10px] font-bold uppercase tracking-widest">
+          <span className="bg-background px-4 text-muted-foreground">or add manually</span>
+        </div>
+      </div>
+
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <Card>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Question Type</FormLabel>
+                      <Select
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          handleTypeChange(value);
+                        }}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select question type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="mcq">Multiple Choice</SelectItem>
+                          <SelectItem value="short">Short Answer</SelectItem>
+                          <SelectItem value="long">Long Answer</SelectItem>
+                          <SelectItem value="numerical">Numerical</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="marks"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Marks</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={1}
+                          {...field}
+                          onChange={(e) => field.onChange(parseInt(e.target.value))}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
-                name="correctAnswer"
+                name="text"
                 render={({ field }) => (
-                  <FormItem className="mt-4">
-                    <FormLabel>Correct Answer</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Enter the correct numerical answer"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
-
-            {(questionType === "short" || questionType === "long") && (
-              <FormField
-                control={form.control}
-                name="aiRubric"
-                render={({ field }) => (
-                  <FormItem className="mt-4">
-                    <FormLabel>Evaluation Rubric (for AI Scoring)</FormLabel>
+                  <FormItem>
+                    <FormLabel>Question Text</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="Enter guidelines for how the AI should evaluate answers..."
+                        placeholder="Enter your question here..."
                         className="min-h-24"
                         {...field}
                       />
@@ -369,21 +428,115 @@ export function QuestionForm({ testId, order, onSuccess }: QuestionFormProps) {
                   </FormItem>
                 )}
               />
-            )}
 
-            <div className="mt-6 flex justify-end">
-              <Button
-                type="submit"
-                disabled={createQuestionMutation.isPending}
-              >
-                {createQuestionMutation.isPending
-                  ? "Adding..."
-                  : "Add Question"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </form>
-    </Form>
+              {questionType === "mcq" && (
+                <div className="mt-4">
+                  <FormLabel className="block mb-2">Options</FormLabel>
+                  <div className="space-y-3">
+                    {options.map((option) => (
+                      <div
+                        key={option.id}
+                        className="flex items-start space-x-2"
+                      >
+                        <RadioGroup
+                          value={
+                            options.find((opt) => opt.isCorrect)?.id || ""
+                          }
+                          onValueChange={handleCorrectOptionChange}
+                          className="flex items-center mt-2"
+                        >
+                          <RadioGroupItem
+                            value={option.id}
+                            id={`option-${option.id}`}
+                            className="mt-1"
+                          />
+                        </RadioGroup>
+                        <div className="flex-1">
+                          <Input
+                            value={option.text}
+                            onChange={(e) =>
+                              handleOptionChange(option.id, e.target.value)
+                            }
+                            placeholder={`Option ${option.id}`}
+                          />
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeOption(option.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={addOption}
+                  >
+                    <PlusCircle className="h-4 w-4 mr-2" />
+                    Add Option
+                  </Button>
+                </div>
+              )}
+
+              {questionType === "numerical" && (
+                <FormField
+                  control={form.control}
+                  name="correctAnswer"
+                  render={({ field }) => (
+                    <FormItem className="mt-4">
+                      <FormLabel>Correct Answer</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter the correct numerical answer"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              {(questionType === "short" || questionType === "long") && (
+                <FormField
+                  control={form.control}
+                  name="aiRubric"
+                  render={({ field }) => (
+                    <FormItem className="mt-4">
+                      <FormLabel>Evaluation Rubric (for AI Scoring)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Enter guidelines for how the AI should evaluate answers..."
+                          className="min-h-24"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+              <div className="mt-6 flex justify-end">
+                <Button
+                  type="submit"
+                  disabled={createQuestionMutation.isPending}
+                >
+                  {createQuestionMutation.isPending
+                    ? "Adding..."
+                    : "Add Question"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </form>
+      </Form>
+    </div>
   );
 }

@@ -11,47 +11,30 @@ export default function AiTutor() {
   const [initialPrompt, setInitialPrompt] = useState("");
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  // Mock data for the MVP Bento Grid
-  const subjects = [
-    {
-      id: "physics",
-      name: "Physics",
-      description: "Advanced mechanics and thermodynamics.",
-      tag: "CORE",
-      progress: 65,
-      weakness: "Rotational Motion",
-      icon: <Rocket className="w-16 h-16 text-[#4f8cff]" strokeWidth={1.5} />,
-      isLocked: false
-    },
-    {
-      id: "chemistry",
-      name: "Chemistry",
-      description: "Organic reactions and periodicity.",
-      tag: "CORE",
-      progress: 88,
-      icon: <Trophy className="w-16 h-16 text-[#3ad29f]" strokeWidth={1.5} />,
-      isLocked: false
-    },
-    {
-      id: "math",
-      name: "Mathematics",
-      description: "Calculus and linear algebra.",
-      tag: "ADVANCED",
-      progress: 42,
-      weakness: "Integration by Parts",
-      icon: <GraduationCap className="w-16 h-16 text-[#ffb86b]" strokeWidth={1.5} />,
-      isLocked: false
-    },
-    {
-      id: "cs",
-      name: "Computer Science",
-      description: "Data structures and algorithms.",
-      tag: "ELECTIVE",
-      progress: 0,
-      icon: <Code className="w-16 h-16 text-white/30" strokeWidth={1.5} />,
-      isLocked: true
-    }
-  ];
+  // Use real subjects from profile or fallback
+  const userSubjects = currentUser?.profile?.subjects || [];
+  
+  const subjects = userSubjects.length > 0 
+    ? userSubjects.map(s => ({
+        id: s.toLowerCase(),
+        name: s,
+        description: `Your enrolled ${s} module.`,
+        tag: "ENROLLED",
+        progress: 0,
+        icon: <GraduationCap className="w-16 h-16 text-accent" strokeWidth={1.5} />,
+        isLocked: false
+      }))
+    : [
+        {
+          id: "general",
+          name: "General Study",
+          description: "Ask anything about your curriculum.",
+          tag: "GUEST",
+          progress: 0,
+          icon: <Sparkles className="w-16 h-16 text-accent" strokeWidth={1.5} />,
+          isLocked: false
+        }
+      ];
 
   const handleAction = (subjectName: string, action: "revise" | "practice" | "chat") => {
     setActiveSubject(subjectName);
@@ -120,7 +103,6 @@ export default function AiTutor() {
                 icon={subject.icon}
                 tag={subject.tag}
                 progressPercentage={subject.progress}
-                weakness={subject.weakness}
                 isLocked={subject.isLocked}
                 onAction={(action) => handleAction(subject.name, action)}
                 className="h-full"

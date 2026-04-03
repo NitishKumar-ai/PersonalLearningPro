@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Select,
   SelectContent,
@@ -28,6 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Header } from "@/components/layout/header";
 import { MobileNav } from "@/components/layout/mobile-nav";
 import { getInitials } from "@/lib/utils";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Student {
   id: number;
@@ -38,6 +40,27 @@ interface Student {
   state: string;
   standard: string;
   section?: string;
+}
+
+interface ServerUser {
+  id: number;
+  name?: string;
+  displayName?: string;
+  avatar?: string;
+  district?: string;
+  class?: string;
+}
+
+function mapUserToStudent(u: ServerUser): Student {
+  return {
+    id: u.id,
+    name: u.name || u.displayName || "",
+    avatar: u.avatar,
+    city: u.district || "",
+    state: u.district || "",
+    standard: u.class || "",
+    section: undefined,
+  };
 }
 
 const standards = [
@@ -73,166 +96,14 @@ export default function StudentDirectory() {
   const [selectedGroup, setSelectedGroup] = useState<string>("all");
 
   // Fetch student data
-  const { data: students, isLoading } = useQuery<Student[]>({
-    queryKey: ["/api/students"],
-    enabled: false, // Disabled until API endpoint is implemented
+  const { data: rawStudents, isLoading, isError, refetch } = useQuery<ServerUser[]>({
+    queryKey: ["/api/users", { role: "student" }],
+    queryFn: () => apiRequest("GET", "/api/users?role=student").then(r => r.json()),
   });
 
-  // Mock student data for UI demonstration
-  const mockStudents: Student[] = [
-    {
-      id: 1,
-      name: "Ishita Khot",
-      profileUrl: "linkedin.com/in/...b721a/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=1",
-      city: "Buldana",
-      state: "Maharashtra",
-      standard: "9th",
-      section: "A"
-    },
-    {
-      id: 2,
-      name: "Riya Bhurse",
-      profileUrl: "linkedin.com/in/...78fb7/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=2",
-      city: "Belagavi",
-      state: "Karnataka",
-      standard: "10th",
-      section: "B"
-    },
-    {
-      id: 3,
-      name: "Pawanjot Kaur",
-      profileUrl: "linkedin.com/in/...84259/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=3",
-      city: "Jaipur",
-      state: "Rajasthan",
-      standard: "11th",
-      section: "C"
-    },
-    {
-      id: 4,
-      name: "Rushil Choudhary",
-      profileUrl: "linkedin.com/in/...93f72/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=4",
-      city: "Mumbai",
-      state: "Maharashtra",
-      standard: "12th",
-      section: "A"
-    },
-    {
-      id: 5,
-      name: "Ayush Saxena",
-      profileUrl: "linkedin.com/in/...a7e51/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=5&hair=short",
-      city: "Delhi",
-      state: "Delhi",
-      standard: "8th",
-      section: "B"
-    },
-    {
-      id: 6,
-      name: "Yash Athwani",
-      profileUrl: "linkedin.com/in/...42c6b/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=6&hair=short",
-      city: "Pune",
-      state: "Maharashtra",
-      standard: "7th",
-      section: "A"
-    },
-    {
-      id: 7,
-      name: "Ananya Patel",
-      profileUrl: "linkedin.com/in/...b23d4/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=7",
-      city: "Ahmedabad",
-      state: "Gujarat",
-      standard: "6th",
-      section: "B"
-    },
-    {
-      id: 8,
-      name: "Rohan Singh",
-      profileUrl: "linkedin.com/in/...c41e5/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=8&hair=short",
-      city: "Lucknow",
-      state: "Uttar Pradesh",
-      standard: "5th",
-      section: "A"
-    },
-    {
-      id: 9,
-      name: "Neha Sharma",
-      profileUrl: "linkedin.com/in/...d56f1/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=9",
-      city: "Jaipur",
-      state: "Rajasthan",
-      standard: "4th",
-      section: "C"
-    },
-    {
-      id: 10,
-      name: "Arjun Kumar",
-      profileUrl: "linkedin.com/in/...e67g2/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=10&hair=short",
-      city: "Chennai",
-      state: "Tamil Nadu",
-      standard: "3rd",
-      section: "B"
-    },
-    {
-      id: 11,
-      name: "Shreya Desai",
-      profileUrl: "linkedin.com/in/...f78h3/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=11",
-      city: "Surat",
-      state: "Gujarat",
-      standard: "2nd",
-      section: "A"
-    },
-    {
-      id: 12,
-      name: "Vikas Reddy",
-      profileUrl: "linkedin.com/in/...g89i4/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=12&hair=short",
-      city: "Hyderabad",
-      state: "Telangana",
-      standard: "1st",
-      section: "D"
-    },
-    {
-      id: 13,
-      name: "Meera Nair",
-      profileUrl: "linkedin.com/in/...h90j5/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=13",
-      city: "Kochi",
-      state: "Kerala",
-      standard: "UKG",
-      section: "A"
-    },
-    {
-      id: 14,
-      name: "Aman Gupta",
-      profileUrl: "linkedin.com/in/...i01k6/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=14&hair=short",
-      city: "Indore",
-      state: "Madhya Pradesh",
-      standard: "LKG",
-      section: "B"
-    },
-    {
-      id: 15,
-      name: "Ria Malhotra",
-      profileUrl: "linkedin.com/in/...j12l7/",
-      avatar: "https://api.dicebear.com/7.x/lorelei/svg?seed=15",
-      city: "Chandigarh",
-      state: "Punjab",
-      standard: "Nursery",
-      section: "A"
-    }
-  ];
+  const students: Student[] = (rawStudents ?? []).map(mapUserToStudent);
 
-  const displayStudents = students || mockStudents;
+  const displayStudents = students;
 
   // Extract unique states for the filter
   const states = Array.from(new Set(displayStudents.map(student => student.state))).sort();
@@ -265,6 +136,33 @@ export default function StudentDirectory() {
           <p className="text-muted-foreground">Browse and search for students across all standards</p>
         </div>
 
+        {/* Loading skeleton */}
+        {isLoading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="rounded-lg overflow-hidden border">
+                <Skeleton className="h-48 w-full" />
+                <div className="p-4 space-y-2">
+                  <Skeleton className="h-5 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Error state */}
+        {isError && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground mb-4">Failed to load students. Please try again.</p>
+            <Button variant="outline" onClick={() => refetch()}>Retry</Button>
+          </div>
+        )}
+
+        {/* Main content */}
+        {!isLoading && !isError && (
+        <>
         {/* Search and Filters */}
         <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="relative md:w-72">
@@ -380,6 +278,8 @@ export default function StudentDirectory() {
             </TabsContent>
           ))}
         </Tabs>
+        </>
+        )}
       </div>
       <MobileNav />
     </>
@@ -433,7 +333,7 @@ function StudentCard({ student }: { student: Student }) {
         )}
         
         <div className="flex flex-wrap gap-2 mt-2">
-          <Badge variant="secondary" className="mr-1">{student.city}</Badge>
+          <Badge variant="default" className="mr-1">{student.city}</Badge>
           <Badge variant="outline" className="bg-primary/10">{student.state}</Badge>
         </div>
         

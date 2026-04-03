@@ -1,9 +1,16 @@
 import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { PerformanceChart } from "@/components/dashboard/performance-chart";
 import { TopStudents } from "@/components/dashboard/top-students";
+import { StudentAnalyticsCard, type StudentAnalyticsSummary } from "@/components/dashboard/student-analytics-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { apiRequest } from "@/lib/queryClient";
+import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { PageHeader } from "@/components/layout/page-header";
 import {
   PieChart,
   Pie,
@@ -11,6 +18,11 @@ import {
   ResponsiveContainer,
   Legend,
   Tooltip,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from "recharts";
 import {
   TrendingUp,
@@ -21,23 +33,68 @@ import {
   Sparkles,
   Lightbulb,
   Target,
+  AlertCircle,
+  ArrowUpRight,
+  ArrowDownRight,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 
+function IndividualStudentsTab() {
+  const { data: students, isLoading, isError } = useQuery<StudentAnalyticsSummary[]>({
+    queryKey: ["/api/analytics/students"],
+    queryFn: () => apiRequest("GET", "/api/analytics/students").then(r => r.json()),
+  });
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-16 w-full rounded-xl" />
+        ))}
+      </div>
+    );
+  }
+
+  if (isError) return <div className="p-4 text-center text-muted-foreground">Failed to load student data</div>;
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+      {students?.map(student => (
+        <StudentAnalyticsCard key={student.studentId} student={student} />
+      ))}
+    </div>
+  );
+}
+
 export default function Analytics() {
-  const [periodTab, setPeriodTab] = useState("monthly");
+  const { currentUser } = useFirebaseAuth();
+  const studentId = currentUser?.profile?.uid;
+  const [analysis, setAnalysis] = useState<any>(null);
+
+  const analyzeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch("/api/ai/performance-analysis", {
+        method: "POST",
+      });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setAnalysis(data);
+    }
+  });
+
+  // Fetch real analytics data
+  const { data: analyticsData } = useQuery<Array<{ subject: string; avgScore: number }>>({
+    queryKey: ["/api/analytics/student", studentId],
+    queryFn: () => apiRequest("GET", `/api/analytics/student/${studentId}`).then(r => r.json()),
+    enabled: !!studentId && currentUser?.profile?.role === "student",
+  });
 
   const testCompletionData = [
     { name: "Completed", value: 85, color: "hsl(var(--chart-1))" },
     { name: "In Progress", value: 10, color: "hsl(var(--chart-2))" },
     { name: "Not Started", value: 5, color: "hsl(var(--chart-3))" },
-  ];
-
-  const subjectData = [
-    { name: "Physics", value: 30, color: "hsl(var(--chart-1))" },
-    { name: "Chemistry", value: 25, color: "hsl(var(--chart-2))" },
-    { name: "Mathematics", value: 20, color: "hsl(var(--chart-3))" },
-    { name: "Biology", value: 15, color: "hsl(var(--chart-4))" },
-    { name: "Computer Science", value: 10, color: "hsl(var(--chart-5))" },
   ];
 
   const kpis = [
@@ -85,42 +142,31 @@ export default function Analytics() {
 
   return (
     <>
-      {/* Page Header */}
-      <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-md">
-            <BarChart3 className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">Performance Analytics</h1>
-            <p className="text-sm text-muted-foreground">
-              Detailed insights into student performance and learning patterns
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        title="Learning Analytics"
+        subtitle="Monitor academic progress and identify improvement opportunities."
+        className="animate-fade-in-up"
+      />
 
-      {/* KPI Strip */}
-      <section className="mb-8 grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {kpis.map((kpi, i) => (
-          <Card
-            key={kpi.label}
-            className="animate-fade-in-up hover:shadow-md transition-shadow"
-            style={{ animationDelay: `${i * 75}ms` }}
-          >
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between mb-3">
-                <span className={`p-2 rounded-lg ${kpi.bg} ${kpi.color}`}>
+          <Card key={kpi.label} className="animate-fade-in-up" style={{ animationDelay: `${i * 50}ms` }}>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`p-2 rounded-lg ${kpi.bg} ${kpi.color}`}>
                   {kpi.icon}
-                </span>
+                </div>
+                <div className={`flex items-center text-xs font-bold ${kpi.trendUp ? "text-emerald-600" : "text-amber-600"}`}>
+                  {kpi.trendUp ? <ArrowUpRight className="h-3 w-3 mr-1" /> : <ArrowDownRight className="h-3 w-3 mr-1" />}
+                  {kpi.trend}
+                </div>
               </div>
-              <div className="text-2xl font-bold tracking-tight">{kpi.value}</div>
-              <div className="text-sm text-muted-foreground">{kpi.label}</div>
-              <div className="text-xs text-primary/70 mt-1 font-medium">{kpi.trend}</div>
+              <div className="text-3xl font-display font-bold text-foreground">{kpi.value}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground mt-1">{kpi.label}</div>
             </CardContent>
           </Card>
         ))}
-      </section>
+      </div>
 
       {/* Performance chart + Top students */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
@@ -153,7 +199,6 @@ export default function Analytics() {
         </Card>
       </div>
 
-      {/* Pie charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <Card className="animate-fade-in-up" style={{ animationDelay: "250ms" }}>
           <CardHeader className="pb-2">
@@ -172,69 +217,111 @@ export default function Analytics() {
                     data={testCompletionData}
                     cx="50%"
                     cy="50%"
-                    labelLine={false}
+                    innerRadius={60}
                     outerRadius={80}
-                    fill="#8884d8"
+                    paddingAngle={5}
                     dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                   >
                     {testCompletionData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(value) => `${value}%`} />
-                  <Legend verticalAlign="bottom" height={36} />
+                  <Tooltip />
+                  <Legend />
                 </PieChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="animate-fade-in-up" style={{ animationDelay: "300ms" }}>
+        {/* AI Performance Analyst */}
+        <Card className="animate-fade-in-up shadow-soft border-accent/10" style={{ animationDelay: "300ms" }}>
           <CardHeader className="pb-2">
             <div className="flex items-center gap-2">
-              <div className="p-1.5 rounded-lg bg-purple-500/10">
-                <BookOpen className="h-4 w-4 text-purple-500" />
+              <div className="p-1.5 rounded-lg bg-primary/10">
+                <Brain className="h-4 w-4 text-primary" />
               </div>
-              <CardTitle className="text-base font-semibold">Subject Distribution</CardTitle>
+              <CardTitle className="text-base font-semibold">AI Performance Analyst</CardTitle>
+              <Badge className="ml-auto bg-primary/10 text-primary border-primary/20 text-xs">Powered by GPT-4o</Badge>
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={subjectData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {subjectData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => `${value}%`} />
-                  <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            {!analysis ? (
+              <div className="py-8 text-center border-2 border-dashed rounded-2xl bg-muted/20">
+                <Sparkles className="h-10 w-10 text-accent/40 mx-auto mb-4" />
+                <h3 className="text-lg font-bold">Deep Performance Analysis</h3>
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
+                  Let EduAI analyze your last 90 days of test history to find trends and actionable insights.
+                </p>
+                <Button 
+                  onClick={() => analyzeMutation.mutate()} 
+                  disabled={analyzeMutation.isPending}
+                  className="rounded-full bg-accent hover:bg-accent-hover text-white px-8"
+                >
+                  {analyzeMutation.isPending ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Analyzing History...</>
+                  ) : (
+                    <><Brain className="h-4 w-4 mr-2" /> Generate Insights</>
+                  )}
+                </Button>
+              </div>
+            ) : analysis.error ? (
+              <div className="p-8 text-center">
+                <AlertCircle className="h-10 w-10 text-amber-500 mx-auto mb-4" />
+                <p className="text-foreground font-semibold">{analysis.error}</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                    <div className="flex items-center gap-2 text-emerald-700 font-bold text-[10px] uppercase tracking-widest mb-3">
+                      <ArrowUpRight className="h-3.5 w-3.5" /> Improving
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {analysis.improving?.map((s: string) => (
+                        <Badge key={s} className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20 text-[10px]">{s}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10">
+                    <div className="flex items-center gap-2 text-red-700 font-bold text-[10px] uppercase tracking-widest mb-3">
+                      <ArrowDownRight className="h-3.5 w-3.5" /> Attention
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {analysis.declining?.map((s: string) => (
+                        <Badge key={s} className="bg-red-500/10 text-red-700 border-red-500/20 text-[10px]">{s}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-accent-soft/30 border border-accent/10">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-accent mb-2">Key Recommendation</h4>
+                  <p className="text-sm font-medium text-foreground leading-relaxed">{analysis.recommendation}</p>
+                </div>
+
+                <div className="p-5 rounded-2xl bg-muted/50 border border-border">
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground mb-2">Overall Summary</h4>
+                  <p className="text-xs text-muted-foreground italic leading-relaxed">"{analysis.summary}"</p>
+                </div>
+
+                <Button variant="ghost" size="sm" onClick={() => setAnalysis(null)} className="text-[10px] uppercase font-bold tracking-widest opacity-50 hover:opacity-100 mx-auto block h-8">
+                  Reset Analysis
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
 
-      {/* AI Learning Insights */}
+      {/* Legacy Insights Section */}
       <Card className="animate-fade-in-up" style={{ animationDelay: "350ms" }}>
         <CardHeader className="pb-2">
           <div className="flex items-center gap-2">
             <div className="p-1.5 rounded-lg bg-primary/10">
               <Brain className="h-4 w-4 text-primary" />
             </div>
-            <CardTitle className="text-base font-semibold">AI-Generated Learning Insights</CardTitle>
-            <Badge className="ml-auto bg-primary/10 text-primary border-primary/20 text-xs">Powered by AI</Badge>
+            <CardTitle className="text-base font-semibold">Curriculum Data Management</CardTitle>
           </div>
         </CardHeader>
         <CardContent>
@@ -244,58 +331,15 @@ export default function Analytics() {
               <TabsTrigger value="individuals">Individual Students</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="class" className="mt-4 space-y-4">
-              <div className="p-4 rounded-xl border-l-4 border-l-red-500 bg-red-500/5">
-                <div className="flex items-start gap-3">
-                  <div className="p-1.5 rounded-lg bg-red-500/10 text-red-500 mt-0.5">
-                    <Lightbulb className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm mb-1">Improvement Areas</h3>
-                    <ul className="list-disc pl-4 space-y-1 text-sm text-muted-foreground">
-                      <li>Physics: Newton's Laws of Motion understanding needs reinforcement</li>
-                      <li>Mathematics: Calculus application in real-world problems</li>
-                      <li>Chemistry: Chemical bonding concepts need more practice</li>
-                    </ul>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-4 rounded-xl border-l-4 border-l-emerald-500 bg-emerald-500/5">
-                <div className="flex items-start gap-3">
-                  <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 mt-0.5">
-                    <Target className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-sm mb-1">Teaching Recommendations</h3>
-                    <ul className="list-disc pl-4 space-y-1 text-sm text-muted-foreground">
-                      <li>Increase practical demonstrations for Physics concepts</li>
-                      <li>Provide more visual learning materials for Chemistry</li>
-                      <li>Create specialized practice sessions for weak topics</li>
-                    </ul>
-                  </div>
-                </div>
+            <TabsContent value="class" className="mt-4">
+              <div className="p-8 text-center text-muted-foreground bg-muted/20 rounded-xl border border-dashed">
+                <Users className="h-8 w-8 mx-auto mb-3 opacity-20" />
+                <p className="text-sm">Class-level trends are being aggregated. Check back shortly.</p>
               </div>
             </TabsContent>
 
             <TabsContent value="individuals" className="mt-4">
-              <div className="flex flex-col items-center justify-center py-14 text-center gap-4">
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-primary to-violet-600 opacity-10 blur-xl" />
-                  <div className="relative p-5 rounded-2xl bg-gradient-to-br from-primary/10 to-violet-500/10 border border-primary/20">
-                    <Brain className="h-8 w-8 text-primary" />
-                  </div>
-                </div>
-                <div>
-                  <Badge className="mb-2 bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
-                    🚀 Coming Soon
-                  </Badge>
-                  <h3 className="font-semibold text-base">Individual Student Analytics</h3>
-                  <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-                    Personalised AI insights per student — including learning pace, weak areas, and improvement suggestions.
-                  </p>
-                </div>
-              </div>
+              <IndividualStudentsTab />
             </TabsContent>
           </Tabs>
         </CardContent>
