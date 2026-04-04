@@ -2225,12 +2225,12 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
   });
 
   // GET /api/analytics/students — per-student analytics aggregation
+  // GET /api/analytics/students — per-student analytics aggregation
   app.get("/api/analytics/students", authenticateToken, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+      if (!req.session?.userId || !["teacher", "admin", "principal"].includes(req.session.role || "")) {
+        return res.status(403).json({ message: "Forbidden: Insufficient permissions" });
       }
-
       // Get all students
       const students = await storage.getUsers("student");
       if (!students || students.length === 0) {
