@@ -2,7 +2,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import {
   UsersRound,
   School,
@@ -14,6 +17,14 @@ import {
   UserPlus,
   Mail
 } from "lucide-react";
+
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  displayName?: string;
+}
 
 /**
  * Render the administration dashboard for institution administrators.
@@ -28,6 +39,43 @@ import {
  */
 export default function AdminDashboard() {
   const { currentUser } = useFirebaseAuth();
+
+  // Fetch real admin stats
+  const { data: adminStats, isLoading: isLoadingStats, isError: isErrorStats } = useQuery<{
+    totalStudents: number;
+    totalTeachers: number;
+    testsThisMonth: number;
+    submissionsThisMonth: number;
+  }>({
+    queryKey: ["/api/admin/stats"],
+    queryFn: () => apiRequest("GET", "/api/admin/stats").then(r => r.json()),
+    enabled: !!currentUser && ["admin", "principal", "school_admin"].includes(currentUser?.profile?.role || ""),
+  });
+
+  const { data: principalUsers, isLoading: isLoadingPrincipals, isError: isErrorPrincipals } = useQuery<User[]>({
+    queryKey: ["/api/users", { role: "principal" }],
+    queryFn: () => apiRequest("GET", "/api/users?role=principal").then(r => r.json()),
+  });
+
+  const { data: teacherUsers, isLoading: isLoadingTeachers, isError: isErrorTeachers } = useQuery<User[]>({
+    queryKey: ["/api/users", { role: "teacher" }],
+    queryFn: () => apiRequest("GET", "/api/users?role=teacher").then(r => r.json()),
+  });
+
+  const { data: studentUsers, isLoading: isLoadingStudents, isError: isErrorStudents } = useQuery<User[]>({
+    queryKey: ["/api/users", { role: "student" }],
+    queryFn: () => apiRequest("GET", "/api/users?role=student").then(r => r.json()),
+  });
+
+  const { data: parentUsers, isLoading: isLoadingParents, isError: isErrorParents } = useQuery<User[]>({
+    queryKey: ["/api/users", { role: "parent" }],
+    queryFn: () => apiRequest("GET", "/api/users?role=parent").then(r => r.json()),
+  });
+
+  const { data: allUsers, isLoading: isLoadingAllUsers } = useQuery<User[]>({
+    queryKey: ["/api/users"],
+    queryFn: () => apiRequest("GET", "/api/users").then(r => r.json()),
+  });
 
   return (
     <>
@@ -55,6 +103,40 @@ export default function AdminDashboard() {
         </div>
       </PageHeader>
 
+      {/* Real-time Stats Cards */}
+      {["admin", "principal", "school_admin"].includes(currentUser?.profile?.role || "") && (
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <Card className="p-4 flex flex-col items-center">
+            <UsersRound className="h-8 w-8 mb-2 text-amber-500" />
+            <p className="font-medium text-2xl">
+              {isLoadingStats ? <Skeleton className="h-7 w-16" /> : isErrorStats ? <span className="text-xs text-red-500">Error</span> : adminStats?.totalStudents || 0}
+            </p>
+            <p className="text-xs text-center text-muted-foreground">Total Students</p>
+          </Card>
+          <Card className="p-4 flex flex-col items-center">
+            <BookOpen className="h-8 w-8 mb-2 text-green-500" />
+            <p className="font-medium text-2xl">
+              {isLoadingStats ? <Skeleton className="h-7 w-16" /> : isErrorStats ? <span className="text-xs text-red-500">Error</span> : adminStats?.totalTeachers || 0}
+            </p>
+            <p className="text-xs text-center text-muted-foreground">Total Teachers</p>
+          </Card>
+          <Card className="p-4 flex flex-col items-center">
+            <FileSpreadsheet className="h-8 w-8 mb-2 text-blue-500" />
+            <p className="font-medium text-2xl">
+              {isLoadingStats ? <Skeleton className="h-7 w-16" /> : isErrorStats ? <span className="text-xs text-red-500">Error</span> : adminStats?.testsThisMonth || 0}
+            </p>
+            <p className="text-xs text-center text-muted-foreground">Tests This Month</p>
+          </Card>
+          <Card className="p-4 flex flex-col items-center">
+            <BarChart3 className="h-8 w-8 mb-2 text-purple-500" />
+            <p className="font-medium text-2xl">
+              {isLoadingStats ? <Skeleton className="h-7 w-16" /> : isErrorStats ? <span className="text-xs text-red-500">Error</span> : adminStats?.submissionsThisMonth || 0}
+            </p>
+            <p className="text-xs text-center text-muted-foreground">Submissions This Month</p>
+          </Card>
+        </div>
+      )}
+
       <Tabs defaultValue="users">
         <TabsList className="grid grid-cols-4 mb-4">
           <TabsTrigger value="users">User Management</TabsTrigger>
@@ -79,22 +161,30 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-4 gap-4 mb-4">
                 <Card className="p-4 flex flex-col items-center">
                   <School className="h-8 w-8 mb-2 text-blue-500" />
-                  <p className="font-medium">1</p>
+                  <p className="font-medium">
+                    {isLoadingPrincipals ? <Skeleton className="h-5 w-12" /> : isErrorPrincipals ? <span className="text-xs text-red-500">Error</span> : principalUsers?.length || 0}
+                  </p>
                   <p className="text-xs text-center text-muted-foreground">Principal</p>
                 </Card>
                 <Card className="p-4 flex flex-col items-center">
                   <BookOpen className="h-8 w-8 mb-2 text-green-500" />
-                  <p className="font-medium">87</p>
+                  <p className="font-medium">
+                    {isLoadingTeachers ? <Skeleton className="h-5 w-12" /> : isErrorTeachers ? <span className="text-xs text-red-500">Error</span> : teacherUsers?.length || 0}
+                  </p>
                   <p className="text-xs text-center text-muted-foreground">Teachers</p>
                 </Card>
                 <Card className="p-4 flex flex-col items-center">
                   <UsersRound className="h-8 w-8 mb-2 text-amber-500" />
-                  <p className="font-medium">1,245</p>
+                  <p className="font-medium">
+                    {isLoadingStudents ? <Skeleton className="h-5 w-12" /> : isErrorStudents ? <span className="text-xs text-red-500">Error</span> : studentUsers?.length || 0}
+                  </p>
                   <p className="text-xs text-center text-muted-foreground">Students</p>
                 </Card>
                 <Card className="p-4 flex flex-col items-center">
                   <UsersRound className="h-8 w-8 mb-2 text-purple-500" />
-                  <p className="font-medium">985</p>
+                  <p className="font-medium">
+                    {isLoadingParents ? <Skeleton className="h-5 w-12" /> : isErrorParents ? <span className="text-xs text-red-500">Error</span> : parentUsers?.length || 0}
+                  </p>
                   <p className="text-xs text-center text-muted-foreground">Parents</p>
                 </Card>
               </div>
@@ -107,16 +197,19 @@ export default function AdminDashboard() {
                   <div className="w-1/4 font-medium">Actions</div>
                 </div>
                 <div className="divide-y">
-                  {[
-                    { name: 'Rajesh Kumar', role: 'Principal', email: 'principal@example.com' },
-                    { name: 'Anita Singh', role: 'Teacher', email: 'anita.s@example.com' },
-                    { name: 'Vikram Patel', role: 'Teacher', email: 'vikram.p@example.com' },
-                    { name: 'Priya Sharma', role: 'Student', email: 'priya.s@example.com' },
-                    { name: 'Arjun Mehra', role: 'Student', email: 'arjun.m@example.com' }
-                  ].map((user, i) => (
-                    <div key={i} className="flex items-center p-3">
-                      <div className="w-1/4">{user.name}</div>
-                      <div className="w-1/4">{user.role}</div>
+                  {isLoadingAllUsers ? (
+                    Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="flex items-center p-3 gap-4">
+                        <Skeleton className="h-4 w-1/4" />
+                        <Skeleton className="h-4 w-1/4" />
+                        <Skeleton className="h-4 w-1/4" />
+                        <Skeleton className="h-4 w-1/4" />
+                      </div>
+                    ))
+                  ) : (allUsers?.slice(0, 10) || []).map((user, i) => (
+                    <div key={user.id ?? i} className="flex items-center p-3">
+                      <div className="w-1/4">{user.displayName || user.name}</div>
+                      <div className="w-1/4 capitalize">{user.role}</div>
                       <div className="w-1/4">{user.email}</div>
                       <div className="w-1/4 flex space-x-2">
                         <Button variant="outline" size="sm">Edit</Button>

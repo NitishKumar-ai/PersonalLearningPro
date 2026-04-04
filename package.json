@@ -8,7 +8,12 @@
     "build": "vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist",
     "start": "NODE_ENV=production node dist/index.js",
     "check": "tsc",
-    "test": "vitest run --root ."
+    "test": "vitest run --root .",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "setup:openmaic": "./scripts/setup-openmaic.sh"
   },
   "dependencies": {
     "@daily-co/daily-js": "^0.87.0",
@@ -45,7 +50,9 @@
     "@replit/vite-plugin-shadcn-theme-json": "^0.0.4",
     "@tanstack/react-query": "^5.60.5",
     "@types/canvas-confetti": "^1.9.0",
+    "@types/cors": "^2.8.19",
     "@types/multer": "^2.0.0",
+    "@types/nodemailer": "^7.0.11",
     "axios": "^1.13.6",
     "bcryptjs": "^3.0.3",
     "canvas-confetti": "^1.9.4",
@@ -55,14 +62,17 @@
     "cmdk": "^1.0.0",
     "connect-mongo": "^6.0.0",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
     "date-fns": "^3.6.0",
     "dotenv": "^17.3.1",
     "embla-carousel-react": "^8.6.0",
     "express": "^4.21.2",
+    "express-rate-limit": "^8.3.2",
     "express-session": "^1.18.1",
     "firebase": "^11.6.0",
-    "firebase-admin": "^13.2.0",
+    "firebase-admin": "^13.7.0",
     "framer-motion": "^11.18.2",
+    "helmet": "^8.1.0",
     "input-otp": "^1.2.4",
     "jsonwebtoken": "^9.0.3",
     "katex": "^0.16.28",
@@ -71,6 +81,7 @@
     "mongodb": "^7.1.0",
     "mongoose": "^9.2.1",
     "multer": "^2.1.1",
+    "nodemailer": "^8.0.4",
     "openai": "^4.91.0",
     "passport": "^0.7.0",
     "passport-local": "^1.0.0",
@@ -98,6 +109,7 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@replit/vite-plugin-cartographer": "^0.0.11",
     "@replit/vite-plugin-runtime-error-modal": "^0.0.3",
     "@tailwindcss/typography": "^0.5.15",
@@ -117,11 +129,19 @@
     "@types/react-dom": "^18.3.1",
     "@types/supertest": "^7.2.0",
     "@types/ws": "^8.5.13",
+    "@typescript-eslint/eslint-plugin": "^8.58.0",
+    "@typescript-eslint/parser": "^8.58.0",
     "@vitejs/plugin-react": "^4.7.0",
     "autoprefixer": "^10.4.20",
     "esbuild": "^0.25.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "globals": "^15.15.0",
     "jsdom": "^28.1.0",
     "postcss": "^8.4.47",
+    "prettier": "^3.8.1",
+    "prettier-plugin-tailwindcss": "^0.7.2",
     "supertest": "^7.2.2",
     "tailwindcss": "^3.4.14",
     "tsx": "^4.19.1",
@@ -133,6 +153,8 @@
     "bufferutil": "^4.0.8"
   },
   "overrides": {
-    "sucrase": "3.35.1"
+    "sucrase": "3.35.1",
+    "@tootallnate/once": "^3.0.1",
+    "picomatch": "^4.0.4"
   }
 }

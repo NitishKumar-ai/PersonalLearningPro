@@ -208,3 +208,43 @@ export const insertFcmTokenSchema = z.object({
 export type FcmToken = z.infer<typeof insertFcmTokenSchema> & { id: number; updatedAt: Date };
 export type InsertFcmToken = z.infer<typeof insertFcmTokenSchema>;
 
+
+// ─── Task Schemas ────────────────────────────────────────────────────────────
+
+export const insertTaskSchema = z.object({
+  userId: z.number(),
+  title: z.string().min(1),
+  status: z.enum(["backlog", "todo", "in-progress", "review", "done"]).default("todo"),
+  priority: z.enum(["low", "medium", "high", "urgent"]).default("medium"),
+  tags: z.array(z.string()).default([]),
+  dueDate: z.string().optional().nullable(),
+  comments: z.number().default(0),
+  attachments: z.number().default(0),
+});
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type Task = InsertTask & { id: number; createdAt: Date };
+
+// ─── Notification Schemas ─────────────────────────────────────────────────────
+
+export const insertNotificationSchema = z.object({
+  userId: z.number(),
+  type: z.enum(["test", "result", "announcement", "message", "achievement", "reminder"]),
+  title: z.string().min(1),
+  body: z.string().min(1),
+  isRead: z.boolean().default(false),
+  meta: z.string().optional().nullable(),
+});
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = InsertNotification & { id: number; createdAt: Date };
+
+// ─── Focus Session Schemas ────────────────────────────────────────────────────
+
+export const insertFocusSessionSchema = z.object({
+  userId: z.number(),
+  subject: z.string().min(1),
+  mode: z.enum(["work", "short", "long"]),
+  durationSeconds: z.number().int().positive(),
+  completedAt: z.string().or(z.date()).optional(),
+});
+export type InsertFocusSession = z.infer<typeof insertFocusSessionSchema>;
+export type FocusSession = InsertFocusSession & { id: number };

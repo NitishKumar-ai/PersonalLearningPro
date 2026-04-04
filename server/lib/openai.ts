@@ -1,9 +1,12 @@
 import OpenAI from "openai";
+import { z } from "zod";
+import { logger } from "./logger";
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 if (!process.env.OPENAI_API_KEY) {
-  console.warn("⚠️  OPENAI_API_KEY is not set. AI features (tutor, test generation) will not work.");
+  logger.warn("OPENAI_API_KEY is not set. AI features (tutor, test generation) will not work.");
 }
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || ""
 });
@@ -17,10 +20,52 @@ interface ChatResponse {
   content: string;
 }
 
-export async function aiChat(messages: ChatMessage[]): Promise<ChatResponse> {
+// Validation schemas
+const EvaluationSchema = z.object({
+  score: z.number().min(0),
+  confidence: z.number().min(0).max(100),
+  feedback: z.string().min(1),
+});
+
+const StudyPlanSchema = z.object({
+  plan: z.string(),
+  resources: z.array(z.object({
+    title: z.string(),
+    type: z.string(),
+    url: z.string().optional(),
+  })),
+});
+
+const PerformanceAnalysisSchema = z.object({
+  averageScore: z.number(),
+  hardestQuestions: z.array(z.object({
+    questionId: z.number(),
+    question: z.string(),
+    avgScore: z.number(),
+  })),
+  recommendations: z.string(),
+});
+
+
+// ── OpenAI error normaliser ───────────────────────────────────────────────────
+function handleOpenAIError(err: any): never {
+  if (err?.status === 429) throw Object.assign(new Error("AI rate limit reached, try again shortly"), { status: 503 });
+  if (err?.status === 503 || err?.code === "ECONNREFUSED") throw Object.assign(new Error("AI is unavailable right now"), { status: 503 });
+  throw Object.assign(new Error("AI is unavailable right now"), { status: 503 });
+}
+
+export async function aiChat(messages: ChatMessage[], systemPrompt?: string): Promise<ChatResponse> {
   try {
-    // Ensure there's a system message if not provided
-    if (!messages.some(msg => msg.role === "system")) {
+    // Use provided system prompt or default
+    if (systemPrompt) {
+      // Check if system message already exists, if so update it, otherwise unshift
+      const existingSystemIndex = messages.findIndex(msg => msg.role === "system");
+      if (existingSystemIndex !== -1) {
+        messages[existingSystemIndex].content = systemPrompt;
+      } else {
+        messages.unshift({ role: "system", content: systemPrompt });
+      }
+    } else if (!messages.some(msg => msg.role === "system")) {
       messages.unshift({
         role: "system",
         content: "You are an AI tutor for high school students. You're knowledgeable about physics, chemistry, mathematics, biology, and computer science. Provide clear, concise explanations. Include examples when helpful. For math problems, show step-by-step solutions. Keep explanations appropriate for high school level understanding. Be encouraging and supportive."
@@ -36,8 +81,8 @@ export async function aiChat(messages: ChatMessage[]): Promise<ChatResponse> {
       content: response.choices[0].message.content || "I don't have a response for that."
     };
   } catch (error) {
-    console.error("AI chat error:", error);
-    throw new Error("Failed to generate response. Please try again later.");
+    logger.error("AI chat error:", error);
+    handleOpenAIError(error);
   }
 }
 
@@ -77,16 +122,16 @@ export async function evaluateSubjectiveAnswer(
 
     const content = response.choices[0]?.message?.content || "{}";
     try {
-      const result = JSON.parse(content) as EvaluationResult;
+      const parsed = JSON.parse(content);
+      const result = EvaluationSchema.parse(parsed);
 
-      // Ensure values are within expected ranges
       return {
-        score: Math.max(0, Math.min(maxMarks, result.score)),
-        confidence: Math.max(0, Math.min(100, result.confidence)),
+        score: Math.min(maxMarks, result.score),
+        confidence: result.confidence,
         feedback: result.feedback
       };
     } catch (parseError) {
-      console.error("JSON parse error in evaluation:", parseError);
+      logger.error("AI evaluation schema validation error:", parseError);
       return {
         score: 0,
         confidence: 0,
@@ -94,12 +139,11 @@ export async function evaluateSubjectiveAnswer(
       };
     }
   } catch (error) {
-    console.error("AI evaluation error:", error);
-    // Fallback response if AI service fails
+    logger.error("AI evaluation service error:", error);
     return {
       score: 0,
       confidence: 0,
-      feedback: "Unable to evaluate answer due to system error. Please review manually."
+      feedback: "The AI service is currently unavailable. Please check back later."
     };
   }
 }
@@ -134,30 +178,20 @@ export async function generateStudyPlan(
 
     const content = response.choices[0]?.message?.content || "{}";
     try {
-      return JSON.parse(content) as { plan: string, resources: Array<{ title: string, type: string, url?: string }> };
+      const parsed = JSON.parse(content);
+      return StudyPlanSchema.parse(parsed);
     } catch (parseError) {
-      console.error("JSON parse error in study plan:", parseError);
+      logger.error("AI study plan schema validation error:", parseError);
       return {
         plan: "Error generating study plan. Please try again later.",
-        resources: [
-          {
-            title: "General review resources",
-            type: "general"
-          }
-        ]
+        resources: [{ title: "General review resources", type: "general" }]
       };
     }
   } catch (error) {
-    console.error("Study plan generation error:", error);
-    // Fallback response
+    logger.error("Study plan generation error:", error);
     return {
       plan: "Study plan generation failed. Please focus on reviewing the weak topics identified in your assessment.",
-      resources: [
-        {
-          title: "General review resources",
-          type: "general"
-        }
-      ]
+      resources: [{ title: "General review resources", type: "general" }]
     };
   }
 }
@@ -191,13 +225,10 @@ export async function analyzeTestPerformance(
 
     const content = response.choices[0]?.message?.content || "{}";
     try {
-      return JSON.parse(content) as {
-        averageScore: number,
-        hardestQuestions: Array<{ questionId: number, question: string, avgScore: number }>,
-        recommendations: string
-      };
+      const parsed = JSON.parse(content);
+      return PerformanceAnalysisSchema.parse(parsed);
     } catch (parseError) {
-      console.error("JSON parse error in test analysis:", parseError);
+      logger.error("AI test performance analysis schema validation error:", parseError);
       return {
         averageScore: testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length,
         hardestQuestions: [],
@@ -205,8 +236,7 @@ export async function analyzeTestPerformance(
       };
     }
   } catch (error) {
-    console.error("Test analysis error:", error);
-    // Fallback response
+    logger.error("Test analysis error:", error);
     return {
       averageScore: testResults.reduce((sum, result) => sum + result.score, 0) / testResults.length,
       hardestQuestions: [],

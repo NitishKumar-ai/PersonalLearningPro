@@ -31,13 +31,7 @@ export function RagChatSheet({
     subjectName,
     initialPrompt,
 }: RagChatSheetProps) {
-    const [messages, setMessages] = useState<Message[]>([
-        {
-            id: "welcome",
-            role: "assistant",
-            content: `Hi! I'm your AI Tutor for ${subjectName}. How can I help you today?`,
-        }
-    ]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState("");
     const [isTyping, setIsTyping] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -57,27 +51,38 @@ export function RagChatSheet({
     }, [messages, isTyping]);
 
     const handleSend = async () => {
-        if (!input.trim() || isTyping) return;
+        const messageText = input.trim();
+        if (!messageText || isTyping) return;
 
-        const userMsg: Message = { id: Date.now().toString(), role: "user", content: input };
-        setMessages(prev => [...prev, userMsg]);
+        const userMsg: Message = { id: Date.now().toString(), role: "user", content: messageText };
+        const updatedMessages = [...messages, userMsg];
+        setMessages(updatedMessages);
         setInput("");
         setIsTyping(true);
 
-        // Mock API call to RAG backend
-        setTimeout(() => {
+        try {
+            const response = await fetch("/api/ai-chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ 
+                    messages: updatedMessages.map(m => ({ role: m.role, content: m.content })) 
+                }),
+            });
+
+            if (!response.ok) throw new Error("Failed to get AI response");
+            
+            const data = await response.json();
             const assistantMsg: Message = {
                 id: (Date.now() + 1).toString(),
                 role: "assistant",
-                content: `I found some information about that in your previous notes. Here is a simulated response based on our RAG implementation.`,
-                sources: [
-                    { id: "src1", title: "Rotational Motion.pdf", type: "notes" },
-                    { id: "src2", title: "Quiz-RESULTS-5", type: "quiz" }
-                ]
+                content: data.content,
             };
             setMessages(prev => [...prev, assistantMsg]);
+        } catch (error) {
+            console.error("AI chat error:", error);
+        } finally {
             setIsTyping(false);
-        }, 1500);
+        }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -179,7 +184,7 @@ export function RagChatSheet({
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            placeholder="Type your question..."
+                            placeholder="Ask me anything about your subjects..."
                             className="min-h-[56px] max-h-[160px] w-full resize-none border-0 bg-transparent py-4 pl-5 pr-14 text-sm md:text-base text-foreground placeholder:text-muted-foreground focus-visible:ring-0 shadow-none leading-relaxed font-body"
                             rows={1}
                         />

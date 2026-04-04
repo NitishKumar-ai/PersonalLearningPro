@@ -1,0 +1,4 @@
+dist/
+node_modules/
+*.lock
+bundle_b64.txt

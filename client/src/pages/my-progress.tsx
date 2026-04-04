@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import {
     BookOpen,
     Trophy,
@@ -17,11 +19,13 @@ import {
     Medal,
     CalendarDays,
     Activity,
-    Zap
+    Zap,
+    AlertCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/layout/page-header";
 import { useFirebaseAuth } from "@/contexts/firebase-auth-context";
 import {
@@ -94,6 +98,14 @@ const subjectMeta: Record<
 
 export default function MyProgress() {
     const { currentUser } = useFirebaseAuth();
+    const studentId = currentUser?.profile?.uid;
+
+    // Fetch real progress data
+    const { data: progressData, isLoading: isLoadingProgress, isError: isErrorProgress } = useQuery<Array<{ month: string; avgScore: number }>>({
+        queryKey: ["/api/progress/student", studentId],
+        queryFn: () => apiRequest("GET", `/api/progress/student/${studentId}`).then(r => r.json()),
+        enabled: !!studentId,
+    });
 
     // ── Data ──────────────────────────────────────────────────────────────────
 
@@ -114,6 +126,16 @@ export default function MyProgress() {
         { day: "Sat", hours: 5.5 },
         { day: "Sun", hours: 3.5 },
     ];
+
+    // Format progress data for chart
+    const monthlyProgressData = progressData?.map(item => {
+        const [year, month] = item.month.split('-');
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return {
+            month: monthNames[parseInt(month) - 1],
+            score: item.avgScore
+        };
+    }) || [];
 
     const recentPerformance = [
         {
@@ -257,7 +279,74 @@ export default function MyProgress() {
             </section>
 
             {/* ────────────────────────────────────────────────────────────────────
-          2. CHARTS OVERVIEW
+          2. MONTHLY PROGRESS CHART (REAL DATA)
+      ──────────────────────────────────────────────────────────────────── */}
+            <section className="mb-7 animate-fade-in-up" style={{ animationDelay: "75ms" }}>
+                <Card className="hover:shadow-md transition-shadow">
+                    <CardHeader>
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5 text-primary" />
+                            Monthly Progress Trend
+                        </CardTitle>
+                        <CardDescription>Your average test scores over time.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-[300px]">
+                        {isLoadingProgress ? (
+                            <div className="flex items-center justify-center h-full">
+                                <Skeleton className="h-64 w-full" />
+                            </div>
+                        ) : isErrorProgress ? (
+                            <div className="flex flex-col items-center justify-center h-full gap-2">
+                                <AlertCircle className="h-8 w-8 text-muted-foreground/50" />
+                                <p className="text-sm text-muted-foreground">Failed to load progress data</p>
+                            </div>
+                        ) : monthlyProgressData.length < 2 ? (
+                            <div className="flex flex-col items-center justify-center h-full gap-2">
+                                <CalendarDays className="h-8 w-8 text-muted-foreground/50" />
+                                <p className="text-sm text-muted-foreground">Not enough data yet</p>
+                                <p className="text-xs text-muted-foreground">Complete tests across multiple months to see your progress</p>
+                            </div>
+                        ) : (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <LineChart data={monthlyProgressData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                                    <XAxis 
+                                        dataKey="month" 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} 
+                                        dy={10} 
+                                    />
+                                    <YAxis 
+                                        domain={[0, 100]} 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} 
+                                    />
+                                    <RechartsTooltip
+                                        contentStyle={{ 
+                                            backgroundColor: "hsl(var(--card))", 
+                                            borderColor: "hsl(var(--border))", 
+                                            borderRadius: "8px" 
+                                        }}
+                                    />
+                                    <Line 
+                                        type="monotone" 
+                                        dataKey="score" 
+                                        stroke="hsl(var(--primary))" 
+                                        strokeWidth={3}
+                                        dot={{ fill: "hsl(var(--primary))", r: 5 }}
+                                        activeDot={{ r: 7 }}
+                                    />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        )}
+                    </CardContent>
+                </Card>
+            </section>
+
+            {/* ────────────────────────────────────────────────────────────────────
+          3. CHARTS OVERVIEW
       ──────────────────────────────────────────────────────────────────── */}
             <section className="mb-7 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
                 <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">

@@ -241,7 +241,7 @@ export function setupChatWebSocket(httpServer: Server, sessionStore: Store) {
 
         const heartbeatInterval = setInterval(() => {
             if (!isAlive) {
-                console.log(`[chat-ws] Terminating inactive client: ${displayName}`);
+                // inactive client terminated (silent)
                 return ws.terminate();
             }
             isAlive = false;
