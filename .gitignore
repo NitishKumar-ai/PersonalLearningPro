@@ -7,12 +7,7 @@ vite.config.ts.*
 server/.env.env
 .env
 .agent/
-AGENTS.md
 GEMINI.md
 .vscode/
 .env.example
-
-# Environment files
-.env.staging
-.env.production
-.env.development
+.kiro
