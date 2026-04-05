@@ -112,9 +112,11 @@ export async function initCassandra() {
       return true;
     } catch (err: any) {
       const errorMsg = err?.message || String(err);
+      const innerErrorMsg = JSON.stringify(err?.innerErrors || {});
       
-      // Check if it's a hibernation/401 error
-      if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
+      // Check if it's a hibernation/401 error (can be in message or innerErrors)
+      if (errorMsg.includes('401') || errorMsg.includes('Unauthorized') || 
+          innerErrorMsg.includes('401') || innerErrorMsg.includes('Unauthorized')) {
         console.warn(`[Cassandra] Database appears to be hibernated (HTTP 401).`);
         console.warn(`[Cassandra] The app will use MongoDB for messages. Wake your Astra DB at https://astra.datastax.com`);
         hibernationDetected = true;
