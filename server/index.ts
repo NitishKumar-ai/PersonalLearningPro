@@ -80,15 +80,7 @@ app.use("/api", requireDb);
   // Start Message HTTP server
   startMessagePalServer();
 
-  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = process.env.NODE_ENV === "production" && status === 500
-      ? "Something went wrong"
-      : err.message || "Internal Server Error";
-    logger.error(`[${status}] ${req.method} ${req.path} — ${err.message}`);
-    res.status(status).json({ error: message, code: err.code || null });
-  });
-
+  // Serve static files BEFORE error handler
   if (app.get("env") === "development") {
     try {
       await setupVite(app, server);
@@ -103,6 +95,16 @@ app.use("/api", requireDb);
   } else {
     serveStatic(app);
   }
+
+  // Error handler must be LAST
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+    const status = err.status || err.statusCode || 500;
+    const message = process.env.NODE_ENV === "production" && status === 500
+      ? "Something went wrong"
+      : err.message || "Internal Server Error";
+    logger.error(`[${status}] ${req.method} ${req.path} — ${err.message}`);
+    res.status(status).json({ error: message, code: err.code || null });
+  });
 
   // Use port strictly if provided by Render/environment, otherwise default to 5001
   // this serves both the API and the client.
