@@ -72,6 +72,7 @@ export async function initCassandra() {
   if (!c) return;
 
   const keyspace = process.env.ASTRA_DB_KEYSPACE;
+  let hibernationDetected = false;
 
   const attemptConnection = async (attempt: number): Promise<boolean> => {
     try {
@@ -109,7 +110,18 @@ export async function initCassandra() {
 
       console.log("Cassandra 'messages' table verified.");
       return true;
-    } catch (err) {
+    } catch (err: any) {
+      const errorMsg = err?.message || String(err);
+      
+      // Check if it's a hibernation/401 error
+      if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
+        console.warn(`[Cassandra] Database appears to be hibernated (HTTP 401).`);
+        console.warn(`[Cassandra] The app will use MongoDB for messages. Wake your Astra DB at https://astra.datastax.com`);
+        hibernationDetected = true;
+        isConnected = false;
+        return false;
+      }
+      
       console.error(`Failed to connect to Astra DB (attempt ${attempt}/${MAX_CONNECTION_ATTEMPTS}):`, err);
       isConnected = false;
       return false;
@@ -121,6 +133,12 @@ export async function initCassandra() {
     connectionAttempts = i;
     const success = await attemptConnection(i);
     if (success) return;
+    
+    // Stop retrying if we detected hibernation
+    if (hibernationDetected) {
+      console.warn("[Cassandra] Skipping retries for hibernated database. Falling back to MongoDB.");
+      return;
+    }
     
     if (i < MAX_CONNECTION_ATTEMPTS) {
       const delay = Math.min(1000 * Math.pow(2, i), 10000);
