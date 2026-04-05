@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { auth } from "./firebase";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -7,48 +8,56 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-import { auth } from "./firebase";
-
 export async function apiRequest(
   method: string,
   url: string,
   body?: any
 ): Promise<Response> {
-  const options: RequestInit = {
-    method,
-    credentials: "include",
-    headers: {} as Record<string, string>,
-  };
+  const headers: Record<string, string> = {};
 
-  // Attach content type if body exists
   if (body) {
-    options.body = JSON.stringify(body);
-    (options.headers as Record<string, string>)["Content-Type"] = "application/json";
+    headers["Content-Type"] = "application/json";
   }
 
-  // Attach Firebase ID token if user is signed in
   if (auth?.currentUser) {
     try {
-      const token = await auth.currentUser.getIdToken();
-      (options.headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
+      headers["Authorization"] = `Bearer ${await auth.currentUser.getIdToken()}`;
     } catch (e) {
       console.warn("Failed to get Firebase token before API request", e);
     }
   }
 
-  const res = await fetch(url, options);
+  const res = await fetch(url, {
+    method,
+    credentials: "include",
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
   await throwIfResNotOk(res);
   return res;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
+
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
     async ({ queryKey }) => {
+      const headers: Record<string, string> = {};
+
+      // Attach Firebase token for authenticated queries
+      if (auth?.currentUser) {
+        try {
+          headers["Authorization"] = `Bearer ${await auth.currentUser.getIdToken()}`;
+        } catch {
+          // proceed without token
+        }
+      }
+
       const res = await fetch(queryKey[0] as string, {
         credentials: "include",
+        headers,
       });
 
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
@@ -65,7 +74,7 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      staleTime: 5 * 60 * 1000, // 5 minutes — was Infinity
       retry: false,
     },
     mutations: {

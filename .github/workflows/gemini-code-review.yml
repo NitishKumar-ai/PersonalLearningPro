@@ -3,6 +3,8 @@ name: Gemini Code Review
 on:
   pull_request:
     types: [opened, synchronize, reopened]
+    branches: ["main", "develop", "staging"]
+  push:
     branches: ["main"]
 
 jobs:
@@ -12,6 +14,7 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
+      issues: write
 
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +49,8 @@ jobs:
             3. **Code style** — naming, readability, unnecessary complexity
             4. **Performance** — unnecessary re-renders, N+1 queries, memory leaks
             5. **Best practices** — React hooks rules, TypeScript strictness, error handling
+            6. **Testing** — suggest test cases for new features
+            7. **Documentation** — missing comments or unclear code
 
             Be concise. Group feedback by file. Use inline code references.
             If the code looks good, say so briefly. Don't nitpick minor style issues already handled by linters.

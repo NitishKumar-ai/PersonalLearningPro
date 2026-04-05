@@ -26,9 +26,9 @@ const SmartCard = React.forwardRef<HTMLDivElement, SmartCardProps>(
             <div
                 ref={ref}
                 className={cn(
-                    "rounded-2xl p-5 transition-all duration-300 ease-in-out",
+                    "rounded-2xl p-5 transition-all duration-200 ease-in-out",
                     CARD_STYLES[type],
-                    hover && "hover:scale-[1.01] hover:shadow-card",
+                    hover && "hover:scale-[1.01] hover:shadow-card cursor-pointer",
                     className
                 )}
                 {...props}

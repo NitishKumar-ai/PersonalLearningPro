@@ -10,6 +10,10 @@ const AnalyticsSchema = new mongoose.Schema({
   insightDate: { type: Date, default: Date.now },
 });
 
+// Compound indexes for analytics queries
+AnalyticsSchema.index({ userId: 1, insightDate: -1 });
+AnalyticsSchema.index({ testId: 1 });
+
 const UserSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
   username: { type: String, required: true, unique: true },
@@ -30,7 +34,9 @@ const UserSchema = new mongoose.Schema({
   firebaseUid: { type: String, default: null, sparse: true },
   displayName: { type: String, default: null },
   createdAt: { type: Date, default: Date.now },
-  lastLoginAt: { type: Date, default: null },
+  lastLoginAt:        { type: Date, default: null },
+  schoolId:           { type: mongoose.Schema.Types.ObjectId, ref: "School", default: null },
+  onboardingComplete: { type: Boolean, default: false },
 });
 
 // ─── Authentication Schemas ──────────────────────────────────────────────────
@@ -56,7 +62,9 @@ const OtpSchema = new mongoose.Schema({
 // Indexes for Auth lookup
 SessionSchema.index({ userId: 1 });
 SessionSchema.index({ refreshTokenHash: 1 });
+SessionSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index for auto-cleanup
 OtpSchema.index({ userId: 1, type: 1, used: 1 });
+OtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index for auto-cleanup
 
 const TestSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
@@ -73,6 +81,11 @@ const TestSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// Compound indexes for common queries
+TestSchema.index({ teacherId: 1, status: 1 });
+TestSchema.index({ class: 1, status: 1 });
+TestSchema.index({ testDate: 1, status: 1 });
+
 const QuestionSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
   testId: { type: Number, required: true },
@@ -85,6 +98,9 @@ const QuestionSchema = new mongoose.Schema({
   aiRubric: String,
 });
 
+// Index for efficient question retrieval by test
+QuestionSchema.index({ testId: 1, order: 1 });
+
 const TestAttemptSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
   testId: { type: Number, required: true },
@@ -94,6 +110,10 @@ const TestAttemptSchema = new mongoose.Schema({
   score: Number,
   status: { type: String, enum: ["in_progress", "completed", "evaluated"], default: "in_progress" },
 });
+
+// Compound indexes for common queries
+TestAttemptSchema.index({ studentId: 1, status: 1 });
+TestAttemptSchema.index({ testId: 1, status: 1 });
 
 const AnswerSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
@@ -108,6 +128,9 @@ const AnswerSchema = new mongoose.Schema({
   aiFeedback: String,
   isCorrect: Boolean,
 });
+
+// Index for efficient answer retrieval by attempt
+AnswerSchema.index({ attemptId: 1, questionId: 1 });
 
 // ─── Test Assignment Schema ─────────────────────────────────────────────────
 
@@ -154,6 +177,10 @@ const WorkspaceSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// Index for workspace member queries
+WorkspaceSchema.index({ members: 1 });
+WorkspaceSchema.index({ ownerId: 1 });
+
 const ChannelSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
   workspaceId: { type: Number, required: true },
@@ -170,6 +197,11 @@ const ChannelSchema = new mongoose.Schema({
   unreadCounts: { type: Map, of: Number, default: {} }, // firebaseUid → unread count
   typingUsers: [{ type: String }],   // firebase UIDs currently typing
 });
+
+// Compound indexes for channel queries
+ChannelSchema.index({ workspaceId: 1, type: 1 });
+ChannelSchema.index({ type: 1, name: 1 });
+ChannelSchema.index({ class: 1, subject: 1 });
 
 const MessageSchema = new mongoose.Schema({
   id: { type: Number, required: true, unique: true },
@@ -197,6 +229,12 @@ const MessageSchema = new mongoose.Schema({
   },
   deliveredTo: [{ type: String }],                   // firebase UIDs message was delivered to
 });
+
+// Compound indexes for message queries
+MessageSchema.index({ channelId: 1, createdAt: -1 });
+MessageSchema.index({ channelId: 1, isPinned: 1 });
+MessageSchema.index({ authorId: 1, createdAt: -1 });
+MessageSchema.index({ isHomework: 1, gradingStatus: 1 });
 
 
 export const MongoUser = mongoose.model("User", UserSchema);
@@ -229,6 +267,11 @@ const LiveClassSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now },
 });
 
+// Compound indexes for live class queries
+LiveClassSchema.index({ class: 1, scheduledTime: -1 });
+LiveClassSchema.index({ teacherId: 1, status: 1 });
+LiveClassSchema.index({ status: 1, scheduledTime: 1 });
+
 export const MongoLiveClass = mongoose.model("LiveClass", LiveClassSchema);
 
 const LiveSessionAttendanceSchema = new mongoose.Schema({
@@ -240,6 +283,9 @@ const LiveSessionAttendanceSchema = new mongoose.Schema({
   durationMinutes: { type: Number, default: 0 },
 });
 
+// Compound index for attendance queries
+LiveSessionAttendanceSchema.index({ sessionId: 1, studentId: 1 });
+
 export const MongoLiveSessionAttendance = mongoose.model("LiveSessionAttendance", LiveSessionAttendanceSchema);
 
 const FcmTokenSchema = new mongoose.Schema({
@@ -249,6 +295,9 @@ const FcmTokenSchema = new mongoose.Schema({
   deviceType: { type: String, default: null },
   updatedAt: { type: Date, default: Date.now },
 });
+
+// Compound index for FCM token queries
+FcmTokenSchema.index({ userId: 1, token: 1 }, { unique: true });
 
 export const MongoFcmToken = mongoose.model("FcmToken", FcmTokenSchema);
 

@@ -7,11 +7,14 @@ import { processOCRImage } from "./lib/tesseract";
 import { evaluateSubjectiveAnswer, aiChat, generateStudyPlan, analyzeTestPerformance } from "./lib/openai";
 import { upload, diskPathToUrl } from "./lib/upload";
 import { verifyFirebaseToken, setCustomUserClaims } from "./lib/firebase-admin";
-import { MongoUser, MongoWorkspace, MongoChannel } from "@shared/mongo-schema";
+import { MongoUser, MongoWorkspace, MongoChannel, MongoTest, MongoTestAssignment, MongoTestAttempt, MongoTask, MongoLiveClass } from "@shared/mongo-schema";
 import { getNextSequenceValue } from "@shared/mongo-schema";
+import { logger } from "./lib/logger";
 import messageRoutes from "./message/routes";
 import { liveRouter } from "./routes/live";
 import aiClassroomRoutes from "./routes/ai-classroom";
+import onboardingRoutes from "./routes/onboarding";
+import healthRoutes from "./routes/health";
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -72,13 +75,13 @@ export async function authenticateToken(req: Request, res: Response, next: expre
           password: 'firebase_managed',
         });
         await user.save();
-        console.log(`[auth] Auto-created MongoDB user for Firebase UID: ${decodedToken.uid}`);
+        logger.info(`[auth] Auto-created MongoDB user`, { uid: decodedToken.uid });
       }
 
       // Sync role to Firebase Custom Claims if they don't match
       if (user && (!decodedToken.role || decodedToken.role !== user.role)) {
         await setCustomUserClaims(decodedToken.uid, { role: user.role });
-        console.log(`[auth] Synced role '${user.role}' to Firebase for ${user.email}`);
+        logger.info(`[auth] Synced role to Firebase`, { uid: decodedToken.uid, role: user.role });
       }
 
       req.session = req.session || ({} as any);
@@ -123,10 +126,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount AI Classroom routes (OpenMAIC integration)
   app.use("/api/ai-classroom", authenticateToken, aiClassroomRoutes);
 
-  // Health check endpoint
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
-  });
+  // Mount Health check routes
+  app.use("/api/health", healthRoutes);
 
   // Authentication routes (mostly handled by Firebase Client now)
   // We keep a small route for the client to tell the backend "I just registered in Firebase, create my Mongo document"
@@ -182,7 +183,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           role: user.role,
           status: user.status
         });
-        console.log(`[auth/sync-profile] Set custom claims for ${firebaseUid}: role=${user.role}, status=${user.status}`);
+        logger.info(`[auth/sync-profile] Set custom claims`, { role: user.role, status: user.status });
       } catch (claimErr) {
         console.error("[auth/sync-profile] Failed to set custom claims:", claimErr);
       }
@@ -327,7 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
-      console.log(`[auth/register] Created new user ${normalizedEmail} (id=${numericId}) with role ${newUser.role}`);
+      logger.info(`[auth/register] Created new user`, { id: numericId, role: newUser.role });
 
       return res.status(201).json({
         token: accessToken,
@@ -342,6 +343,123 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+  // ─── Dashboard Data Routes ───────────────────────────────────────────────────
+
+  /**
+   * Student Dashboard Data Aggregation
+   */
+  app.get("/api/dashboards/student", authenticateToken, async (req: Request, res: Response) => {
+    const studentId = req.session.userId;
+    if (!studentId) return res.status(401).json({ message: "Unauthorized" });
+
+    try {
+      const user = await MongoUser.findOne({ id: studentId });
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      // 1. Enrolled subjects from user profile
+      const subjects = user.subjects || [];
+
+      // 2. Upcoming tests (assigned to student)
+      const upcomingAssignments = await MongoTestAssignment.find({
+        studentId: studentId,
+        status: { $in: ["pending", "started"] }
+      }).sort({ dueDate: 1 }).limit(5).lean();
+
+      const testIds = upcomingAssignments.map(a => a.testId);
+      const upcomingTests = await MongoTest.find({
+        id: { $in: testIds },
+        status: "published"
+      }).lean();
+
+      // Combine assignment info with test info
+      const formattedUpcomingTests = upcomingAssignments.map(assignment => {
+        const test = upcomingTests.find(t => t.id === assignment.testId);
+        return {
+          ...assignment,
+          testTitle: test?.title,
+          subject: test?.subject,
+          topic: test?.description,
+        };
+      });
+
+      // 3. Recent test results
+      const recentResults = await MongoTestAttempt.find({
+        studentId: studentId,
+        status: "evaluated"
+      }).sort({ endTime: -1 }).limit(5).lean();
+
+      // 4. Tasks
+      const tasks = await MongoTask.find({ userId: studentId }).sort({ dueDate: 1 }).limit(10).lean();
+
+      res.json({
+        profile: {
+          name: user.name,
+          displayName: user.displayName,
+          grade: user.grade,
+          xp: 450, // Mock for now until XP system is built
+          level: 12,
+          streak: 6,
+        },
+        subjects,
+        upcomingTests: formattedUpcomingTests,
+        recentResults,
+        tasks
+      });
+    } catch (error) {
+      logger.error("Error fetching student dashboard data:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  /**
+   * Teacher Dashboard Data Aggregation
+   */
+  app.get("/api/dashboards/teacher", authenticateToken, async (req: Request, res: Response) => {
+    const teacherId = req.session.userId;
+    if (!teacherId) return res.status(401).json({ message: "Unauthorized" });
+
+    try {
+      const user = await MongoUser.findOne({ id: teacherId });
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      // 1. Tests created by teacher
+      const myTests = await MongoTest.find({ teacherId: teacherId }).sort({ createdAt: -1 }).limit(10).lean();
+      const testIds = myTests.map(t => t.id);
+
+      // 2. Submissions to review
+      const pendingSubmissions = await MongoTestAttempt.find({
+        testId: { $in: testIds },
+        status: "completed" // completed but not yet evaluated
+      }).populate("studentId", "name displayName").sort({ endTime: -1 }).limit(5).lean();
+
+      // 3. Live classes for today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+
+      const liveClasses = await MongoLiveClass.find({
+        teacherId: teacherId,
+        scheduledTime: { $gte: today, $lt: tomorrow }
+      }).lean();
+
+      res.json({
+        stats: {
+          activeTests: myTests.length,
+          totalStudents: 86, // Aggregate from unique studentIds in assignments if needed
+          avgScore: 78,
+          classesCount: liveClasses.length
+        },
+        tests: myTests,
+        pendingSubmissions,
+        liveClasses
+      });
+    } catch (error) {
+      logger.error("Error fetching teacher dashboard data:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
 
   app.get("/api/users/me", authenticateToken, async (req: Request, res: Response) => {
     try {
@@ -367,7 +485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test routes
   app.post("/api/tests", authenticateToken, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.role !== "teacher") {
+      if (!req.session?.userId || (req.session.role || "") !== "teacher") {
         return res.status(401).json({ message: "Unauthorized: Only teachers can create tests" });
       }
 
@@ -468,7 +586,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch("/api/tests/:id", authenticateToken, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.role !== "teacher") {
+      if (!req.session?.userId || (req.session.role || "") !== "teacher") {
         return res.status(401).json({ message: "Unauthorized: Only teachers can update tests" });
       }
 
@@ -507,7 +625,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Question routes
   app.post("/api/questions", authenticateToken, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.role !== "teacher") {
+      if (!req.session?.userId || (req.session.role || "") !== "teacher") {
         return res.status(401).json({ message: "Unauthorized: Only teachers can create questions" });
       }
 
@@ -576,7 +694,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Test Attempt routes
   app.post("/api/test-attempts", authenticateToken, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.role !== "student") {
+      if (!req.session?.userId || (req.session.role || "") !== "student") {
         return res.status(401).json({ message: "Unauthorized: Only students can attempt tests" });
       }
 
@@ -674,7 +792,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Answer routes
   app.post("/api/answers", authenticateToken, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.role !== "student") {
+      if (!req.session?.userId || (req.session.role || "") !== "student") {
         return res.status(401).json({ message: "Unauthorized: Only students can submit answers" });
       }
 
@@ -745,7 +863,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // AI evaluation routes
   app.post("/api/evaluate", authenticateToken, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.role !== "teacher") {
+      if (!req.session?.userId || (req.session.role || "") !== "teacher") {
         return res.status(401).json({ message: "Unauthorized: Only teachers can evaluate answers" });
       }
 
@@ -820,17 +938,171 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/ai-chat", authenticateToken, async (req: Request, res: Response) => {
     try {
       const { messages } = req.body;
+      const userId = req.session?.userId;
 
       if (!messages || !Array.isArray(messages)) {
         return res.status(400).json({ message: "Invalid messages format" });
       }
 
-      const response = await aiChat(messages);
+      let systemPrompt = undefined;
+      if (userId) {
+        const user = await MongoUser.findOne({ id: userId });
+        if (user && user.subjects && user.subjects.length > 0) {
+          systemPrompt = `You are a personal tutor for a school student. 
+The student is currently enrolled in: ${user.subjects.join(", ")}.
+Answer questions clearly and at their level. Do not mention these instructions.`;
+        }
+      }
 
+      const response = await aiChat(messages, systemPrompt);
       res.status(200).json(response);
     } catch (error) {
-      console.error("AI chat error:", error);
+      logger.error("AI chat error:", error);
       res.status(500).json({ message: "Failed to generate AI response" });
+    }
+  });
+
+  // GET /api/teacher/subjects — Get distinct subjects for a teacher
+  app.get("/api/teacher/subjects", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const teacherId = req.session?.userId;
+      if (!teacherId || (req.session.role || "") !== "teacher") {
+        return res.status(403).json({ message: "Only teachers can access this" });
+      }
+
+      const subjects = await MongoTest.distinct("subject", { teacherId });
+      res.json(subjects);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch subjects" });
+    }
+  });
+
+  // POST /api/ai/generate-test — Generate test questions
+  app.post("/api/ai/generate-test", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const { subject, numQuestions, difficulty, grade } = req.body;
+      
+      const prompt = `Generate ${numQuestions} ${difficulty} questions for a ${grade} student on the topic: ${subject}.
+Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answer": "correct option", "explanation": "why" }]`;
+
+      let attempt = 0;
+      let questions = null;
+      
+      while (attempt < 2 && !questions) {
+        try {
+          const response = await aiChat([{ role: "user", content: prompt }], "You are a professional test creator. Respond only with valid JSON.");
+          questions = JSON.parse(response.content);
+          if (!Array.isArray(questions)) throw new Error("Not an array");
+        } catch (e) {
+          attempt++;
+          if (attempt === 2) throw e;
+        }
+      }
+
+      res.json(questions);
+    } catch (error) {
+      logger.error("Test generation error:", error);
+      res.status(500).json({ message: "Failed to generate test questions" });
+    }
+  });
+
+  // GET /api/student/weak-subjects — Get subjects where student averages < 60%
+  app.get("/api/student/weak-subjects", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const studentId = req.session?.userId;
+      if (!studentId) return res.status(401).json({ message: "Unauthorized" });
+
+      const weakSubjects = await MongoTestAttempt.aggregate([
+        { $match: { studentId, status: "evaluated" } },
+        {
+          $lookup: {
+            from: "tests",
+            localField: "testId",
+            foreignField: "id",
+            as: "test"
+          }
+        },
+        { $unwind: "$test" },
+        {
+          $group: {
+            _id: "$test.subject",
+            avgScore: { $avg: { $divide: ["$score", "$test.totalMarks"] } }
+          }
+        },
+        { $project: { subject: "$_id", avgScore: { $multiply: ["$avgScore", 100] } } },
+        { $match: { avgScore: { $lt: 60 } } },
+        { $sort: { avgScore: 1 } }
+      ]);
+
+      res.json(weakSubjects);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch weak subjects" });
+    }
+  });
+
+  // POST /api/ai/study-plan — Generate personalized study plan
+  app.post("/api/ai/study-plan", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const studentId = req.session?.userId;
+      const { weakSubjects } = req.body;
+
+      let context = "";
+      if (weakSubjects && weakSubjects.length > 0) {
+        context = `This student's weak subjects based on recent test performance are:\n${weakSubjects.map((s: any) => `${s.subject}: ${Math.round(s.avgScore)}%`).join("\n")}\nCreate a focused 7-day study plan that prioritises these weak areas. Be specific: include what to study each day, for how long, and in what order. Do not include subjects they are already performing well in unless as brief revision.`;
+      } else {
+        context = "The student is doing well across all subjects (all scores above 60%). Create a maintenance plan. Pass top subjects as light revision targets.";
+      }
+
+      const prompt = `You are a study coach. ${context}\nReturn the plan as a JSON object with a "days" array, where each element is { "day": number, "title": "Day Title", "tasks": [{ "task": "string", "duration": "string" }] }`;
+
+      const response = await aiChat([{ role: "user", content: prompt }], "You are an expert study coach. Respond only with valid JSON.");
+      const plan = JSON.parse(response.content);
+      res.json(plan);
+    } catch (error) {
+      logger.error("Study plan generation error:", error);
+      res.status(500).json({ message: "Failed to generate study plan" });
+    }
+  });
+
+  // POST /api/ai/performance-analysis — Analyze student performance
+  app.post("/api/ai/performance-analysis", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      const studentId = req.session?.userId;
+      if (!studentId) return res.status(401).json({ message: "Unauthorized" });
+
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+      const results = await MongoTestAttempt.aggregate([
+        { $match: { studentId, status: "evaluated", endTime: { $gte: ninetyDaysAgo } } },
+        {
+          $lookup: {
+            from: "tests",
+            localField: "testId",
+            foreignField: "id",
+            as: "test"
+          }
+        },
+        { $unwind: "$test" },
+        { $sort: { endTime: 1 } }
+      ]);
+
+      if (results.length < 3) {
+        return res.json({ error: "Not enough data yet. Performance insights will appear after a few tests." });
+      }
+
+      const resultSummary = results.map(r => 
+        `${r.test.subject} | Score: ${r.score}/${r.test.totalMarks} | Date: ${r.endTime.toLocaleDateString()} | Retake: ${r.isRetake ? 'yes' : 'no'}`
+      ).join("\n");
+
+      const prompt = `You are a learning analyst. Here is a student's test performance over the last 90 days:\n${resultSummary}\nIdentify:\n1. Subjects showing consistent improvement\n2. Subjects showing decline or stagnation\n3. One specific actionable recommendation\n4. Overall trend in 1 sentence\nBe direct. No filler phrases. Return as JSON: { "improving": ["subject"], "declining": ["subject"], "recommendation": "string", "summary": "string" }`;
+
+      const response = await aiChat([{ role: "user", content: prompt }], "You are a learning analyst. Respond only with valid JSON.");
+      const analysis = JSON.parse(response.content);
+      res.json(analysis);
+    } catch (error) {
+      logger.error("Performance analysis error:", error);
+      res.status(500).json({ message: "Failed to analyze performance" });
     }
   });
 
@@ -892,7 +1164,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 
       // Only owner or teacher can add members
-      if (workspace.ownerId !== req.session.userId && req.session.role !== "teacher") {
+      if (workspace.ownerId !== req.session.userId && (req.session.role || "") !== "teacher") {
         return res.status(403).json({ message: "Only the workspace owner or teachers can add members" });
       }
 
@@ -918,7 +1190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const workspace = await storage.getWorkspace(workspaceId);
       if (!workspace) return res.status(404).json({ message: "Workspace not found" });
 
-      if (workspace.ownerId !== req.session.userId && req.session.role !== "teacher") {
+      if (workspace.ownerId !== req.session.userId && (req.session.role || "") !== "teacher") {
         return res.status(403).json({ message: "Only the workspace owner or teachers can remove members" });
       }
 
@@ -935,7 +1207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/workspaces/:id/channels", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
-      if (req.session.role !== "teacher") {
+      if ((req.session.role || "") !== "teacher") {
         return res.status(403).json({ message: "Only teachers can create channels" });
       }
 
@@ -1152,7 +1424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/channels/:id/pin/:messageId", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
-      if (req.session.role !== "teacher") {
+      if ((req.session.role || "") !== "teacher") {
         return res.status(403).json({ message: "Only teachers can pin messages" });
       }
 
@@ -1172,7 +1444,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/channels/:id/pin/:messageId", authenticateToken, async (req: Request, res: Response) => {
     try {
       if (!req.session?.userId) return res.status(401).json({ message: "Not authenticated" });
-      if (req.session.role !== "teacher") {
+      if ((req.session.role || "") !== "teacher") {
         return res.status(403).json({ message: "Only teachers can unpin messages" });
       }
 
@@ -1256,7 +1528,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // POST /api/messages/:id/grade — Grade homework (teachers only)
   app.post("/api/messages/:id/grade", authenticateToken, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || req.session.role !== "teacher") {
+      if (!req.session?.userId || (req.session.role || "") !== "teacher") {
         return res.status(401).json({ message: "Only teachers can grade homework" });
       }
 
@@ -1335,7 +1607,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         const url = diskPathToUrl(req.file.path);
-        console.log(`[upload] User ${req.session!.userId} uploaded ${req.file.originalname} → ${url}`);
+        logger.info(`[upload] file uploaded`, { userId: req.session!.userId });
 
         return res.status(200).json({
           url,
@@ -1391,7 +1663,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           status: (role === "teacher") ? "pending" : "active",
         });
         await mongoUser.save();
-        console.log(`[auth/firebase] Created new user ${email} (id=${id}) with role ${mongoUser.role}`);
+        logger.info(`[auth/firebase] Created new user`, { id, role: mongoUser.role });
       } else if (!mongoUser.firebaseUid) {
         mongoUser.firebaseUid = uid;
         if (picture && !mongoUser.avatar) mongoUser.avatar = picture;
@@ -1465,7 +1737,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
 
         workspaces = await storage.getWorkspaces(userId);
-        console.log(`[chat/conversations] Seeded workspace for user ${userId}`);
+        logger.info(`[chat/conversations] Seeded workspace`, { userId });
       }
 
       // Gather all channels across workspaces
@@ -1532,11 +1804,174 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ─── Analytics & Progress API ────────────────────────────────────────────
+
+  // GET /api/analytics/student/:studentId — Real test scores by subject
+  app.get("/api/analytics/student/:studentId", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const studentId = parseInt(req.params.studentId);
+      if (isNaN(studentId)) {
+        return res.status(400).json({ message: "Invalid student ID" });
+      }
+
+      // Authorization: students can only view their own, teachers/admins can view any
+      if (req.session.role === "student" && req.session.userId !== studentId) {
+        return res.status(403).json({ message: "Forbidden: Can only view your own analytics" });
+      }
+
+      // Get all test attempts for this student with status 'completed' or 'evaluated'
+      const { MongoTestAttempt, MongoTest } = await import("@shared/mongo-schema");
+      const attempts = await MongoTestAttempt.find({
+        studentId,
+        status: { $in: ["completed", "evaluated"] },
+        score: { $ne: null }
+      }).lean();
+
+      if (attempts.length === 0) {
+        return res.status(200).json([]);
+      }
+
+      // Get test details to extract subjects
+      const testIds = attempts.map((a: any) => a.testId);
+      const tests = await MongoTest.find({ id: { $in: testIds } }).lean();
+      const testMap = new Map(tests.map((t: any) => [t.id, t]));
+
+      // Group by subject and calculate average
+      const subjectScores = new Map<string, { total: number; count: number }>();
+      
+      for (const attempt of attempts) {
+        const test = testMap.get((attempt as any).testId);
+        if (test && (attempt as any).score != null) {
+          const subject = (test as any).subject;
+          const current = subjectScores.get(subject) || { total: 0, count: 0 };
+          current.total += (attempt as any).score;
+          current.count += 1;
+          subjectScores.set(subject, current);
+        }
+      }
+
+      // Format response
+      const result = Array.from(subjectScores.entries()).map(([subject, data]) => ({
+        subject,
+        avgScore: Math.round((data.total / data.count) * 100) / 100
+      }));
+
+      res.status(200).json(result);
+    } catch (error) {
+      console.error("[api/analytics/student] Error:", error);
+      res.status(500).json({ message: "Failed to fetch analytics" });
+    }
+  });
+
+  // GET /api/progress/student/:studentId — Month-by-month progress
+  app.get("/api/progress/student/:studentId", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const studentId = parseInt(req.params.studentId);
+      if (isNaN(studentId)) {
+        return res.status(400).json({ message: "Invalid student ID" });
+      }
+
+      // Authorization
+      if (req.session.role === "student" && req.session.userId !== studentId) {
+        return res.status(403).json({ message: "Forbidden: Can only view your own progress" });
+      }
+
+      const { MongoTestAttempt } = await import("@shared/mongo-schema");
+      
+      // Aggregate by month
+      const results = await MongoTestAttempt.aggregate([
+        {
+          $match: {
+            studentId,
+            status: { $in: ["completed", "evaluated"] },
+            score: { $ne: null },
+            endTime: { $ne: null }
+          }
+        },
+        {
+          $addFields: {
+            month: {
+              $dateToString: { format: "%Y-%m", date: "$endTime" }
+            }
+          }
+        },
+        {
+          $group: {
+            _id: "$month",
+            avgScore: { $avg: "$score" }
+          }
+        },
+        {
+          $sort: { _id: 1 }
+        }
+      ]);
+
+      const formatted = results.map((r: any) => ({
+        month: r._id,
+        avgScore: Math.round(r.avgScore * 100) / 100
+      }));
+
+      res.status(200).json(formatted);
+    } catch (error) {
+      console.error("[api/progress/student] Error:", error);
+      res.status(500).json({ message: "Failed to fetch progress" });
+    }
+  });
+
+  // GET /api/admin/stats — Real school-wide statistics
+  app.get("/api/admin/stats", authenticateToken, async (req: Request, res: Response) => {
+    try {
+      if (!req.session?.userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      // Only admin/principal/school_admin can access
+      if (!["admin", "principal", "school_admin"].includes(req.session.role || "")) {
+        return res.status(403).json({ message: "Forbidden: Admin access required" });
+      }
+
+      const { MongoUser, MongoTest, MongoTestAttempt } = await import("@shared/mongo-schema");
+
+      // Calculate start of current month
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+      // Run queries in parallel
+      const [studentCount, teacherCount, testsThisMonth, submissionsThisMonth] = await Promise.all([
+        MongoUser.countDocuments({ role: "student" }),
+        MongoUser.countDocuments({ role: "teacher" }),
+        MongoTest.countDocuments({ createdAt: { $gte: startOfMonth } }),
+        MongoTestAttempt.countDocuments({
+          status: { $in: ["completed", "evaluated"] },
+          endTime: { $gte: startOfMonth }
+        })
+      ]);
+
+      res.status(200).json({
+        totalStudents: studentCount,
+        totalTeachers: teacherCount,
+        testsThisMonth,
+        submissionsThisMonth
+      });
+    } catch (error) {
+      console.error("[api/admin/stats] Error:", error);
+      res.status(500).json({ message: "Failed to fetch admin stats" });
+    }
+  });
+
   // ─── School Admin API ─────────────────────────────────────────────────────
 
   app.get("/api/school/teachers", authenticateToken, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin")) {
+      if (!req.session?.userId || ((req.session.role || "") !== "school_admin" && (req.session.role || "") !== "admin")) {
         return res.status(403).json({ message: "Forbidden: Access restricted to school administrators" });
       }
 
@@ -1559,7 +1994,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/school/teachers/:id/approve", authenticateToken, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId || (req.session.role !== "school_admin" && req.session.role !== "admin")) {
+      if (!req.session?.userId || ((req.session.role || "") !== "school_admin" && (req.session.role || "") !== "admin")) {
         return res.status(403).json({ message: "Forbidden: Access restricted to school administrators" });
       }
 
@@ -1789,12 +2224,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // GET /api/analytics/students — per-student analytics aggregation
+  // GET /api/analytics/students — per-student analytics aggregation
   app.get("/api/analytics/students", authenticateToken, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+      if (!req.session?.userId || !["teacher", "admin", "principal"].includes(req.session.role || "")) {
+        return res.status(403).json({ message: "Forbidden: Insufficient permissions" });
       }
-
       // Get all students
       const students = await storage.getUsers("student");
       if (!students || students.length === 0) {
