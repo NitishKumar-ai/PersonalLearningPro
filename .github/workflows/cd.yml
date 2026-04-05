@@ -19,6 +19,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Validate lockfile before deployment
+        run: |
+          npm install --package-lock-only --dry-run
+          if ! git diff --exit-code package-lock.json; then
+            echo "❌ Deployment blocked: package-lock.json is out of sync"
+            exit 1
+          fi
+
       - name: Log in to the Container registry
         uses: docker/login-action@v4.0.0
         with:
