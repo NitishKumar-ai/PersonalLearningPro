@@ -124,7 +124,7 @@ export interface IStorage {
   // Message operations
   createMessage(message: InsertMessage): Promise<Message>;
   getMessagesByChannel(channelId: number, limit?: number, before?: number): Promise<Message[]>;
-  deleteMessage(id: number): Promise<boolean>;
+  deleteMessage(id: number, channelId?: number): Promise<boolean>;
   pinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
   unpinMessage(channelId: number, messageId: number): Promise<Channel | undefined>;
   getPinnedMessages(channelId: number): Promise<Message[]>;

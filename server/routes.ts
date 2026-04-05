@@ -14,6 +14,7 @@ import messageRoutes from "./message/routes";
 import { liveRouter } from "./routes/live";
 import aiClassroomRoutes from "./routes/ai-classroom";
 import onboardingRoutes from "./routes/onboarding";
+import healthRoutes from "./routes/health";
 
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -125,10 +126,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Mount AI Classroom routes (OpenMAIC integration)
   app.use("/api/ai-classroom", authenticateToken, aiClassroomRoutes);
 
-  // Health check endpoint
-  app.get("/api/health", (_req, res) => {
-    res.json({ status: "ok", timestamp: new Date().toISOString() });
-  });
+  // Mount Health check routes
+  app.use("/api/health", healthRoutes);
 
   // Authentication routes (mostly handled by Firebase Client now)
   // We keep a small route for the client to tell the backend "I just registered in Firebase, create my Mongo document"
@@ -2225,12 +2224,12 @@ Return as JSON array: [{ "question": "text", "options": ["A","B","C","D"], "answ
   });
 
   // GET /api/analytics/students — per-student analytics aggregation
+  // GET /api/analytics/students — per-student analytics aggregation
   app.get("/api/analytics/students", authenticateToken, async (req: Request, res: Response) => {
     try {
-      if (!req.session?.userId) {
-        return res.status(401).json({ message: "Not authenticated" });
+      if (!req.session?.userId || !["teacher", "admin", "principal"].includes(req.session.role || "")) {
+        return res.status(403).json({ message: "Forbidden: Insufficient permissions" });
       }
-
       // Get all students
       const students = await storage.getUsers("student");
       if (!students || students.length === 0) {

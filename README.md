@@ -203,10 +203,23 @@ Every role sees their onboarding wizard until their stage is complete — then l
 │   └── message/     # MessagePal WebSocket + Cassandra layer
 ├── shared/          # Zod schemas + Mongoose models (shared)
 ├── docs/            # Architecture docs, API reference, changelogs
+│   ├── DATABASE.md  # Complete database schema & best practices
+│   └── DATABASE_IMPROVEMENTS.md  # Recent performance optimizations
 ├── k8s/             # Kubernetes manifests
 ├── terraform/       # Infrastructure as Code
 └── scripts/         # Seed scripts, CI utilities
 ```
+
+---
+
+## 📚 Documentation
+
+- **[Local Setup Guide](docs/LOCAL_SETUP.md)** - Get started in 5 minutes
+- **[Database Architecture](docs/DATABASE.md)** - Schema, indexes, and best practices
+- **[Database Improvements](docs/DATABASE_IMPROVEMENTS.md)** - Recent performance optimizations
+- **[Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute
+- **[API Reference](docs/)** - REST API documentation
+- **[Changelog](docs/CHANGELOG.md)** - Version history
 
 ---
 

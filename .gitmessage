@@ -1,0 +1,15 @@
+# Commit message template
+# 
+# Format: <type>: <subject>
+# 
+# Types: feat, fix, docs, style, refactor, test, chore
+# 
+# Example:
+# feat: add user authentication
+# 
+# - Implemented JWT-based auth
+# - Added login/logout endpoints
+# - Updated user schema
+# 
+# Co-authored-by: AI Assistant <ai@kiro.dev>
+# Co-authored-by: Gemini <gemini@google.com>
