@@ -28,11 +28,24 @@ app.use(express.urlencoded({ extended: false }));
 app.use(helmet({ contentSecurityPolicy: false })); // CSP handled by Vite in dev
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
-const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5001").split(",");
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5001").split(",").map(o => o.trim());
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) cb(null, true);
-    else cb(new Error("Not allowed by CORS"));
+    // Allow requests with no origin (same-origin requests, static files, etc.)
+    if (!origin) return cb(null, true);
+    
+    // Allow configured origins
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    
+    // In production, also allow the deployment domain
+    if (process.env.NODE_ENV === 'production') {
+      const url = new URL(origin);
+      if (url.hostname.endsWith('.onrender.com') || url.hostname === 'inmodel.in' || url.hostname.endsWith('.inmodel.in')) {
+        return cb(null, true);
+      }
+    }
+    
+    cb(new Error("Not allowed by CORS"));
   },
   credentials: true,
 }));
