@@ -1,35 +1,35 @@
----
-name: Pull Request
-about: Propose a change to the project
-title: ''
-labels: ''
-assignees: ''
-
----
-
 ## 📝 Description
-Provide a concise summary of the changes and the motivation behind them.
+<!-- Provide a brief description of the changes -->
 
-## 🔗 Related Issue
-Link to the issue(s) this PR addresses (e.g., Fixes #123, Closes #456).
-
-## 🛠️ Type of Change
-Please check the option that applies:
-- [ ] 🐛 Bug fix (non-breaking change which fixes an issue)
-- [ ] ✨ New feature (non-breaking change which adds functionality)
-- [ ] 💥 Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] 🧹 Refactoring / Tech Debt / Cleanup
+## 🎯 Type of Change
+- [ ] 🐛 Bug fix
+- [ ] ✨ New feature
+- [ ] 💥 Breaking change
 - [ ] 📚 Documentation update
+- [ ] 🎨 Code style/refactoring
+- [ ] ⚡ Performance improvement
+- [ ] 🔒 Security fix
 
-## ✅ Checklist:
-- [ ] I have read the [CONTRIBUTING](docs/CONTRIBUTING.md) document.
-- [ ] I have performed a self-review of my own code.
-- [ ] I have commented my code, particularly in hard-to-understand areas.
-- [ ] I have made corresponding changes to the documentation.
-- [ ] My changes generate no new warnings.
-- [ ] I have added tests that prove my fix is effective or that my feature works.
-- [ ] New and existing unit tests pass locally with my changes.
-- [ ] I have verified the changes in a staging environment (if applicable).
+## 🧪 Testing
+<!-- Describe the tests you ran and how to reproduce them -->
+- [ ] Unit tests added/updated
+- [ ] Integration tests added/updated
+- [ ] Manual testing completed
 
 ## 📸 Screenshots (if applicable)
-Add any visual changes here to help reviewers.
+<!-- Add screenshots for UI changes -->
+
+## ✅ Checklist
+- [ ] Code follows project style guidelines
+- [ ] Self-review completed
+- [ ] Comments added for complex logic
+- [ ] Documentation updated
+- [ ] No new warnings generated
+- [ ] Tests pass locally
+- [ ] Dependent changes merged
+
+## 🔗 Related Issues
+<!-- Link related issues: Fixes #123, Closes #456 -->
+
+## 📋 Additional Notes
+<!-- Any additional information for reviewers -->
