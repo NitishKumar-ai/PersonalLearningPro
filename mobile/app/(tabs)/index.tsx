@@ -81,6 +81,19 @@ export default function DashboardScreen() {
             Quick Actions
           </Text>
           <View className="space-y-3">
+            <Pressable
+              className="bg-white rounded-lg p-4 shadow-sm flex-row items-center justify-between"
+              onPress={() => router.push('/analytics')}
+            >
+              <View className="flex-row items-center">
+                <View className="bg-blue-100 rounded-full p-2 mr-3">
+                  <Ionicons name="bar-chart" size={24} color="#3B82F6" />
+                </View>
+                <Text className="text-gray-900 font-medium">Analytics</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+            </Pressable>
+
             <Pressable className="bg-white rounded-lg p-4 shadow-sm flex-row items-center justify-between">
               <View className="flex-row items-center">
                 <View className="bg-blue-100 rounded-full p-2 mr-3">
@@ -101,7 +114,10 @@ export default function DashboardScreen() {
               <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
             </Pressable>
 
-            <Pressable className="bg-white rounded-lg p-4 shadow-sm flex-row items-center justify-between">
+            <Pressable
+              className="bg-white rounded-lg p-4 shadow-sm flex-row items-center justify-between"
+              onPress={() => router.push('/study-plans')}
+            >
               <View className="flex-row items-center">
                 <View className="bg-purple-100 rounded-full p-2 mr-3">
                   <Ionicons name="calendar" size={24} color="#8B5CF6" />
