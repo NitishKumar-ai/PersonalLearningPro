@@ -4,19 +4,27 @@ Welcome, AI agent! 🧠 This file provides the essential context and instruction
 
 ## 🚀 Build & Test
 
+### Web App
 - **📦 Install Dependencies:** `npm install`
 - **💻 Development Server:** `npm run dev` (Vite frontend + Express backend)
 - **🧪 Run Tests:** `npm test` (Vitest)
 - **🧹 Linting:** `npm run lint`
 - **⚙️ Type Checking:** `npm run check`
 
+### Mobile App (React Native)
+- **📦 Install Dependencies:** `cd mobile && npm install`
+- **📱 Start Expo:** `npx expo start` (then press 'i' for iOS or 'a' for Android)
+- **📖 Migration Docs:** See `.agent/spec/react-native-migration/` for full specification
+
 ## 📂 Project Structure
 
-- `client/`: 🎨 React + Vite + Tailwind frontend.
+- `client/`: 🎨 React + Vite + Tailwind frontend (web).
+- `mobile/`: 📱 React Native + Expo mobile app (iOS/Android) - **IN PROGRESS**
 - `server/`: 🖥️ Express backend with Firebase, Cassandra, and MongoDB integration.
-- `shared/`: 🧩 Shared schemas and types.
+- `shared/`: 🧩 Shared schemas and types (used by web, mobile, and server).
 - `.agent/`: 🛠️ Modular agent-specific context and workflows.
   - `spec/`: 📋 Requirements, designs, and tasks.
+    - `react-native-migration/`: 📱 Mobile app migration specification
   - `prompts/`: 📜 Specialized workflows (e.g., `spec-workflow.md`).
   - `wiki/`: 📖 Architecture and deep-dive documentation.
   - `rules/`: ⚖️ Coding and behavioral policies.
@@ -34,7 +42,8 @@ Refer to `.agent/prompts/spec-workflow.md` for the full instruction set. 📜
 
 ## ⚖️ Coding Conventions
 
-- **🎨 Frontend:** React (TypeScript), Tailwind CSS, Lucide icons, Shadcn UI components.
+- **🎨 Frontend (Web):** React (TypeScript), Tailwind CSS, Lucide icons, Shadcn UI components.
+- **📱 Frontend (Mobile):** React Native (TypeScript), NativeWind, Expo Router, React Native Paper.
 - **🖥️ Backend:** Express (TypeScript), Zod for validation, ESR (Error-Success-Response) patterns.
 - **🧪 Testing:** Unit tests with Vitest, property-based tests with fast-check.
 - **💾 Persistence:**
