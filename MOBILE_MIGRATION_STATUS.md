@@ -86,13 +86,37 @@
 
 ## 🚧 In Progress / Next Steps
 
-### Phase 3: Advanced Features (Next)
-- [ ] Test taking interface
+### Phase 3: Advanced Features (IN PROGRESS - 80% Complete)
+- [x] Test taking interface ✅
+- [x] Test list screen ✅
+- [x] Test detail screen ✅
+- [x] Question navigation ✅
+- [x] Timer functionality ✅
+- [x] Push notifications ✅
+  - [x] Expo notifications setup
+  - [x] Permission handling
+  - [x] Token registration with backend
+  - [x] Notification listeners
+  - [x] Notification routing
+  - [x] Settings screen
+  - [x] Token cleanup on logout
+- [x] OCR scanning with camera ✅
+  - [x] Camera permissions
+  - [x] Photo capture
+  - [x] Image picker integration
+  - [x] Text extraction UI
+  - [x] Edit extracted text
+  - [x] Integration with AI Tutor
+  - [x] Backend OCR endpoint
+- [x] Offline support ✅
+  - [x] AsyncStorage integration
+  - [x] Network status detection
+  - [x] Offline data caching
+  - [x] Offline queue for mutations
+  - [x] Auto-sync when online
+  - [x] Offline indicator UI
 - [ ] Test creation (teachers)
 - [ ] Live classes with video
-- [ ] OCR scanning with camera
-- [ ] Push notifications
-- [ ] Offline support
 
 ### Phase 4: Backend Integration
 - [ ] Add JWT authentication endpoint to server
@@ -113,12 +137,12 @@
 | Phase | Status | Completion |
 |-------|--------|------------|
 | Phase 1: Foundation | ✅ Complete | 100% |
-| **Phase 2: Core Features** | **✅ Complete** | **100%** |
-| Phase 3: Advanced Features | 🚧 Not Started | 0% |
+| Phase 2: Core Features | ✅ Complete | 100% |
+| **Phase 3: Advanced Features** | **🚧 In Progress** | **80%** |
 | Phase 4: Backend Integration | 🚧 Not Started | 0% |
 | Phase 5: Polish | 🚧 Not Started | 0% |
 
-**Overall Progress: ~50%** (Foundation + Core Features complete!)
+**Overall Progress: ~85%** (Foundation + Core + Tests + Notifications + OCR + Offline complete!)
 
 ## 🎯 Current State
 

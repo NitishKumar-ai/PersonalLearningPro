@@ -104,7 +104,10 @@ export default function DashboardScreen() {
               <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
             </Pressable>
 
-            <Pressable className="bg-white rounded-lg p-4 shadow-sm flex-row items-center justify-between">
+            <Pressable
+              className="bg-white rounded-lg p-4 shadow-sm flex-row items-center justify-between"
+              onPress={() => router.push('/tests')}
+            >
               <View className="flex-row items-center">
                 <View className="bg-green-100 rounded-full p-2 mr-3">
                   <Ionicons name="document-text" size={24} color="#10B981" />
@@ -123,6 +126,19 @@ export default function DashboardScreen() {
                   <Ionicons name="calendar" size={24} color="#8B5CF6" />
                 </View>
                 <Text className="text-gray-900 font-medium">Study Plan</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+            </Pressable>
+
+            <Pressable
+              className="bg-white rounded-lg p-4 shadow-sm flex-row items-center justify-between"
+              onPress={() => router.push('/ocr-scanner')}
+            >
+              <View className="flex-row items-center">
+                <View className="bg-orange-100 rounded-full p-2 mr-3">
+                  <Ionicons name="scan" size={24} color="#F97316" />
+                </View>
+                <Text className="text-gray-900 font-medium">Scan Document</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
             </Pressable>

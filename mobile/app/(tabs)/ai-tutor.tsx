@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import api from '../../lib/api';
 import ReactMarkdown from 'react-native-markdown-display';
 
@@ -21,6 +22,9 @@ interface Message {
 }
 
 export default function AITutorScreen() {
+  const params = useLocalSearchParams();
+  const initialMessage = params.initialMessage as string | undefined;
+  
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -32,6 +36,19 @@ export default function AITutorScreen() {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const flatListRef = useRef<FlatList>(null);
+  const hasProcessedInitialMessage = useRef(false);
+
+  // Handle initial message from OCR or other sources
+  useEffect(() => {
+    if (initialMessage && !hasProcessedInitialMessage.current) {
+      hasProcessedInitialMessage.current = true;
+      setInput(initialMessage);
+      // Auto-send after a short delay
+      setTimeout(() => {
+        handleSendMessage(initialMessage);
+      }, 500);
+    }
+  }, [initialMessage]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -42,14 +59,14 @@ export default function AITutorScreen() {
     }
   }, [messages]);
 
-  const handleSend = async () => {
-    const messageText = input.trim();
-    if (!messageText || isTyping) return;
+  const handleSendMessage = async (messageText?: string) => {
+    const textToSend = (messageText || input).trim();
+    if (!textToSend || isTyping) return;
 
     const userMsg: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: messageText,
+      content: textToSend,
       timestamp: new Date(),
     };
 
@@ -86,6 +103,8 @@ export default function AITutorScreen() {
       setIsTyping(false);
     }
   };
+
+  const handleSend = () => handleSendMessage();
 
   const renderMessage = ({ item }: { item: Message }) => {
     const isUser = item.role === 'user';
