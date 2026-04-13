@@ -1,4 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { logError } from './error-tracking';
+import { TIME_CONSTANTS } from '../constants/time';
 
 // Storage keys
 const KEYS = {
@@ -17,7 +19,7 @@ export async function saveData<T>(key: string, data: T): Promise<void> {
     const jsonValue = JSON.stringify(data);
     await AsyncStorage.setItem(key, jsonValue);
   } catch (error) {
-    console.error(`Error saving data for key ${key}:`, error);
+    logError(error as Error, { key, operation: 'saveData' });
     throw error;
   }
 }
@@ -27,7 +29,7 @@ export async function getData<T>(key: string): Promise<T | null> {
     const jsonValue = await AsyncStorage.getItem(key);
     return jsonValue != null ? JSON.parse(jsonValue) : null;
   } catch (error) {
-    console.error(`Error getting data for key ${key}:`, error);
+    logError(error as Error, { key, operation: 'getData' });
     return null;
   }
 }
@@ -36,7 +38,7 @@ export async function removeData(key: string): Promise<void> {
   try {
     await AsyncStorage.removeItem(key);
   } catch (error) {
-    console.error(`Error removing data for key ${key}:`, error);
+    logError(error as Error, { key, operation: 'removeData' });
     throw error;
   }
 }
@@ -45,7 +47,7 @@ export async function clearAllData(): Promise<void> {
   try {
     await AsyncStorage.clear();
   } catch (error) {
-    console.error('Error clearing all data:', error);
+    logError(error as Error, { operation: 'clearAllData' });
     throw error;
   }
 }
@@ -115,7 +117,7 @@ export async function addToOfflineQueue(mutation: Omit<QueuedMutation, 'id' | 't
     queue.push(newMutation);
     await saveData(KEYS.OFFLINE_QUEUE, queue);
   } catch (error) {
-    console.error('Error adding to offline queue:', error);
+    logError(error as Error, { operation: 'addToOfflineQueue', mutation });
     throw error;
   }
 }
@@ -131,7 +133,7 @@ export async function removeFromOfflineQueue(id: string): Promise<void> {
     const updatedQueue = queue.filter(item => item.id !== id);
     await saveData(KEYS.OFFLINE_QUEUE, updatedQueue);
   } catch (error) {
-    console.error('Error removing from offline queue:', error);
+    logError(error as Error, { operation: 'removeFromOfflineQueue', id });
     throw error;
   }
 }
@@ -154,8 +156,7 @@ export async function isDataStale(): Promise<boolean> {
   const lastSync = await getLastSyncTime();
   if (!lastSync) return true;
   
-  const fiveMinutes = 5 * 60 * 1000;
-  return Date.now() - lastSync > fiveMinutes;
+  return Date.now() - lastSync > TIME_CONSTANTS.FIVE_MINUTES;
 }
 
 // Export all keys for reference
