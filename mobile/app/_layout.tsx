@@ -11,6 +11,8 @@ import { registerForPushNotifications, setCurrentPushToken } from '../lib/notifi
 import { api } from '../lib/api';
 import { setupAutoSync } from '../lib/offline-api';
 import { OfflineIndicator } from '../components/offline-indicator';
+import { ErrorBoundary } from '../components/error-boundary';
+import { errorTracker, setUserContext, clearUserContext } from '../lib/error-tracking';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -29,6 +31,9 @@ export default function RootLayout() {
   const responseListener = useRef<any>();
 
   useEffect(() => {
+    // Initialize error tracking
+    errorTracker.initialize();
+
     // Setup offline sync
     setupAutoSync();
 
@@ -40,24 +45,28 @@ export default function RootLayout() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setIsLoading(false);
       
-      // Register for push notifications when user logs in
       if (user) {
+        // Set user context for error tracking
+        setUserContext(user.uid, user.email || undefined, user.displayName || undefined);
+
+        // Register for push notifications
         const token = await registerForPushNotifications();
         if (token) {
           try {
-            // Send token to backend
             await api.post('/api/push-tokens', {
               token,
               deviceType: 'mobile',
             });
             setCurrentPushToken(token);
-            console.log('Push token registered with backend');
           } catch (error) {
-            console.error('Failed to register push token with backend:', error);
+            if (__DEV__) {
+              console.error('Failed to register push token with backend:', error);
+            }
           }
         }
       } else {
-        // User logged out - token cleanup is handled in logout function
+        // Clear user context on logout
+        clearUserContext();
         setCurrentPushToken(null);
       }
     });
@@ -65,13 +74,17 @@ export default function RootLayout() {
     // Setup notification listeners
     notificationListener.current = Notifications.addNotificationReceivedListener(
       (notification) => {
-        console.log('Notification received:', notification);
+        if (__DEV__) {
+          console.log('Notification received:', notification);
+        }
       }
     );
 
     responseListener.current = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        console.log('Notification tapped:', response);
+        if (__DEV__) {
+          console.log('Notification tapped:', response);
+        }
         
         // Handle notification routing
         const data = response.notification.request.content.data;
@@ -103,16 +116,18 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <PaperProvider>
-        <StatusBar style="auto" />
-        <OfflineIndicator />
-        <Stack screenOptions={{ headerShown: false }}>
-          <Stack.Screen name="index" />
-          <Stack.Screen name="(auth)" />
-          <Stack.Screen name="(tabs)" />
-        </Stack>
-      </PaperProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <PaperProvider>
+          <StatusBar style="auto" />
+          <OfflineIndicator />
+          <Stack screenOptions={{ headerShown: false }}>
+            <Stack.Screen name="index" />
+            <Stack.Screen name="(auth)" />
+            <Stack.Screen name="(tabs)" />
+          </Stack>
+        </PaperProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
