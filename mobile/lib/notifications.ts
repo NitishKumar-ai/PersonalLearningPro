@@ -14,7 +14,9 @@ Notifications.setNotificationHandler({
 
 export async function registerForPushNotifications(): Promise<string | null> {
   if (!Device.isDevice) {
-    console.log('Push notifications only work on physical devices');
+    if (__DEV__) {
+      console.log('Push notifications only work on physical devices');
+    }
     return null;
   }
 
@@ -28,7 +30,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
     }
 
     if (finalStatus !== 'granted') {
-      console.log('Failed to get push token for push notification!');
+      if (__DEV__) {
+        console.log('Failed to get push token for push notification!');
+      }
       return null;
     }
 
@@ -37,7 +41,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
       projectId,
     });
 
-    console.log('Push token:', token.data);
+    if (__DEV__) {
+      console.log('Push token:', token.data);
+    }
 
     // Configure Android channel
     if (Platform.OS === 'android') {
@@ -51,7 +57,9 @@ export async function registerForPushNotifications(): Promise<string | null> {
 
     return token.data;
   } catch (error) {
-    console.error('Error registering for push notifications:', error);
+    if (__DEV__) {
+      console.error('Error registering for push notifications:', error);
+    }
     return null;
   }
 }
