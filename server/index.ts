@@ -29,10 +29,35 @@ app.use(helmet({ contentSecurityPolicy: false })); // CSP handled by Vite in dev
 
 // ── CORS ──────────────────────────────────────────────────────────────────────
 const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5001").split(",");
+
+// Add mobile app origins
+const mobileOrigins = [
+  'exp://localhost:8081', // Expo Go development
+  'exp://192.168.*', // Expo Go on local network (wildcard pattern)
+  'capacitor://localhost', // Capacitor iOS
+  'http://localhost', // Capacitor Android
+];
+
 app.use(cors({
   origin: (origin, cb) => {
-    if (!origin || allowedOrigins.includes(origin)) cb(null, true);
-    else cb(new Error("Not allowed by CORS"));
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return cb(null, true);
+    
+    // Check exact matches
+    if (allowedOrigins.includes(origin)) return cb(null, true);
+    
+    // Check mobile origins
+    if (mobileOrigins.some(pattern => {
+      if (pattern.includes('*')) {
+        const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$');
+        return regex.test(origin);
+      }
+      return origin.startsWith(pattern);
+    })) {
+      return cb(null, true);
+    }
+    
+    cb(new Error("Not allowed by CORS"));
   },
   credentials: true,
 }));
